@@ -4,7 +4,15 @@
     "main": "./dist/index.js",
     "license": "CC-BY-SA-4.0",
     "private": true,
-    "scripts": {},
+    "scripts": {
+        "dev": "nodemon ./src/index.ts --devmode",
+        "start": "yarn build && node .",
+        "lint": "eslint --ext .ts src --max-warnings=0",
+        "build": "tsc",
+        "test": "jest",
+        "typecheck": "tsc --noEmit",
+        "check-all": "yarn test && yarn lint && yarn typecheck"
+    },
     "devDependencies": {
         "@babel/core": "^7.16.12",
         "@babel/preset-env": "^7.16.11",
