@@ -6,7 +6,7 @@
     "private": true,
     "scripts": {
         "dev": "nodemon ./src/index.ts --devmode",
-        "start": "yarn build && node .",
+        "start": "node .",
         "lint": "eslint --ext .ts src --max-warnings=0",
         "build": "tsc",
         "test": "jest",
