@@ -39,7 +39,7 @@ const defaultColourArray: Colours[] = [
     Colours.FgCyan,
 ];
 
-export function* colourCycle(colourArray: Colours[] = defaultColourArray) {
+export function* colourCycle(colourArray: Colours[] = defaultColourArray): Generator<Colours> {
     let index = 0;
 
     while (true) {

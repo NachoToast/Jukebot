@@ -14,10 +14,11 @@ module.exports = {
         'linebreak-style': ['error', 'unix'],
         quotes: ['error', 'single', { avoidEscape: true }],
         semi: 'off',
-        // '@typescript-eslint/no-non-null-assertion': 'off',
         'no-var': 'error',
         'default-case-last': 'error',
         camelcase: 'error',
         // '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'explicit' }],
+        '@typescript-eslint/explicit-module-boundary-types': ['error'],
     },
 };
