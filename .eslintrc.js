@@ -20,5 +20,6 @@ module.exports = {
         // '@typescript-eslint/no-var-requires': 'off',
         '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'explicit' }],
         '@typescript-eslint/explicit-module-boundary-types': ['error'],
+        'max-len': ['error', 120, { ignoreTemplateLiterals: true, comments: 80 }],
     },
 };
