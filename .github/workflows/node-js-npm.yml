@@ -27,6 +27,6 @@ jobs:
                   cache: 'npm'
             - run: npm install
             - run: npm run build
-            - run: nmp run lint
+            - run: npm run lint
             - run: npm run typecheck
             - run: npm run test
