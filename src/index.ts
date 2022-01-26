@@ -1,1 +1,3 @@
-console.log('hello world!');
+import Client from './client/Client';
+
+new Client();
