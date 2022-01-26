@@ -119,7 +119,7 @@ class Client extends DiscordClient {
         if (this.devMode) {
             this.deployToGuild(token, deployableCommands);
         } else {
-            this.deployToGlobal();
+            this.deployToGlobal(token, deployableCommands);
         }
     }
 
@@ -145,8 +145,16 @@ class Client extends DiscordClient {
         // await rest.put(Routes.applicationGuildCommands(this.id));
     }
 
-    private async deployToGlobal(): Promise<void> {
+    private async deployToGlobal(token: string, body: RawSlashCommand[]): Promise<void> {
         // TODO: load global commands
+        const rest = new REST({ version: '9' }).setToken(token);
+
+        try {
+            await rest.put(Routes.applicationCommands(this.id), { body });
+        } catch (error) {
+            console.log('Failed to deploy slash commands globally');
+            process.exit();
+        }
     }
 }
 
