@@ -12,6 +12,6 @@ export interface CommandParams {
 export default abstract class Command {
     public abstract name: string;
     public abstract description: string;
-    public abstract build(): SlashCommandBuilder;
+    public abstract build(client: Client): SlashCommandBuilder;
     public abstract execute({ interaction, client }: CommandParams): Promise<void>;
 }

@@ -124,7 +124,7 @@ class Client extends DiscordClient {
 
         commands.map((command) => {
             this.commands.set(command.name, command);
-            deployableCommands.push(command.build().toJSON());
+            deployableCommands.push(command.build(this).toJSON());
 
             const colour = colourCycler.next().value;
 
