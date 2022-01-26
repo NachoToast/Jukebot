@@ -8,13 +8,12 @@ import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand } from 'disco
 import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 
-class Client extends DiscordClient {
+export class Client extends DiscordClient {
     public readonly devMode: boolean = process.argv.slice(2).includes('--devmode');
     public readonly config: Config;
+    public readonly commands: Collection<string, Command> = new Collection();
 
     private readonly _startTime = Date.now();
-
-    public readonly commands: Collection<string, Command> = new Collection();
 
     public constructor() {
         super({ intents });
