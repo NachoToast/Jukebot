@@ -1,6 +1,6 @@
 import Command from '../types/Command';
-import ping from './util/ping';
+import util from './util';
 
-const commandList: Command[] = [ping];
+const commandList: Command[] = [...util];
 
 export default commandList;
