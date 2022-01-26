@@ -6,9 +6,11 @@ import Command from '../types/Command';
 import { REST } from '@discordjs/rest';
 import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand } from 'discord-api-types';
 import { Routes } from 'discord-api-types/v9';
+import Config from '../types/Config';
 
 class Client extends DiscordClient {
     public readonly devMode: boolean = process.argv.slice(2).includes('--devmode');
+    public readonly config: Config;
 
     private readonly _startTime = Date.now();
 
@@ -16,6 +18,21 @@ class Client extends DiscordClient {
 
     public constructor() {
         super({ intents });
+
+        // loading config
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const config: Config = require('../../config.json');
+            this.config = config;
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('config.json')) {
+                console.log(`Missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
+            } else {
+                console.log('Unknown error occurred trying to read config');
+                console.log(error);
+            }
+            process.exit();
+        }
 
         this.on('ready', this.onReady);
         this.on('error', () => console.log('uh oh'));
