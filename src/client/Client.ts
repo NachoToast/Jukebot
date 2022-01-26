@@ -1,5 +1,4 @@
-import { CacheType, Client as DiscordClient, Collection, Interaction } from 'discord.js';
-import { ActivityTypes } from 'discord.js/typings/enums';
+import { Client as DiscordClient, Collection, Interaction } from 'discord.js';
 import Colours, { colourCycle } from '../types/Colours';
 import intents from './Intents';
 import commands from '../commands';
@@ -8,7 +7,7 @@ import { REST } from '@discordjs/rest';
 import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand } from 'discord-api-types';
 import { Routes } from 'discord-api-types/v9';
 
-export class Client extends DiscordClient {
+class Client extends DiscordClient {
     public readonly devMode: boolean = process.argv.slice(2).includes('--devmode');
 
     private readonly _startTime = Date.now();
@@ -85,10 +84,10 @@ export class Client extends DiscordClient {
             })`,
         );
 
-        this.user.setActivity('sus remixes', { type: ActivityTypes.LISTENING });
+        this.user.setActivity('sus remixes', { type: 'LISTENING' });
     }
 
-    private async onInteractionCreate(interaction: Interaction<CacheType>): Promise<void> {
+    private async onInteractionCreate(interaction: Interaction): Promise<void> {
         if (!interaction.isCommand()) return;
         const command = this.commands.get(interaction.commandName);
         if (command) {
