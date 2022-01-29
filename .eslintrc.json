@@ -20,16 +20,6 @@
         "semi": "off",
         "no-var": "error",
         "default-case-last": "error",
-        "camelcase": "error",
-        "@typescript-eslint/explicit-member-accessibility": [
-            "error",
-            { "accessibility": "explicit" }
-        ],
-        "@typescript-eslint/explicit-module-boundary-types": ["error"],
-        "@typescript-eslint/no-inferrable-types": [
-            "error",
-            { "ignoreParameters": true }
-        ],
         "max-len": [
             "error",
             {
@@ -40,6 +30,15 @@
                 "ignoreUrls": true
             }
         ],
-        "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }]
+        "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
+        "@typescript-eslint/explicit-member-accessibility": [
+            "error",
+            { "accessibility": "explicit" }
+        ],
+        "@typescript-eslint/explicit-module-boundary-types": ["error"],
+        "@typescript-eslint/no-inferrable-types": [
+            "error",
+            { "ignoreParameters": true }
+        ]
     }
 }
