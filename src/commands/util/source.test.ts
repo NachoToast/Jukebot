@@ -1,7 +1,10 @@
 import { Interaction, MessageActionRow, MessageButton } from 'discord.js';
 import { Jukebot } from '../../client/Client';
 import { CommandParams } from '../../types/Command';
+import Config from '../../types/Config';
 import { Source } from './source';
+
+jest.mock('../../client/Client');
 
 interface Output {
     content: string;
@@ -16,16 +19,17 @@ describe('/source', () => {
         ephemeral: false,
     };
 
-    const reply = (args: Output) => (output = { ...output, ...args });
-
-    const jukebot = { config: { sourceCode: 'https://example.com' } } as Jukebot;
+    const reply = (newOutput: Output) => (output = newOutput);
     const interaction = { reply } as unknown as Interaction;
-
-    const params = { jukebot, interaction } as CommandParams;
+    const params = { interaction } as CommandParams;
 
     const source = new Source();
 
     it('should make a button with the right link', async () => {
+        const sourceCode = 'example.com';
+
+        const mockSourceCode = jest.fn().mockReturnValue({ sourceCode });
+        Jukebot.config = mockSourceCode() as Config;
         await source.execute(params);
 
         const button = output.components[0].components[0];
@@ -35,6 +39,6 @@ describe('/source', () => {
         // so this is the next best thing
         expect(button.type).toBe(new MessageButton().type);
 
-        expect((button as MessageButton).url).toEqual(jukebot.config.sourceCode);
+        expect((button as MessageButton).url).toEqual(sourceCode);
     });
 });
