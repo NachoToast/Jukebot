@@ -79,7 +79,7 @@ describe('timeConverters', () => {
             );
             expect(numericalToString(stringToNumerical(numericalToString(60 * 60 * 1 + 60 * 1 + 1)))).toBe('1:01:01');
 
-            expect(numericalToString(stringToNumerical('3:33'))).toBe(3 * 60 + 33);
+            expect(stringToNumerical(numericalToString(stringToNumerical('3:33')))).toBe(3 * 60 + 33);
         });
     });
 });
