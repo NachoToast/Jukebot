@@ -33,7 +33,12 @@ module.exports = {
         ],
         'max-len': [
             'error',
-            { code: 120, ignoreStrings: true, ignoreTemplateLiterals: true },
+            {
+                code: 120,
+                comments: 85,
+                ignoreStrings: true,
+                ignoreTemplateLiterals: true,
+            },
         ],
     },
 };
