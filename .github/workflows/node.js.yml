@@ -14,6 +14,7 @@ on:
 
 jobs:
     build_yarn:
+        name: Yarn
         runs-on: ubuntu-latest
 
         strategy:
@@ -35,6 +36,7 @@ jobs:
             - run: yarn test
 
     build_npm:
+        name: NPM
         runs-on: ubuntu-latest
 
         strategy:
