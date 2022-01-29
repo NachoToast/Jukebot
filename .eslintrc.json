@@ -39,6 +39,37 @@
         "@typescript-eslint/no-inferrable-types": [
             "error",
             { "ignoreParameters": true }
+        ],
+        "camelcase": "off",
+        "@typescript-eslint/naming-convention": [
+          "error",
+          {
+            "selector": "default",
+            "format": ["camelCase"]
+          },
+          {
+            "selector": "variable",
+            "format": ["camelCase", "UPPER_CASE"]
+          },
+          {
+            "selector": "parameter",
+            "format": ["camelCase"],
+            "leadingUnderscore": "allow"
+          },
+          {
+            "selector": "classProperty",
+            "modifiers": ["private"],
+            "format": ["camelCase"],
+            "leadingUnderscore": "require"
+          },
+          {
+            "selector": "typeLike",
+            "format": ["PascalCase"]
+          },
+          {
+              "selector": "enumMember",
+              "format": ["PascalCase"]
+          }
         ]
     }
 }
