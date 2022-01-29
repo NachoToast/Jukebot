@@ -3,7 +3,14 @@
 
 name: Node.js CI
 
-on: [push, pull_request]
+on: 
+    push:
+        branches-ignore:
+          - "live"
+
+    pull_request:
+        branches-ignore:
+            - "live"
 
 jobs:
     build_yarn:
