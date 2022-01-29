@@ -1,3 +1,4 @@
 {
-    "sourceCode": "https://github.com/NachoToast/Jukebot"
+    "sourceCode": "https://github.com/NachoToast/Jukebot",
+    "readyTimeout": 10
 }

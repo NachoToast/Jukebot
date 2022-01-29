@@ -9,9 +9,9 @@ export class Source extends Command {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
 
-    public async execute({ interaction, client }: CommandParams): Promise<void> {
+    public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const row = new MessageActionRow().addComponents(
-            new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(client.config.sourceCode),
+            new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(jukebot.config.sourceCode),
         );
 
         await interaction.reply({ content: "Here's my source code!", components: [row], ephemeral: true });

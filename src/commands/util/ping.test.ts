@@ -1,15 +1,15 @@
 import { Interaction } from 'discord.js';
-import { Client } from '../../client/Client';
+import { Jukebot } from '../../client/Client';
 import { CommandParams } from '../../types/Command';
 import { Ping } from './ping';
 
 describe('/ping', () => {
     const reply = jest.fn();
 
-    const client = { ws: { ping: 123 } } as Client;
+    const jukebot = { client: { ws: { ping: 123 } } } as Jukebot;
     const interaction = { createdTimestamp: Date.now() - 1000, reply } as unknown as Interaction;
 
-    const params = { client, interaction } as CommandParams;
+    const params = { jukebot, interaction } as CommandParams;
 
     const ping = new Ping();
 

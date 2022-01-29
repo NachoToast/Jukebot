@@ -1,4 +1,4 @@
-import { Client as DiscordClient, Collection, Interaction } from 'discord.js';
+import { Client, Collection, Interaction } from 'discord.js';
 import Colours, { colourCycle } from '../types/Colours';
 import intents from './Intents';
 import commands from '../commands';
@@ -8,15 +8,18 @@ import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand } from 'disco
 import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 
-export class Client extends DiscordClient {
+export class Jukebot {
     public readonly devMode: boolean = process.argv.slice(2).includes('--devmode');
     public readonly config: Config;
-    public readonly commands: Collection<string, Command> = new Collection();
+    private readonly _commands: Collection<string, Command> = new Collection();
+    public readonly client: Client<true>;
 
     private readonly _startTime = Date.now();
 
+    // private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
+
     public constructor() {
-        super({ intents });
+        this.client = new Client({ intents });
 
         // loading config
         try {
@@ -25,122 +28,118 @@ export class Client extends DiscordClient {
             this.config = config;
         } catch (error) {
             if (error instanceof Error && error.message.includes('config.json')) {
-                console.log(`Missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
-            } else {
-                console.log('Unknown error occurred trying to read config');
-                console.log(error);
-            }
-            process.exit();
+                console.log(`missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
+            } else console.log(error);
+            process.exit(1);
         }
 
-        this.on('ready', this.onReady);
-        this.on('error', () => console.log('uh oh'));
-        this.on('interactionCreate', (int) => this.onInteractionCreate(int));
-        this.tryLogin();
+        this.start();
     }
 
-    private async tryLogin(): Promise<void> {
+    /** Attempts to log the client in, exiting the process if unable to do so.
+     *
+     * This is not done in the constructor since it is asynchronous.
+     */
+    private async start(): Promise<void> {
+        let loginToken: string;
+
+        // loading auth
         try {
-            let token: string;
-
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const { token: prodToken, devToken } = require('../../auth.json');
+            const { token, devToken } = require('../../auth.json');
+
             if (this.devMode) {
-                if (!devToken) {
-                    console.log(
-                        `Running in devmode with no auth token, add a ${Colours.FgCyan}devToken${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file.`,
-                    );
-                    process.exit();
-                }
-                token = devToken;
+                if (!devToken) throw new Error('devNoAuth');
+                loginToken = devToken;
             } else {
-                if (!prodToken) {
-                    console.log(
-                        `Running with no auth token, add a ${Colours.FgCyan}token${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file.`,
-                    );
-                    process.exit();
-                }
-                token = prodToken;
+                if (!token) throw new Error('prodNoAuth');
+                loginToken = token;
             }
-
-            await this.login(token);
-
-            this.loadCommands(token);
         } catch (error) {
-            if (error instanceof Error) {
-                if (error.name === 'Error [TOKEN_INVALID]') {
-                    console.log(`Invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
-                } else if (error.message.includes('auth.json')) {
-                    console.log(`Missing ${Colours.FgMagenta}auth.json${Colours.Reset} file in root directory`);
-                } else {
-                    console.log('Unknown error occurred trying to log in');
-                    console.log(error);
-                }
-            } else {
-                console.log('Unknown error occurred trying to log in');
-                console.log(error);
-            }
-            process.exit();
+            const isInstance = error instanceof Error;
+            if (isInstance && error.message.includes('auth.json')) {
+                console.log(`missing ${Colours.FgMagenta}auth.json${Colours.Reset} file in root directory`);
+            } else if (isInstance && error.message === 'devNoAuth') {
+                console.log(
+                    `running in devmode with no auth token, add a ${Colours.FgCyan}devToken${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
+                );
+            } else if (isInstance && error.message === 'prodNoAuth') {
+                console.log(
+                    `running with no auth token, add a ${Colours.FgCyan}token${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
+                );
+            } else console.log(error);
+            process.exit(1);
+        }
+
+        // add event listeners
+        this.client.once('ready', () => this.onReady(loginToken));
+        this.client.on('error', (err) => console.log(err));
+        this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
+
+        // logging in
+        const timeout = this.config.readyTimeout
+            ? setTimeout(() => {
+                  console.log(`took too long to login (max ${this.config.readyTimeout}s)`);
+                  process.exit(1);
+              }, this.config.readyTimeout * 1000)
+            : null;
+        try {
+            await this.client.login(loginToken);
+            if (timeout) clearTimeout(timeout);
+        } catch (error) {
+            if (error instanceof Error && error.message === 'TOKEN_INVALID') {
+                console.log(`invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
+            } else console.log(error);
+            process.exit(1);
         }
     }
 
-    public get id(): string {
-        return this.user?.id || '';
-    }
-
-    private async onReady(): Promise<void> {
-        if (!this.user) {
-            console.log(`Unable to log in as user, ${Colours.FgRed}this should never happen!${Colours.Reset}`);
-            process.exit();
-        }
-
+    private async onReady(token: string): Promise<void> {
         console.log(
-            `${this.user.tag} logged in (${Colours.FgMagenta}${(Date.now() - this._startTime) / 1000}s${
+            `${this.client.user.tag} logged in (${Colours.FgMagenta}${(Date.now() - this._startTime) / 1000}s${
                 Colours.Reset
             })`,
         );
 
-        this.user.setActivity('sus remixes', { type: 'LISTENING' });
+        this.client.user.setActivity('sus remixes', { type: 'LISTENING' });
+
+        // loading commands
+        process.stdout.write(`Loading ${commands.length} Command${commands.length !== 1 ? 's' : ''}: `);
+        const colourCycler = colourCycle();
+        const toDeploy: RawSlashCommand[] = [];
+        commands.map((command) => {
+            this._commands.set(command.name, command);
+            toDeploy.push(command.build(this).toJSON());
+
+            const colour = colourCycler.next().value;
+            process.stdout.write(`${colour}${command.name}${Colours.Reset}, `);
+        });
+        process.stdout.write('\n');
+
+        // deploying commands
+        if (this.devMode) await this.guildDeploy(token, toDeploy);
+        else await this.globalDeploy(token, toDeploy);
     }
 
     private async onInteractionCreate(interaction: Interaction): Promise<void> {
         if (!interaction.isCommand()) return;
-        const command = this.commands.get(interaction.commandName);
-        if (command) {
-            await command.execute({ interaction, client: this });
+        const command = this._commands.get(interaction.commandName);
+        if (command && !true) {
+            try {
+                await command.execute({ interaction, jukebot: this });
+            } catch (error) {
+                console.log(error);
+            }
         } else {
-            interaction.reply(`Command ${interaction.commandName} not found, please report this to NachoToast`);
+            await interaction.reply({
+                content: `I don't have a command called ${interaction.commandName}, please report this error to NachoToast`,
+                ephemeral: true,
+            });
         }
     }
 
-    private async loadCommands(token: string): Promise<void> {
-        // command loading...
-        process.stdout.write(`Loading ${commands.length} Command${commands.length !== 1 ? 's' : ''}: `);
-
-        // const duplicateCommandsMessage: string[] = [];
-        const colourCycler = colourCycle();
-        const deployableCommands: RawSlashCommand[] = [];
-
-        commands.map((command) => {
-            this.commands.set(command.name, command);
-            deployableCommands.push(command.build(this).toJSON());
-
-            const colour = colourCycler.next().value;
-
-            process.stdout.write(`${colour}${command.name}${Colours.Reset}, `);
-        });
-
-        process.stdout.write('\n');
-
-        if (this.devMode) {
-            this.deployToGuild(token, deployableCommands);
-        } else {
-            this.deployToGlobal(token, deployableCommands);
-        }
-    }
-
-    private async deployToGuild(token: string, body: RawSlashCommand[]): Promise<void> {
-        const allGuilds = await this.guilds.fetch();
+    private async guildDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
+        const allGuilds = await this.client.guilds.fetch();
 
         const rest = new REST({ version: '9' }).setToken(token);
 
@@ -149,29 +148,48 @@ export class Client extends DiscordClient {
             if (!guild) continue;
 
             try {
-                await rest.put(Routes.applicationGuildCommands(this.id, guildID), { body });
-                console.log(
-                    `Successfully deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`,
-                );
+                await rest.put(Routes.applicationGuildCommands(this.client.user.id, guildID), { body });
+                console.log(`deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`);
             } catch (error) {
-                console.log(`Failed to deploy slash commands to ${Colours.FgRed}${guild.name}${Colours.FgRed}`);
+                console.log(error);
             }
         }
-
-        // await rest.put(Routes.applicationGuildCommands(this.id));
     }
 
-    private async deployToGlobal(token: string, body: RawSlashCommand[]): Promise<void> {
-        // TODO: load global commands
+    private async globalDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const rest = new REST({ version: '9' }).setToken(token);
 
         try {
-            await rest.put(Routes.applicationCommands(this.id), { body });
+            await rest.put(Routes.applicationCommands(this.client.user.id), { body });
         } catch (error) {
-            console.log('Failed to deploy slash commands globally');
-            process.exit();
+            console.log(error);
+            process.exit(1);
         }
     }
-}
 
-export default Client;
+    // public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
+    //     const existingBlock = this.getJukebox(interaction);
+    //     if (existingBlock) return existingBlock;
+
+    //     const newBlock = new Jukebox(interaction);
+    //     this._jukeboxes.set(interaction.guildId, newBlock);
+    //     return newBlock;
+    // }
+
+    // public getJukebox(interaction: GuildedInteraction): Jukebox | undefined {
+    //     return this._jukeboxes.get(interaction.guildId);
+    // }
+
+    // public async removeJukebox(interaction: GuildedInteraction): Promise<boolean> {
+    //     const foundJukebox = this._jukeboxes.get(interaction.channelId);
+    //     if (!foundJukebox) return false;
+
+    //     const deleted = this._jukeboxes.delete(interaction.channelId);
+    //     if (!deleted) {
+    //         console.error(`Failed to delete Jukebox for ${Colours.FgRed}${interaction.guild.name}${Colours.Reset}`);
+    //         return false;
+    //     }
+    //     await foundJukebox.destroy();
+    //     return true;
+    // }
+}

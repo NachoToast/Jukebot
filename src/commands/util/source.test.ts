@@ -1,5 +1,5 @@
 import { Interaction, MessageActionRow, MessageButton } from 'discord.js';
-import { Client } from '../../client/Client';
+import { Jukebot } from '../../client/Client';
 import { CommandParams } from '../../types/Command';
 import { Source } from './source';
 
@@ -18,10 +18,10 @@ describe('/source', () => {
 
     const reply = (args: Output) => (output = { ...output, ...args });
 
-    const client = { config: { sourceCode: 'https://example.com' } } as Client;
+    const jukebot = { config: { sourceCode: 'https://example.com' } } as Jukebot;
     const interaction = { reply } as unknown as Interaction;
 
-    const params = { client, interaction } as CommandParams;
+    const params = { jukebot, interaction } as CommandParams;
 
     const source = new Source();
 
@@ -33,8 +33,8 @@ describe('/source', () => {
 
         // we can't use the MessageComponentTypes enum in tests,
         // so this is the next best thing
-        expect(button.type).toEqual(new MessageButton().type);
+        expect(button.type).toBe(new MessageButton().type);
 
-        expect((button as MessageButton).url).toEqual(client.config.sourceCode);
+        expect((button as MessageButton).url).toEqual(jukebot.config.sourceCode);
     });
 });

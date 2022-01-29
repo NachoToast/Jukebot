@@ -7,10 +7,10 @@ export class Ping extends Command {
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
-    public async execute({ client, interaction }: CommandParams): Promise<void> {
+    public async execute({ jukebot, interaction }: CommandParams): Promise<void> {
         interaction.reply(
             `Pongers!\nMy latency: ${Math.abs(Date.now() - interaction.createdTimestamp)}ms\nAPI Latency: ${Math.round(
-                client.ws.ping,
+                jukebot.client.ws.ping,
             )}ms`,
         );
     }
