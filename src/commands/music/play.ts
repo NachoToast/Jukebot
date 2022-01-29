@@ -16,7 +16,7 @@ export class Play extends Command {
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         if (!interaction.guildId) {
-            await interaction.reply({ content: Messages.guildOnly, ephemeral: true });
+            await interaction.reply({ content: Messages.GuildOnly, ephemeral: true });
             return;
         }
         const guildedInteraction = interaction as GuildedInteraction;
@@ -30,7 +30,7 @@ export class Play extends Command {
         }
 
         if (!guildedInteraction.member.voice.channel) {
-            await interaction.reply({ content: Messages.notInVoice, ephemeral: true });
+            await interaction.reply({ content: Messages.NotInVoice, ephemeral: true });
             return;
         }
 
