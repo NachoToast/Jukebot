@@ -14,7 +14,7 @@ import { getConfig } from '../helpers/getConfig';
 export class Jukebot {
     public static config: Config = getConfig();
 
-    public readonly _devMode: boolean;
+    public readonly devMode: boolean;
     public readonly client: Client<true>;
     private readonly _commands: Collection<string, Command> = new Collection();
     private readonly _startTime = Date.now();
@@ -22,7 +22,7 @@ export class Jukebot {
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
 
     public constructor() {
-        this._devMode = process.argv.slice(2).includes('--devmode');
+        this.devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({ intents });
 
         this.start();
@@ -38,7 +38,7 @@ export class Jukebot {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { token, devToken } = require('../../auth.json');
 
-            if (this._devMode) {
+            if (this.devMode) {
                 if (!devToken) throw new Error('devNoAuth');
                 loginToken = devToken;
             } else {
@@ -107,7 +107,7 @@ export class Jukebot {
         process.stdout.write('\n');
 
         // deploying commands
-        if (this._devMode) await this.guildDeploy(token, toDeploy);
+        if (this.devMode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
     }
 
