@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a way to improve Jukebot
 title: ''
 labels: enhancement
 assignees: ''
