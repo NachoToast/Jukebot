@@ -10,7 +10,7 @@ export class Source extends Command {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
 
-    public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
+    public async execute({ interaction }: CommandParams): Promise<void> {
         const row = new MessageActionRow().addComponents(
             new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(Jukebot.config.sourceCode),
         );
