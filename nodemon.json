@@ -1,4 +1,0 @@
-{
-    "watch": ["src", "auth.json", "config.json"],
-    "ext": "ts"
-}

@@ -42,5 +42,12 @@
     "jest": {
         "preset": "ts-jest",
         "testEnvironment": "node"
+    },
+    "nodemonConfig": {
+        "watch": ["src", "auth.json", "config.json"],
+        "ext": "ts",
+        "ignore": [
+            "**/*.test.ts"
+        ]
     }
 }
