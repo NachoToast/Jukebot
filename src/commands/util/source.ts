@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageActionRow, MessageButton } from 'discord.js';
+import { Jukebot } from '../../client/Client';
 import Command, { CommandParams } from '../../types/Command';
 
 export class Source extends Command {
@@ -11,7 +12,7 @@ export class Source extends Command {
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const row = new MessageActionRow().addComponents(
-            new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(jukebot.config.sourceCode),
+            new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(Jukebot.config.sourceCode),
         );
 
         await interaction.reply({ content: "Here's my source code!", components: [row], ephemeral: true });
