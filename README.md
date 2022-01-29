@@ -1,4 +1,4 @@
-# JukeBot
+# JukeBot!
 
 A music streaming Discord bot by NachoToast.
 
