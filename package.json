@@ -39,8 +39,7 @@
         "discord.js": "^13.6.0",
         "ffmpeg-static": "^4.4.1",
         "moment": "^2.29.1",
-        "tiny-typed-emitter": "^2.1.0",
-        "ytdl-core": "^4.10.0",
-        "ytsr": "^3.6.0"
+        "play-dl": "^1.8.2",
+        "tiny-typed-emitter": "^2.1.0"
     }
 }
