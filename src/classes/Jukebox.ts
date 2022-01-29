@@ -9,12 +9,9 @@ import {
     VoiceConnectionState,
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
-import { Client } from 'discord.js';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
-    private _client: Client;
-
     /** The interaction that created this instance. */
     private readonly _startingInteraction: FullInteraction;
 
@@ -24,8 +21,7 @@ export class Jukebox {
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
 
-    public constructor(client: Client, interaction: FullInteraction) {
-        this._client = client;
+    public constructor(interaction: FullInteraction) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
 

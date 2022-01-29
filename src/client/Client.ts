@@ -138,6 +138,7 @@ export class Jukebot {
         }
     }
 
+    /** Deploys slash commands to all guilds individually. */
     private async guildDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const allGuilds = await this.client.guilds.fetch();
 
@@ -156,6 +157,7 @@ export class Jukebot {
         }
     }
 
+    /** Deploys slash commands globally. */
     private async globalDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const rest = new REST({ version: '9' }).setToken(token);
 
@@ -173,7 +175,7 @@ export class Jukebot {
         const existingBlock = this.getJukebox(interaction);
         if (existingBlock) return existingBlock;
 
-        const newBlock = new Jukebox(this.client, interaction);
+        const newBlock = new Jukebox(interaction);
         this._jukeboxes.set(interaction.guildId, newBlock);
         return newBlock;
     }
