@@ -15,6 +15,8 @@ import Colours from '../types/Colours';
 export class Jukebox {
     /** The interaction that created this instance. */
     private readonly _startingInteraction: FullInteraction;
+    /** The name of the guild of the `_startingInteraction`, for simplified logging. */
+    private readonly _name: string;
 
     /** The latest interaction that caused this instance to join or move to a voice channel. */
     private _latestInteraction: FullInteraction;
@@ -25,6 +27,8 @@ export class Jukebox {
     public constructor(interaction: FullInteraction) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
+
+        this._name = interaction.guild.name;
 
         this.handleConnectionError = this.handleConnectionError.bind(this);
         this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
@@ -48,10 +52,6 @@ export class Jukebox {
         this._player.on('stateChange', this.handlePlayerStateChange);
 
         this._connection.subscribe(this._player);
-    }
-
-    private get _name(): string {
-        return this._startingInteraction.guild.name;
     }
 
     private handleConnectionError(error: Error): void {
