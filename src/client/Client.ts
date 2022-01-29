@@ -9,11 +9,13 @@ import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from '../classes/Jukebox';
+import { getConfig } from '../helpers/getConfig';
 
 export class Jukebot {
+    public static config: Config = getConfig();
+
     public readonly _devMode: boolean;
     public readonly client: Client<true>;
-    public readonly config: Config;
     private readonly _commands: Collection<string, Command> = new Collection();
     private readonly _startTime = Date.now();
 
@@ -22,18 +24,6 @@ export class Jukebot {
     public constructor() {
         this._devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({ intents });
-
-        // loading config
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const config: Config = require('../../config.json');
-            this.config = config;
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('config.json')) {
-                console.log(`missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
-            } else console.log(error);
-            process.exit(1);
-        }
 
         this.start();
     }
@@ -77,11 +67,11 @@ export class Jukebot {
         this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
 
         // logging in
-        const timeout = this.config.readyTimeout
+        const timeout = Jukebot.config.readyTimeout
             ? setTimeout(() => {
-                  console.log(`took too long to login (max ${this.config.readyTimeout}s)`);
+                  console.log(`took too long to login (max ${Jukebot.config.readyTimeout}s)`);
                   process.exit(1);
-              }, this.config.readyTimeout * 1000)
+              }, Jukebot.config.readyTimeout * 1000)
             : null;
         try {
             await this.client.login(loginToken);

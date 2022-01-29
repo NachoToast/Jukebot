@@ -8,6 +8,7 @@ import {
     VoiceConnection,
     VoiceConnectionState,
 } from '@discordjs/voice';
+import { search } from 'play-dl';
 import Colours from '../types/Colours';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
@@ -113,6 +114,11 @@ export class Jukebox {
         const queryString = interaction.options.get('song', true).value as string;
 
         console.log(queryString);
+        const searchResult = await search(queryString, { limit: 1 });
+        if (!searchResult.length) {
+            await interaction.reply({ content: 'No results found', ephemeral: true });
+        }
+        console.log(searchResult);
 
         await interaction.reply({ content: 'pog pog pogu', ephemeral: true });
     }
