@@ -3,7 +3,11 @@ module.exports = {
         es2021: true,
         node: true,
     },
-    extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
+    extends: [
+        'eslint:recommended',
+        'plugin:@typescript-eslint/recommended',
+        'prettier',
+    ],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         ecmaVersion: 'latest',
@@ -18,8 +22,18 @@ module.exports = {
         'default-case-last': 'error',
         camelcase: 'error',
         // '@typescript-eslint/no-var-requires': 'off',
-        '@typescript-eslint/explicit-member-accessibility': ['error', { accessibility: 'explicit' }],
+        '@typescript-eslint/explicit-member-accessibility': [
+            'error',
+            { accessibility: 'explicit' },
+        ],
         '@typescript-eslint/explicit-module-boundary-types': ['error'],
-        '@typescript-eslint/no-inferrable-types': ['error', { ignoreParameters: true }],
+        '@typescript-eslint/no-inferrable-types': [
+            'error',
+            { ignoreParameters: true },
+        ],
+        'max-len': [
+            'error',
+            { code: 120, ignoreStrings: true, ignoreTemplateLiterals: true },
+        ],
     },
 };
