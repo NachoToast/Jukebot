@@ -91,7 +91,7 @@ export class Jukebot {
             })`,
         );
 
-        this.client.user.setActivity('sus remixes', { type: 'LISTENING' });
+        this.client.user.setActivity(Jukebot.config.activityString, { type: 'LISTENING' });
 
         // loading commands
         process.stdout.write(`Loading ${commands.length} Command${commands.length !== 1 ? 's' : ''}: `);

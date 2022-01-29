@@ -17,4 +17,7 @@ export default interface Config {
      * To get an idea of how this works, see the [test files](https://github.com/NachoToast/Jukebot/blob/d1d1a3e75d903aafbd36f6eb6909d5c2e9c24e72/src/helpers/levenshtein.test.ts#L16-L19).
      */
     levenshteinThreshold: number;
+
+    /** What Discord shows the bot is listening to. */
+    activityString: string;
 }
