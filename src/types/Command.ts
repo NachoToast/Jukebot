@@ -2,16 +2,16 @@
 
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { BaseCommandInteraction } from 'discord.js';
-import Client from '../client/Client';
+import { Jukebot } from '../client/Client';
 
 export interface CommandParams {
     interaction: BaseCommandInteraction;
-    client: Client;
+    jukebot: Jukebot;
 }
 
 export default abstract class Command {
     public abstract name: string;
     public abstract description: string;
-    public abstract build(client: Client): SlashCommandBuilder;
-    public abstract execute({ interaction, client }: CommandParams): Promise<void>;
+    public abstract build(client: Jukebot): SlashCommandBuilder;
+    public abstract execute({ interaction, jukebot }: CommandParams): Promise<void>;
 }
