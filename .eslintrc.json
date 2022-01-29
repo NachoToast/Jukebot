@@ -34,7 +34,7 @@
             "error",
             {
                 "code": 120,
-                "comments": 85,
+                "comments": 100,
                 "ignoreStrings": true,
                 "ignoreTemplateLiterals": true
             }
