@@ -4,21 +4,23 @@ import intents from './Intents';
 import commands from '../commands';
 import Command from '../types/Command';
 import { REST } from '@discordjs/rest';
-import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand } from 'discord-api-types';
+import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand, Snowflake } from 'discord-api-types';
 import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
+import { FullInteraction, GuildedInteraction } from '../types/Interactions';
+import { Jukebox } from '../classes/Jukebox';
 
 export class Jukebot {
-    public readonly devMode: boolean = process.argv
-        .slice(2)
-        .includes('--devmode');
+    public readonly _devMode: boolean;
+    public readonly client: Client<true>;
     public readonly config: Config;
     private readonly _commands: Collection<string, Command> = new Collection();
-    public readonly client: Client<true>;
-
     private readonly _startTime = Date.now();
 
+    private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
+
     public constructor() {
+        this._devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({ intents });
 
         // loading config
@@ -27,13 +29,8 @@ export class Jukebot {
             const config: Config = require('../../config.json');
             this.config = config;
         } catch (error) {
-            if (
-                error instanceof Error &&
-                error.message.includes('config.json')
-            ) {
-                console.log(
-                    `missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`,
-                );
+            if (error instanceof Error && error.message.includes('config.json')) {
+                console.log(`missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
             } else console.log(error);
             process.exit(1);
         }
@@ -41,11 +38,9 @@ export class Jukebot {
         this.start();
     }
 
-    /** Attempts to log the client in, exiting the process if unable to do so.
-     *
-     * This is not done in the constructor since it is asynchronous.
-     */
+    /** Attempts to log the client in, exiting the process if unable to do so. */
     private async start(): Promise<void> {
+        // not done in the constructor, since logging in is an asynchronous process
         let loginToken: string;
 
         // loading auth
@@ -53,7 +48,7 @@ export class Jukebot {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { token, devToken } = require('../../auth.json');
 
-            if (this.devMode) {
+            if (this._devMode) {
                 if (!devToken) throw new Error('devNoAuth');
                 loginToken = devToken;
             } else {
@@ -63,9 +58,7 @@ export class Jukebot {
         } catch (error) {
             const isInstance = error instanceof Error;
             if (isInstance && error.message.includes('auth.json')) {
-                console.log(
-                    `missing ${Colours.FgMagenta}auth.json${Colours.Reset} file in root directory`,
-                );
+                console.log(`missing ${Colours.FgMagenta}auth.json${Colours.Reset} file in root directory`);
             } else if (isInstance && error.message === 'devNoAuth') {
                 console.log(
                     `running in devmode with no auth token, add a ${Colours.FgCyan}devToken${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
@@ -81,16 +74,12 @@ export class Jukebot {
         // add event listeners
         this.client.once('ready', () => this.onReady(loginToken));
         this.client.on('error', (err) => console.log(err));
-        this.client.on('interactionCreate', (int) =>
-            this.onInteractionCreate(int),
-        );
+        this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
 
         // logging in
         const timeout = this.config.readyTimeout
             ? setTimeout(() => {
-                  console.log(
-                      `took too long to login (max ${this.config.readyTimeout}s)`,
-                  );
+                  console.log(`took too long to login (max ${this.config.readyTimeout}s)`);
                   process.exit(1);
               }, this.config.readyTimeout * 1000)
             : null;
@@ -99,9 +88,7 @@ export class Jukebot {
             if (timeout) clearTimeout(timeout);
         } catch (error) {
             if (error instanceof Error && error.message === 'TOKEN_INVALID') {
-                console.log(
-                    `invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
-                );
+                console.log(`invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
             } else console.log(error);
             process.exit(1);
         }
@@ -109,19 +96,15 @@ export class Jukebot {
 
     private async onReady(token: string): Promise<void> {
         console.log(
-            `${this.client.user.tag} logged in (${Colours.FgMagenta}${
-                (Date.now() - this._startTime) / 1000
-            }s${Colours.Reset})`,
+            `${this.client.user.tag} logged in (${Colours.FgMagenta}${(Date.now() - this._startTime) / 1000}s${
+                Colours.Reset
+            })`,
         );
 
         this.client.user.setActivity('sus remixes', { type: 'LISTENING' });
 
         // loading commands
-        process.stdout.write(
-            `Loading ${commands.length} Command${
-                commands.length !== 1 ? 's' : ''
-            }: `,
-        );
+        process.stdout.write(`Loading ${commands.length} Command${commands.length !== 1 ? 's' : ''}: `);
         const colourCycler = colourCycle();
         const toDeploy: RawSlashCommand[] = [];
         commands.map((command) => {
@@ -134,14 +117,14 @@ export class Jukebot {
         process.stdout.write('\n');
 
         // deploying commands
-        if (this.devMode) await this.guildDeploy(token, toDeploy);
+        if (this._devMode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
     }
 
     private async onInteractionCreate(interaction: Interaction): Promise<void> {
         if (!interaction.isCommand()) return;
         const command = this._commands.get(interaction.commandName);
-        if (command && !true) {
+        if (command) {
             try {
                 await command.execute({ interaction, jukebot: this });
             } catch (error) {
@@ -155,10 +138,7 @@ export class Jukebot {
         }
     }
 
-    private async guildDeploy(
-        token: string,
-        body: RawSlashCommand[],
-    ): Promise<void> {
+    private async guildDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const allGuilds = await this.client.guilds.fetch();
 
         const rest = new REST({ version: '9' }).setToken(token);
@@ -168,26 +148,15 @@ export class Jukebot {
             if (!guild) continue;
 
             try {
-                await rest.put(
-                    Routes.applicationGuildCommands(
-                        this.client.user.id,
-                        guildID,
-                    ),
-                    { body },
-                );
-                console.log(
-                    `deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`,
-                );
+                await rest.put(Routes.applicationGuildCommands(this.client.user.id, guildID), { body });
+                console.log(`deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`);
             } catch (error) {
                 console.log(error);
             }
         }
     }
 
-    private async globalDeploy(
-        token: string,
-        body: RawSlashCommand[],
-    ): Promise<void> {
+    private async globalDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const rest = new REST({ version: '9' }).setToken(token);
 
         try {
@@ -200,31 +169,16 @@ export class Jukebot {
         }
     }
 
-    // public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
-    //     const existingBlock = this.getJukebox(interaction);
-    //     if (existingBlock) return existingBlock;
+    public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
+        const existingBlock = this.getJukebox(interaction);
+        if (existingBlock) return existingBlock;
 
-    //     const newBlock = new Jukebox(interaction);
-    //     this._jukeboxes.set(interaction.guildId, newBlock);
-    //     return newBlock;
-    // }
+        const newBlock = new Jukebox(this.client, interaction);
+        this._jukeboxes.set(interaction.guildId, newBlock);
+        return newBlock;
+    }
 
-    // public getJukebox(interaction: GuildedInteraction): Jukebox | undefined {
-    //     return this._jukeboxes.get(interaction.guildId);
-    // }
-
-    // public async removeJukebox(interaction: GuildedInteraction):
-    // Promise<boolean> {
-    //     const foundJukebox = this._jukeboxes.get(interaction.channelId);
-    //     if (!foundJukebox) return false;
-
-    //     const deleted = this._jukeboxes.delete(interaction.channelId);
-    //     if (!deleted) {
-    //         console.error(`Failed to delete Jukebox for ${Colours.FgRed}
-    //  ${interaction.guild.name}${Colours.Reset}`);
-    //         return false;
-    //     }
-    //     await foundJukebox.destroy();
-    //     return true;
-    // }
+    public getJukebox(interaction: GuildedInteraction): Jukebox | undefined {
+        return this._jukeboxes.get(interaction.guildId);
+    }
 }
