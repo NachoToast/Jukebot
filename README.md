@@ -19,8 +19,8 @@ See the [installation guide](./.github/installationGuide.md) for a more beginner
     -   applications.commands
 -   Permissions
     -   Send Messages
+    -   Connect
     -   Speak
-    -   Embed Links
 -   Gateway Intents
     -   None
 -   Put your bot token in [`auth.json`](./auth.json)
