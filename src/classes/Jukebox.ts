@@ -10,6 +10,7 @@ import {
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
+import { DestroyCallback } from '../types/Jukebox';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -17,6 +18,9 @@ export class Jukebox {
     private readonly _startingInteraction: FullInteraction;
     /** The name of the guild of the `_startingInteraction`, for simplified logging. */
     private readonly _name: string;
+
+    /** A function to run on `cleanup` */
+    private readonly _destroyCallback: DestroyCallback;
 
     /** The latest interaction that caused this instance to join or move to a voice channel. */
     private _latestInteraction: FullInteraction;
@@ -26,11 +30,12 @@ export class Jukebox {
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
 
-    public constructor(interaction: FullInteraction) {
+    public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
 
         this._name = interaction.guild.name;
+        this._destroyCallback = destroyCallback;
         this.hopper = new Hopper();
 
         this.handleConnectionError = this.handleConnectionError.bind(this);
@@ -81,11 +86,17 @@ export class Jukebox {
         console.debug(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
     }
 
-    public async cleanup(): Promise<void> {
+    /** Removes listeners, stops playblack, and destroys connection.
+     *
+     * Should only be called when the Jukebox needs to kill itself.
+     */
+    public async cleanup(): Promise<boolean> {
         this._player.removeAllListeners();
         this._player.stop(true);
 
         this._connection.removeAllListeners();
         this._connection.destroy();
+
+        return this._destroyCallback(this._startingInteraction.guildId);
     }
 }

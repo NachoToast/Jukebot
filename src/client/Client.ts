@@ -25,6 +25,8 @@ export class Jukebot {
         this.devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({ intents });
 
+        this._removeJukebox = this._removeJukebox.bind(this);
+
         this.start();
     }
 
@@ -165,12 +167,27 @@ export class Jukebot {
         const existingBlock = this.getJukebox(interaction);
         if (existingBlock) return existingBlock;
 
-        const newBlock = new Jukebox(interaction);
+        const newBlock = new Jukebox(interaction, this._removeJukebox);
         this._jukeboxes.set(interaction.guildId, newBlock);
         return newBlock;
     }
 
     public getJukebox(interaction: GuildedInteraction): Jukebox | undefined {
         return this._jukeboxes.get(interaction.guildId);
+    }
+
+    /** Used internally by Jukebox instances wanting to kill themselves. */
+    private _removeJukebox(guildId: Snowflake): boolean {
+        return this._jukeboxes.delete(guildId);
+    }
+
+    /** Attempts to delete a Jukebox from the tracked collection.
+     * @param {GuildedInteraction} interaction The interaction this request originated from.
+     * @returns {boolean} Whether the deletion was successful.
+     */
+    public async removeJukebox(interaction: GuildedInteraction): Promise<boolean> {
+        const jukebox = this._jukeboxes.get(interaction.guildId);
+        if (!jukebox) return false;
+        return await jukebox.cleanup();
     }
 }
