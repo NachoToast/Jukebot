@@ -63,6 +63,11 @@
             "leadingUnderscore": "require"
           },
           {
+            "selector": "classMethod",
+            "modifiers": ["private"],
+            "format": null
+          },
+          {
             "selector": "typeLike",
             "format": ["PascalCase"]
           },
