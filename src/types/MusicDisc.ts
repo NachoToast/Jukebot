@@ -27,7 +27,7 @@ export enum DiscImages {
 
     Otherwise = 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/4/45/Music_Disc_Otherside_JE1_BE1.png/revision/latest/scale-to-width-down/160?cb=20211020151516',
 
-    // java and bedrock have different images
+    /** Java and Bedrock have different images. */
     Eleven2 = 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/4/47/Music_Disc_11_JE1_BE1.png/revision/latest/scale-to-width-down/160?cb=20191127011614',
 }
 
@@ -48,11 +48,3 @@ export const defaultDiscArray: DiscImages[] = [
     DiscImages.Wait,
     DiscImages.Ward,
 ];
-
-/** Input data for a `MusicDisc`. */
-export interface InputDiscData {
-    title: string;
-    duration?: string;
-    thumbnail?: string;
-    url: string;
-}
