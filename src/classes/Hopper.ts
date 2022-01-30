@@ -9,6 +9,8 @@ import { viewCountFormatter } from '../helpers/viewCountFormatter';
 import { DiscImages } from '../types/MusicDisc';
 import { Jukebot } from '../client/Client';
 import { Jukebox } from './Jukebox';
+import { memberNicknameMention } from '@discordjs/builders';
+import moment from 'moment';
 
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
 export class Hopper {
@@ -65,7 +67,7 @@ export class Hopper {
                 if (res instanceof MusicDisc) {
                     return {
                         failure: false,
-                        output: { embeds: [this.makeSingleSongEmbed(interaction, this.inventory.length - 1)] },
+                        output: { embeds: [this.makeEnqueuedSongEmbed(interaction, this.inventory.length - 1)] },
                     };
                 }
                 return { failure: true, reason: res };
@@ -80,11 +82,12 @@ export class Hopper {
                 return { failure: false, output: { content: 'not yet implemented' } };
         }
 
+        console.log('awaiting text search');
         const res = await this.addFromtextSearchTerm(interaction, queryString);
         if (res instanceof MusicDisc) {
             return {
                 failure: false,
-                output: { embeds: [this.makeSingleSongEmbed(interaction, this.inventory.length - 1)] },
+                output: { embeds: [this.makeEnqueuedSongEmbed(interaction, this.inventory.length - 1)] },
             };
         }
         return { failure: true, reason: res };
@@ -173,7 +176,12 @@ export class Hopper {
         return [timeNumerical, timeString];
     }
 
-    private makeSingleSongEmbed(interaction: GuildedInteraction, discIndex: number): MessageEmbed {
+    private get totalQueueLength(): number {
+        if (!this.inventory.length) return 0;
+        return this.inventory.map((e) => e.durationSeconds).reduce((prev, next) => prev + next);
+    }
+
+    private makeEnqueuedSongEmbed(interaction: GuildedInteraction, discIndex: number): MessageEmbed {
         const disc = this.inventory.at(discIndex);
 
         if (!disc)
@@ -184,9 +192,6 @@ export class Hopper {
             );
 
         const timeTillPlay = this.getTimeTillPlay(discIndex + 1);
-
-        const totalQueueLength = this.inventory.map((e) => e.durationSeconds).reduce((prev, next) => prev + next);
-
         const embed = new MessageEmbed()
             .setAuthor({ name: 'Added to Queue', iconURL: interaction.member.displayAvatarURL() })
             .setTitle(disc.title)
@@ -197,7 +202,28 @@ export class Hopper {
             )
             .addField(`Position in Queue: ${discIndex + 1}`, `Time till play: ${timeTillPlay[1]}`)
             .setFooter({
-                text: `Queue Length: ${numericalToString(totalQueueLength)} (${this.inventory.length} song${
+                text: `Queue Length: ${numericalToString(this.totalQueueLength)} (${this.inventory.length} song${
+                    this.inventory.length !== 1 ? 's' : ''
+                })`,
+                iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
+            })
+            .setColor(Jukebot.config.colourTheme);
+
+        return embed;
+    }
+
+    public makeNowPlayingEmbed(interaction: GuildedInteraction, disc: MusicDisc): MessageEmbed {
+        const embed = new MessageEmbed()
+            .setAuthor({ name: 'Now Playing', iconURL: disc.addedBy.displayAvatarURL() })
+            .setTitle(disc.title)
+            .setURL(disc.url)
+            .setThumbnail(disc.thumbnail)
+            .setDescription(
+                `Duration: ${disc.durationString}\nViews: ${viewCountFormatter(disc.views)}\nChannel: ${disc.channel}`,
+            )
+            .addField('Requested By', `${memberNicknameMention(disc.addedBy.id)} ${moment(disc.addedAt).fromNow()}`)
+            .setFooter({
+                text: `Queue Length: ${numericalToString(this.totalQueueLength)} (${this.inventory.length} song${
                     this.inventory.length !== 1 ? 's' : ''
                 })`,
                 iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,

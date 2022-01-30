@@ -16,26 +16,27 @@ export class Play extends Command {
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         if (!interaction.guildId) {
-            await interaction.reply({ content: Messages.GuildOnly, ephemeral: true });
+            await interaction.reply({ content: Messages.GuildOnly, ephemeral: false });
             return;
         }
         const guildedInteraction = interaction as GuildedInteraction;
 
         const existingJukebox = jukebot.getJukebox(guildedInteraction);
 
+        await interaction.deferReply({ ephemeral: true });
         // if already playing audio, skip voice channel checks
         if (existingJukebox) {
             const res = await existingJukebox.add(guildedInteraction);
             if (res.failure) {
-                await interaction.reply({ content: res.reason, ephemeral: true });
+                await interaction.editReply({ content: res.reason });
             } else {
-                await interaction.reply({ ...res.output });
+                await interaction.editReply({ ...res.output });
             }
             return;
         }
 
         if (!guildedInteraction.member.voice.channel) {
-            await interaction.reply({ content: Messages.NotInVoice, ephemeral: true });
+            await interaction.editReply({ content: Messages.NotInVoice });
             return;
         }
 
@@ -44,9 +45,9 @@ export class Play extends Command {
         const jukeBox = jukebot.getOrMakeJukebox(fullInteraction);
         const res = await jukeBox.add(guildedInteraction);
         if (res.failure) {
-            await interaction.reply({ content: res.reason, ephemeral: true });
+            await interaction.editReply({ content: res.reason });
         } else {
-            await interaction.reply({ ...res.output });
+            await interaction.editReply({ ...res.output });
         }
     }
 }

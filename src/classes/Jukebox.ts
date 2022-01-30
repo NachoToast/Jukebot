@@ -15,7 +15,7 @@ import {
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
 import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '../types/Jukebox';
-import { AddResponse, BaseFailureReasons } from '../types/Hopper';
+import { AddResponse } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
 import { Jukebot } from '../client/Client';
 
@@ -102,7 +102,7 @@ export class Jukebox {
         { status: newStatus }: VoiceConnectionState,
     ): void {
         if (oldStatus === newStatus) return;
-        // console.log(`[${this._name}] (connection) ${oldStatus} => ${newStatus}`);
+        console.log(`[${this._name}] (connection) ${oldStatus} => ${newStatus}`);
     }
 
     private async handlePlayerError(error: Error): Promise<void> {
@@ -115,18 +115,11 @@ export class Jukebox {
         { status: newStatus }: AudioPlayerState,
     ): Promise<void> {
         if (oldStatus === newStatus) return;
-        // console.log(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
+        console.log(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
 
         if (pausedStates.includes(newStatus)) {
             if (this.readyToPlay) {
-                try {
-                    await this.nextSong();
-                } catch (error) {
-                    console.log(
-                        `[${this._name}] (player) ${Colours.FgRed}unable to start playing in specified time${Colours.Reset}`,
-                    );
-                    await this.cleanup(CleanUpReasons.PlayerTimeout);
-                }
+                await this.nextSong();
             } else {
                 this.current = {
                     active: false,
@@ -158,20 +151,18 @@ export class Jukebox {
 
     public async add(interaction: GuildedInteraction): Promise<AddResponse> {
         const res = await this._hopper.add(interaction);
-        if (!res.failure) {
-            if (this.readyToPlay) {
-                try {
-                    await this.nextSong(true);
-                } catch (error) {
-                    console.log(
-                        `[${this._name}] (player) ${Colours.FgRed}unable to start playing in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
-                    );
-                    await this.cleanup(CleanUpReasons.ConnectionTimeout);
-                    return { failure: true, reason: BaseFailureReasons.PlayerError };
-                }
+        if (!res.failure && this.readyToPlay) {
+            await this.nextSong(true);
+            if (this.current.active) {
+                const embed = this._hopper.makeNowPlayingEmbed(interaction, this.current.musicDisc);
+                return { failure: false, output: { embeds: [embed] } };
+            } else {
+                return {
+                    failure: false,
+                    output: { content: 'started playing but no activity, you should never see this message' },
+                };
             }
         }
-
         return res;
     }
 
@@ -188,6 +179,7 @@ export class Jukebox {
         if (!nextDisc) return false;
 
         const youtTubeStream = (await stream(nextDisc.url)) as YouTubeStream;
+
         const resource = createAudioResource(youtTubeStream.stream, {
             inputType: youtTubeStream.type,
             inlineVolume: !!Jukebot.config.volumeModifier,
@@ -200,7 +192,15 @@ export class Jukebox {
 
         this._player.play(resource);
 
-        await entersState(this._player, AudioPlayerStatus.Playing, Jukebot.config.maxReadyTime * 1000);
+        try {
+            await entersState(this._player, AudioPlayerStatus.Playing, Jukebot.config.maxReadyTime * 1000);
+        } catch (error) {
+            console.log(
+                `[${this._name}] (player) ${Colours.FgRed}unable to start playing in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
+            );
+            await this.cleanup(CleanUpReasons.PlayerTimeout);
+            return false;
+        }
 
         let playingSince = Date.now();
 
@@ -247,7 +247,12 @@ export class Jukebox {
         this._player.stop(true);
 
         this._connection.removeAllListeners();
-        this._connection.destroy();
+
+        try {
+            this._connection.destroy();
+        } catch (error) {
+            // don't care
+        }
 
         switch (reason) {
             case CleanUpReasons.ClientRequest:
