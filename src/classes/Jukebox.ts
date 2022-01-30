@@ -2,7 +2,9 @@ import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
     AudioPlayerState,
+    AudioPlayerStatus,
     createAudioPlayer,
+    createAudioResource,
     joinVoiceChannel,
     NoSubscriberBehavior,
     VoiceConnection,
@@ -12,6 +14,8 @@ import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
 import { DestroyCallback } from '../types/Jukebox';
 import { AddResponse } from '../types/Hopper';
+import { stream, YouTubeStream } from 'play-dl';
+import { Jukebot } from '../client/Client';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -91,9 +95,39 @@ export class Jukebox {
         const res = await this._hopper.add(interaction);
         if (!res.failure) {
             // TODO: logic for a successful request
+            if (this._player.state.status !== AudioPlayerStatus.Playing) {
+                this.nextSong(true);
+            }
         }
 
         return res;
+    }
+
+    /** Playes the next song in the queue.
+     * @param {boolean} [silent=false] Whether to announce the next song in chat.
+     */
+    public async nextSong(silent: boolean = false): Promise<void> {
+        const nextDisc = this._hopper.inventory.shift();
+        if (!nextDisc) return;
+
+        const youtTubeStream = (await stream(nextDisc.url)) as YouTubeStream;
+        const resource = createAudioResource(youtTubeStream.stream, {
+            inputType: youtTubeStream.type,
+            inlineVolume: !!Jukebot.config.volumeModifier,
+            metadata: nextDisc,
+        });
+
+        if (Jukebot.config.volumeModifier) {
+            resource.volume?.setVolume(Jukebot.config.volumeModifier);
+        }
+
+        this._player.play(resource);
+
+        if (!silent) {
+            await this._latestInteraction.channel.send(
+                `now playing ${nextDisc.title} (requested by __${nextDisc.addedBy.nickname}__)`,
+            );
+        }
     }
 
     /** Removes listeners, stops playblack, and destroys connection.

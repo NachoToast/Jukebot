@@ -12,7 +12,7 @@ import { Jukebot } from '../client/Client';
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
 export class Hopper {
     /** The queued songs. */
-    private _inventory: MusicDisc[] = [];
+    public inventory: MusicDisc[] = [];
 
     /** Attempts to search for and add a song, album or playlist to the queue.
      *
@@ -23,7 +23,7 @@ export class Hopper {
      * @returns {Promise<AddResponse>} Information about the operation.
      */
     public async add(interaction: GuildedInteraction): Promise<AddResponse> {
-        if (Jukebot.config.maxQueueSize && this._inventory.length >= Jukebot.config.maxQueueSize) {
+        if (Jukebot.config.maxQueueSize && this.inventory.length >= Jukebot.config.maxQueueSize) {
             return { failure: true, reason: BaseFailureReasons.QueueTooLarge };
         }
 
@@ -58,7 +58,7 @@ export class Hopper {
                 if (res instanceof MusicDisc) {
                     return {
                         failure: false,
-                        output: { embeds: [this.makeSingleSongEmbed(interaction, this._inventory.length - 1)] },
+                        output: { embeds: [this.makeSingleSongEmbed(interaction, this.inventory.length - 1)] },
                     };
                 }
                 return { failure: true, reason: res };
@@ -77,7 +77,7 @@ export class Hopper {
         if (res instanceof MusicDisc) {
             return {
                 failure: false,
-                output: { embeds: [this.makeSingleSongEmbed(interaction, this._inventory.length - 1)] },
+                output: { embeds: [this.makeSingleSongEmbed(interaction, this.inventory.length - 1)] },
             };
         }
         return { failure: true, reason: res };
@@ -99,7 +99,7 @@ export class Hopper {
         const title = video.title;
 
         const musicDisc = new MusicDisc(interaction, video, title);
-        this._inventory.push(musicDisc);
+        this.inventory.push(musicDisc);
         return musicDisc;
     }
 
@@ -131,7 +131,7 @@ export class Hopper {
         const title = video.title;
 
         const musicDisc = new MusicDisc(interaction, video, title);
-        this._inventory.push(musicDisc);
+        this.inventory.push(musicDisc);
         return musicDisc;
     }
 
@@ -145,7 +145,7 @@ export class Hopper {
         // TODO: account for currently playing song,
         // cuz currently position 1 = 0 seconds
 
-        const applicableSongs = this._inventory.slice(0, position - 1).map((e) => e.durationSeconds);
+        const applicableSongs = this.inventory.slice(0, position - 1).map((e) => e.durationSeconds);
         if (!applicableSongs.length) return [0, '0:00'];
 
         const timeNumerical = applicableSongs.reduce((prev, next) => prev + next);
@@ -156,18 +156,18 @@ export class Hopper {
     }
 
     private makeSingleSongEmbed(interaction: GuildedInteraction, discIndex: number): MessageEmbed {
-        const disc = this._inventory.at(discIndex);
+        const disc = this.inventory.at(discIndex);
 
         if (!disc)
             throw new Error(
                 `tried to get non-existent disc at index ${discIndex} (valid indexes 0 to ${
-                    this._inventory.length - 1
+                    this.inventory.length - 1
                 })`,
             );
 
         const timeTillPlay = this.getTimeTillPlay(discIndex + 1);
 
-        const totalQueueLength = this._inventory.map((e) => e.durationSeconds).reduce((prev, next) => prev + next);
+        const totalQueueLength = this.inventory.map((e) => e.durationSeconds).reduce((prev, next) => prev + next);
 
         const embed = new MessageEmbed()
             .setAuthor({ name: 'Added to Queue', iconURL: interaction.member.displayAvatarURL() })
@@ -179,8 +179,8 @@ export class Hopper {
             )
             .addField(`Position in Queue: ${discIndex + 1}`, `Time till play: ${timeTillPlay[1]}`)
             .setFooter({
-                text: `Queue Length: ${numericalToString(totalQueueLength)} (${this._inventory.length} song${
-                    this._inventory.length !== 1 ? 's' : ''
+                text: `Queue Length: ${numericalToString(totalQueueLength)} (${this.inventory.length} song${
+                    this.inventory.length !== 1 ? 's' : ''
                 })`,
                 iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
             })
