@@ -182,13 +182,13 @@ export class Jukebox {
 
         const resource = createAudioResource(youtTubeStream.stream, {
             inputType: youtTubeStream.type,
-            inlineVolume: !!Jukebot.config.volumeModifier,
-            metadata: nextDisc,
+            // inlineVolume: !!Jukebot.config.volumeModifier,
+            // metadata: nextDisc,
         });
 
-        if (Jukebot.config.volumeModifier) {
-            resource.volume?.setVolume(Jukebot.config.volumeModifier);
-        }
+        // if (Jukebot.config.volumeModifier) {
+        //     resource.volume?.setVolume(Jukebot.config.volumeModifier);
+        // }
 
         this._player.play(resource);
 
@@ -218,7 +218,7 @@ export class Jukebox {
 
         if (!silent) {
             await this._latestInteraction.channel.send(
-                `now playing ${nextDisc.title} (requested by __${nextDisc.addedBy.nickname}__)`,
+                `now playing ${nextDisc.title} (requested by __${nextDisc.addedBy.user.username}__)`,
             );
         }
 
@@ -230,7 +230,7 @@ export class Jukebox {
      */
     private async disconnectTimeout(): Promise<void> {
         if (this.current.active) {
-            console.log(`${this._name}disconnect timeout got called despite being active, this should never happen`);
+            console.log(`[${this._name}] disconnect timeout got called despite being active, this should never happen`);
             return;
         }
 
