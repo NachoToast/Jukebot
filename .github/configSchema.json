@@ -1,0 +1,53 @@
+{
+    "$schema": "http://json-schema.org/schema",
+    "properties": {
+        "sourceCode": {
+            "type": "string",
+            "description": "Link to to the bot's source code.",
+            "default": "https://github.com/NachoToast/Jukebot"
+        },
+        "readyTimeout": {
+            "type": "integer",
+            "description": "If the bot doesn't connect to Discord after this many seconds, the process will terminate.\nSet to 0 to never terminate.",
+            "default": 10
+        },
+        "levenshteinThreshold": {
+            "type": "number",
+            "description": "Minimum string similarity of search result and queried search.\nResults below this number won't be queued.\nUsed to prevent unintentionally queueing random videos.",
+            "default": 0.1
+        },
+        "activityString": {
+            "type": "string",
+            "description": "What Discord shows the bot is listening to.", "default": "sus remixes"
+        },
+        "colourTheme": {
+            "type": "string",
+            "description": "This is the colour that embeds will have.\nMust be a HEX colour string (and start with a #).",
+            "default": "#794c36",
+            "examples": [
+                "#FF00FF",
+                "#c0c0c0"
+            ]
+        },
+        "maxQueueSize": {
+            "type": "integer",
+            "description": "Won't allow adding items to queues greater than or equal to this in length.\nSet to `0` to have no maximum size.",
+            "default": 1000
+        },
+        "volumeModifier": {
+            "type": "number",
+            "description": "Modifies the playback volume, valid range is between 0 and 1, with 1 being no modification and 0 muting audio entirely.",
+            "default": 0.5
+        },
+        "maxReadyTime": {
+            "type": "number",
+            "description": "The maximum time to wait (in seconds) for the bot to connect and start playing audio once.\nConnecting and playing audio counts as 2 seperate tasks, so the maximum time to connect AND play is 2 x this value",
+            "default": 5
+        },
+        "inactivityTimeout": {
+            "type": "number",
+            "description": "The maximum time (in seconds) Jukebot will stay in voice channels without playing anything.\nSet to 0 to stay in voice channels forever.",
+            "default": 60
+        }
+    }
+}
