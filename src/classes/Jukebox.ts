@@ -1,4 +1,4 @@
-import { FullInteraction } from '../types/Interactions';
+import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
     AudioPlayerState,
@@ -11,6 +11,7 @@ import {
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
 import { DestroyCallback } from '../types/Jukebox';
+import { AddResponse } from '../types/Hopper';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -25,7 +26,7 @@ export class Jukebox {
     /** The latest interaction that caused this instance to join or move to a voice channel. */
     private _latestInteraction: FullInteraction;
 
-    public hopper: Hopper;
+    private _hopper: Hopper;
 
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
@@ -36,7 +37,7 @@ export class Jukebox {
 
         this._name = interaction.guild.name;
         this._destroyCallback = destroyCallback;
-        this.hopper = new Hopper();
+        this._hopper = new Hopper();
 
         this.handleConnectionError = this.handleConnectionError.bind(this);
         this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
@@ -84,6 +85,15 @@ export class Jukebox {
     ): void {
         if (oldStatus === newStatus) return;
         console.debug(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
+    }
+
+    public async add(interaction: GuildedInteraction): Promise<AddResponse> {
+        const res = await this._hopper.add(interaction);
+        if (!res.failure) {
+            // TODO: logic for a successful request
+        }
+
+        return res;
     }
 
     /** Removes listeners, stops playblack, and destroys connection.

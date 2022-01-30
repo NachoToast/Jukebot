@@ -16,8 +16,7 @@ export class Hopper {
 
     /** Attempts to search for and add a song, album or playlist to the queue.
      *
-     * The bulk of this method is logic for determining whether the search query is a
-     * playlist, album, video, or track from Spotify or YouTube.
+     * The bulk of this method is handling different search types.
      *
      * @param {GuildedInteraction} interaction The interaction, must have a `song` option specified.
      *
