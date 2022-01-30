@@ -33,7 +33,6 @@ describe('/source', () => {
         await source.execute(params);
 
         const button = output.components[0].components[0];
-        console.log(output.components[0].components[0].type);
 
         // we can't use the MessageComponentTypes enum in tests,
         // so this is the next best thing
