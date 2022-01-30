@@ -23,7 +23,7 @@ export class Play extends Command {
 
         const existingJukebox = jukebot.getJukebox(guildedInteraction);
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: false });
         // if already playing audio, skip voice channel checks
         if (existingJukebox) {
             const res = await existingJukebox.add(guildedInteraction);
