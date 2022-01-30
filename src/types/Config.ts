@@ -1,3 +1,5 @@
+import { HexColorString } from 'discord.js';
+
 export default interface Config {
     /** Link to to the bot's source code. */
     sourceCode: string;
@@ -20,4 +22,7 @@ export default interface Config {
 
     /** What Discord shows the bot is listening to. */
     activityString: string;
+
+    /** This is the colour that embeds will have. */
+    colourTheme: HexColorString;
 }

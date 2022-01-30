@@ -2,5 +2,6 @@
     "sourceCode": "https://github.com/NachoToast/Jukebot",
     "readyTimeout": 10,
     "levenshteinThreshold": 0.1,
-    "activityString": "sus remixes"
+    "activityString": "sus remixes",
+    "colourTheme": "#794c36"
 }
