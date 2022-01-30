@@ -13,7 +13,7 @@ See the [installation guide](./.github/installationGuide.md) for a more beginner
 <summary>Installing Jukebot</summary>
 <br >
 
--   Node v16.30.0 or greater
+-   Node v16.13.0 or greater
 -   Scopes
     -   bot
     -   applications.commands
