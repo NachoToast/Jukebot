@@ -49,17 +49,17 @@
           },
           {
             "selector": "variable",
-            "format": ["camelCase", "UPPER_CASE"]
+            "format": ["strictCamelCase"]
           },
           {
             "selector": "parameter",
-            "format": ["camelCase"],
+            "format": ["strictCamelCase"],
             "leadingUnderscore": "allow"
           },
           {
             "selector": "classProperty",
             "modifiers": ["private"],
-            "format": ["camelCase"],
+            "format": ["strictCamelCase"],
             "leadingUnderscore": "require"
           },
           {

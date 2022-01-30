@@ -136,12 +136,12 @@ export class Jukebot {
 
         const rest = new REST({ version: '9' }).setToken(token);
 
-        for (const [guildID] of allGuilds) {
-            const guild = await allGuilds.get(guildID)?.fetch();
+        for (const [guildId] of allGuilds) {
+            const guild = await allGuilds.get(guildId)?.fetch();
             if (!guild) continue;
 
             try {
-                await rest.put(Routes.applicationGuildCommands(this.client.user.id, guildID), { body });
+                await rest.put(Routes.applicationGuildCommands(this.client.user.id, guildId), { body });
                 console.log(`deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`);
             } catch (error) {
                 console.log(error);
