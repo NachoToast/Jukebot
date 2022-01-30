@@ -50,4 +50,10 @@ export default interface Config {
      * Set to `0` to stay in voice channels forever.
      */
     inactivityTimeout: number;
+
+    /** Releases from more than this many minutes ago won't be announced.
+     *
+     * Doesn't apply in devmode.
+     */
+    releaseRecentThreshold: number;
 }

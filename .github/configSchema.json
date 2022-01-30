@@ -48,6 +48,11 @@
             "type": "number",
             "description": "The maximum time (in seconds) Jukebot will stay in voice channels without playing anything.\nSet to 0 to stay in voice channels forever.",
             "default": 60
+        },
+        "releaseRecentThreshold": {
+            "type": "number",
+            "description": "Releases from more than this many minutes ago won't be announced.Doesn't apply in devmode.\n",
+            "default": 5
         }
     }
 }

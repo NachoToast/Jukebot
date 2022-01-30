@@ -8,5 +8,6 @@
     "maxQueueSize": 1000,
     "volumeModifier": 0.5,
     "maxReadyTime": 5,
-    "inactivityTimeout": 60
+    "inactivityTimeout": 60,
+    "releaseRecentThreshold": 5
 }
