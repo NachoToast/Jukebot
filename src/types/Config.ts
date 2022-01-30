@@ -25,4 +25,10 @@ export default interface Config {
 
     /** This is the colour that embeds will have. */
     colourTheme: HexColorString;
+
+    /** Won't allow adding items to queues greater than or equal to this in length.
+     *
+     * Set to `0` to have no maximum size.
+     */
+    maxQueueSize: number;
 }
