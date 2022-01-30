@@ -82,7 +82,6 @@ export class Hopper {
                 return { failure: false, output: { content: 'not yet implemented' } };
         }
 
-        console.log('awaiting text search');
         const res = await this.addFromtextSearchTerm(interaction, queryString);
         if (res instanceof MusicDisc) {
             return {
