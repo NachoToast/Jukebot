@@ -11,7 +11,8 @@ export class MusicDisc {
     public readonly url: string;
     public readonly title: string;
     public readonly thumbnail: string;
-    public readonly likes: number;
+    public readonly views: number;
+    public readonly channel: string;
 
     /** The duration of this song in seconds. */
     public readonly durationSeconds: number;
@@ -22,7 +23,7 @@ export class MusicDisc {
     public readonly durationString: string;
 
     public constructor(interaction: GuildedInteraction, video: YouTubeVideo, title: string) {
-        const { url, durationRaw, durationInSec, thumbnails, likes } = video;
+        const { url, durationRaw, durationInSec, thumbnails, channel, views } = video;
 
         this.addedBy = interaction.member;
         this.addedAt = Date.now();
@@ -31,7 +32,8 @@ export class MusicDisc {
         this.url = url;
         this.durationString = durationRaw;
         this.thumbnail = thumbnails.shift()?.url || MusicDisc.chooseRandomDisc();
-        this.likes = likes;
+        this.views = views;
+        this.channel = channel?.name || 'Unknown Artist';
 
         this.durationSeconds = durationInSec;
     }

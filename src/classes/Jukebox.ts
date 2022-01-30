@@ -1,4 +1,4 @@
-import { FullInteraction, GuildedInteraction } from '../types/Interactions';
+import { FullInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
     AudioPlayerState,
@@ -8,8 +8,8 @@ import {
     VoiceConnection,
     VoiceConnectionState,
 } from '@discordjs/voice';
-import { search } from 'play-dl';
 import Colours from '../types/Colours';
+import { Hopper } from './Hopper';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -21,6 +21,8 @@ export class Jukebox {
     /** The latest interaction that caused this instance to join or move to a voice channel. */
     private _latestInteraction: FullInteraction;
 
+    public hopper: Hopper;
+
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
 
@@ -29,6 +31,7 @@ export class Jukebox {
         this._latestInteraction = interaction;
 
         this._name = interaction.guild.name;
+        this.hopper = new Hopper();
 
         this.handleConnectionError = this.handleConnectionError.bind(this);
         this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
@@ -76,51 +79,6 @@ export class Jukebox {
     ): void {
         if (oldStatus === newStatus) return;
         console.debug(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
-    }
-
-    // public async add(interaction: GuildedInteraction): Promise<void> {
-    //     const connection = this._connection;
-
-    //     const successfulAdd = await this._hopper.add(interaction);
-    //     if (!successfulAdd) return;
-
-    //     if (this._hopper.items.length === 1) {
-    //         const nextItem = this._hopper.getNext();
-    //         if (!nextItem) return;
-    //         if (!interaction.member.voice.channelId) return;
-
-    //         const localStream = await stream(nextItem.url, { quality: 2 });
-
-    //         for (const event of localStream.stream.eventNames()) {
-    //             if (typeof event !== 'string') continue;
-    //             localStream.stream.on(event, () => console.log(event));
-    //         }
-
-    //         const resource = createAudioResource(localStream.stream, {
-    //             inputType: localStream.type,
-    //             inlineVolume: true,
-    //         });
-
-    //         const player = createAudioPlayer();
-    //         player.play(resource);
-    //         const sub = connection.subscribe(player);
-    //         if (sub) {
-    //             sub.connection.playOpusPacket;
-    //         }
-    //     }
-    // }
-
-    public async add(interaction: GuildedInteraction): Promise<void> {
-        const queryString = interaction.options.get('song', true).value as string;
-
-        console.log(queryString);
-        const searchResult = await search(queryString, { limit: 1 });
-        if (!searchResult.length) {
-            await interaction.reply({ content: 'No results found', ephemeral: true });
-        }
-        console.log(searchResult);
-
-        await interaction.reply({ content: 'pog pog pogu', ephemeral: true });
     }
 
     public async cleanup(): Promise<void> {

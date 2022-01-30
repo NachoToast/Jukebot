@@ -25,7 +25,12 @@ export class Play extends Command {
 
         // if already playing audio, skip voice channel checks
         if (existingJukebox) {
-            await existingJukebox.add(guildedInteraction);
+            const res = await existingJukebox.hopper.add(guildedInteraction);
+            if (res.failure) {
+                await interaction.reply({ content: res.reason, ephemeral: true });
+            } else {
+                await interaction.reply({ ...res.output });
+            }
             return;
         }
 
@@ -37,7 +42,12 @@ export class Play extends Command {
         const fullInteraction = interaction as FullInteraction;
 
         const jukeBox = jukebot.getOrMakeJukebox(fullInteraction);
-        await jukeBox.add(guildedInteraction);
+        const res = await jukeBox.hopper.add(guildedInteraction);
+        if (res.failure) {
+            await interaction.reply({ content: res.reason, ephemeral: true });
+        } else {
+            await interaction.reply({ ...res.output });
+        }
     }
 }
 
