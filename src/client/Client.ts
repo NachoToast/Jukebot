@@ -150,6 +150,13 @@ export class Jukebot {
                 console.log(error);
             }
         }
+
+        try {
+            await rest.put(Routes.applicationCommands(this.client.user.id), { body: [] });
+        } catch (error) {
+            console.log(error);
+            process.exit(1);
+        }
     }
 
     /** Deploys slash commands globally, and make announcer. */
