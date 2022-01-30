@@ -11,6 +11,7 @@ import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from '../classes/Jukebox';
 import { getConfig } from '../helpers/getConfig';
 import { CleanUpReasons } from '../types/Jukebox';
+import { Announcer } from '../classes/Announcer';
 
 export class Jukebot {
     public static config: Config = getConfig();
@@ -21,6 +22,7 @@ export class Jukebot {
     private readonly _startTime = Date.now();
 
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
+    private _announcer?: Announcer;
 
     public constructor() {
         this.devMode = process.argv.slice(2).includes('--devmode');
@@ -150,7 +152,7 @@ export class Jukebot {
         }
     }
 
-    /** Deploys slash commands globally. */
+    /** Deploys slash commands globally, and make announcer. */
     private async globalDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const rest = new REST({ version: '9' }).setToken(token);
 
@@ -162,6 +164,8 @@ export class Jukebot {
             console.log(error);
             process.exit(1);
         }
+
+        this._announcer = new Announcer(this.client.guilds);
     }
 
     public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
