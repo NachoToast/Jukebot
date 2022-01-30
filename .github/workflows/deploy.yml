@@ -1,0 +1,19 @@
+# pog pog pogu
+
+name: Deploy
+
+on: [release]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: executing remote build process
+              uses: appleboy/ssh-action@v0.1.4
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.USERNAME }}
+                  password: ${{ secrets.PASSWORD }}
+                  port: ${{ secrets.PORT }}
+                  script: ./jukebot.sh
