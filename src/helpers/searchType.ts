@@ -43,7 +43,7 @@ export function getSearchType(s: string): SearchType {
     try {
         const url = new URL(s);
 
-        if (url.host.match(/^(www.)?youtube.com$/g)) {
+        if (url.host.match(/^(www.)?youtube\.com$/g)) {
             if (url.searchParams.has('list')) {
                 return { valid: true, type: YouTubeURLTypes.Playlist };
             }
