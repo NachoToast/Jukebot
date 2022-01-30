@@ -8,11 +8,18 @@ import { MessageEmbed } from 'discord.js';
 import { viewCountFormatter } from '../helpers/viewCountFormatter';
 import { DiscImages } from '../types/MusicDisc';
 import { Jukebot } from '../client/Client';
+import { Jukebox } from './Jukebox';
 
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
 export class Hopper {
+    private readonly _jukebox: Jukebox;
+
     /** The queued songs. */
     public inventory: MusicDisc[] = [];
+
+    public constructor(jukebox: Jukebox) {
+        this._jukebox = jukebox;
+    }
 
     /** Attempts to search for and add a song, album or playlist to the queue.
      *
@@ -146,9 +153,20 @@ export class Hopper {
         // cuz currently position 1 = 0 seconds
 
         const applicableSongs = this.inventory.slice(0, position - 1).map((e) => e.durationSeconds);
-        if (!applicableSongs.length) return [0, '0:00'];
 
-        const timeNumerical = applicableSongs.reduce((prev, next) => prev + next);
+        let timeLeft = 0;
+        const currentlyPlayingSong = this._jukebox.current.active;
+        if (currentlyPlayingSong) {
+            const songDuration = this._jukebox.current.musicDisc.durationSeconds;
+            const playingSince = this._jukebox.current.playingSince;
+
+            const playingFor = Math.floor((Date.now() - playingSince) / 1000);
+            timeLeft += songDuration - playingFor;
+        }
+
+        if (!applicableSongs.length) return [0 + timeLeft, numericalToString(0 + timeLeft)];
+
+        const timeNumerical = applicableSongs.reduce((prev, next) => prev + next) + timeLeft;
 
         const timeString = numericalToString(timeNumerical);
 

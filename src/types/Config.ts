@@ -35,4 +35,19 @@ export default interface Config {
     /** Modifies the playback volume, valid range is between 0 and 1,
      * with 1 being no modification and 0 muting audio entirely. */
     volumeModifier: number;
+
+    /** The maximum time to wait (in seconds) for the bot to connect and start playing audio once.
+     *
+     * Connecting and playing audio counts as 2 seperate tasks,
+     * so the maximum time to connect AND play is `2 * maxReadyTime`
+     *
+     */
+    maxReadyTime: number;
+
+    /** The maximum time (in seconds) Jukebot will
+     * stay in voice channels without playing anything.
+     *
+     * Set to `0` to stay in voice channels forever.
+     */
+    inactivityTimeout: number;
 }

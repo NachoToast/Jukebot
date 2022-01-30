@@ -5,15 +5,17 @@ import {
     AudioPlayerStatus,
     createAudioPlayer,
     createAudioResource,
+    entersState,
     joinVoiceChannel,
     NoSubscriberBehavior,
     VoiceConnection,
     VoiceConnectionState,
+    VoiceConnectionStatus,
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
-import { DestroyCallback } from '../types/Jukebox';
-import { AddResponse } from '../types/Hopper';
+import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '../types/Jukebox';
+import { AddResponse, BaseFailureReasons } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
 import { Jukebot } from '../client/Client';
 
@@ -35,19 +37,28 @@ export class Jukebox {
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
 
+    public current: CurrentStatus = {
+        active: false,
+        idleSince: Date.now(),
+        wasPlaying: null,
+        leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
+    };
+
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
 
         this._name = interaction.guild.name;
         this._destroyCallback = destroyCallback;
-        this._hopper = new Hopper();
+        this._hopper = new Hopper(this);
 
         this.handleConnectionError = this.handleConnectionError.bind(this);
         this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
 
         this.handlePlayerError = this.handlePlayerError.bind(this);
         this.handlePlayerStateChange = this.handlePlayerStateChange.bind(this);
+
+        this.disconnectTimeout = this.disconnectTimeout.bind(this);
 
         this._connection = joinVoiceChannel({
             channelId: this._latestInteraction.member.voice.channelId,
@@ -65,10 +76,25 @@ export class Jukebox {
         this._player.on('stateChange', this.handlePlayerStateChange);
 
         this._connection.subscribe(this._player);
+
+        this.postContructionReadyCheck();
     }
 
-    private handleConnectionError(error: Error): void {
+    /** Just make sure the connection (made on class instantiation) connects in time. */
+    private async postContructionReadyCheck() {
+        try {
+            await entersState(this._connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
+        } catch (error) {
+            console.log(
+                `[${this._name}] (connection) ${Colours.FgRed}unable to be ready in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
+            );
+            await this.cleanup(CleanUpReasons.ConnectionTimeout);
+        }
+    }
+
+    private async handleConnectionError(error: Error): Promise<void> {
         console.log(`[${this._name}] (connection) ${Colours.FgRed}error${Colours.Reset}`, error);
+        await this.cleanup(CleanUpReasons.ConnectionError);
     }
 
     private handleConnectionStateChange(
@@ -76,27 +102,72 @@ export class Jukebox {
         { status: newStatus }: VoiceConnectionState,
     ): void {
         if (oldStatus === newStatus) return;
-        console.log(`[${this._name}] (connection) ${oldStatus} => ${newStatus}`);
+        // console.log(`[${this._name}] (connection) ${oldStatus} => ${newStatus}`);
     }
 
-    private handlePlayerError(error: Error): void {
-        console.error(`[${this._name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
+    private async handlePlayerError(error: Error): Promise<void> {
+        console.log(`[${this._name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
+        await this.cleanup(CleanUpReasons.PlayerError);
     }
 
-    private handlePlayerStateChange(
+    private async handlePlayerStateChange(
         { status: oldStatus }: AudioPlayerState,
         { status: newStatus }: AudioPlayerState,
-    ): void {
+    ): Promise<void> {
         if (oldStatus === newStatus) return;
-        console.debug(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
+
+        if (pausedStates.includes(newStatus)) {
+            if (this.readyToPlay) {
+                try {
+                    await this.nextSong();
+                } catch (error) {
+                    console.log(
+                        `[${this._name}] (player) ${Colours.FgRed}unable to start playing in specified time${Colours.Reset}`,
+                    );
+                    await this.cleanup(CleanUpReasons.PlayerTimeout);
+                }
+            } else {
+                this.current = {
+                    active: false,
+                    idleSince: Date.now(),
+                    wasPlaying: this.current.active
+                        ? {
+                              musicDisc: this.current.musicDisc,
+                              for: Date.now() - this.current.playingSince * 1000,
+                          }
+                        : null,
+                    leaveTimeout: setTimeout(() => this.disconnectTimeout(), 10000),
+                };
+            }
+        }
+    }
+
+    /** Whether this Jukebox instance is ready to play a song.
+     *
+     * - Has successfully connected to a voice channel.
+     * - Player is ready and **not currently playing anything**.
+     * - Queue has at least 1 item in it.
+     */
+    private get readyToPlay(): boolean {
+        const playerReady = this._player.state.status === AudioPlayerStatus.Idle;
+        const connectionReady = this._connection.state.status === VoiceConnectionStatus.Ready;
+        const itemReady = !!this._hopper.inventory.length;
+        return playerReady && connectionReady && itemReady;
     }
 
     public async add(interaction: GuildedInteraction): Promise<AddResponse> {
         const res = await this._hopper.add(interaction);
         if (!res.failure) {
-            // TODO: logic for a successful request
-            if (this._player.state.status !== AudioPlayerStatus.Playing) {
-                this.nextSong(true);
+            if (this.readyToPlay) {
+                try {
+                    await this.nextSong(true);
+                } catch (error) {
+                    console.log(
+                        `[${this._name}] (player) ${Colours.FgRed}unable to start playing in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
+                    );
+                    await this.cleanup(CleanUpReasons.ConnectionTimeout);
+                    return { failure: true, reason: BaseFailureReasons.PlayerError };
+                }
             }
         }
 
@@ -104,11 +175,16 @@ export class Jukebox {
     }
 
     /** Playes the next song in the queue.
+     *
+     * This will replace the currently playing song.
+     *
+     * Will error if the player does not start playing in the configured amount of time.
+     *
      * @param {boolean} [silent=false] Whether to announce the next song in chat.
      */
-    public async nextSong(silent: boolean = false): Promise<void> {
+    public async nextSong(silent: boolean = false): Promise<boolean> {
         const nextDisc = this._hopper.inventory.shift();
-        if (!nextDisc) return;
+        if (!nextDisc) return false;
 
         const youtTubeStream = (await stream(nextDisc.url)) as YouTubeStream;
         const resource = createAudioResource(youtTubeStream.stream, {
@@ -123,23 +199,65 @@ export class Jukebox {
 
         this._player.play(resource);
 
+        await entersState(this._player, AudioPlayerStatus.Playing, Jukebot.config.maxReadyTime * 1000);
+
+        let playingSince = Date.now();
+
+        if (!this.current.active) {
+            clearTimeout(this.current.leaveTimeout);
+            if (this.current.wasPlaying?.for) {
+                playingSince -= this.current.wasPlaying.for * 1000;
+            }
+        }
+        this.current = {
+            active: true,
+            musicDisc: nextDisc,
+            playingSince,
+        };
+
         if (!silent) {
             await this._latestInteraction.channel.send(
                 `now playing ${nextDisc.title} (requested by __${nextDisc.addedBy.nickname}__)`,
             );
         }
+
+        return true;
+    }
+
+    /** Called once the bot has been idle for more than the configure idle time.
+     * Disconnecting the bot from the voice channel and terminating the instance.
+     */
+    private async disconnectTimeout(): Promise<void> {
+        if (this.current.active) {
+            console.log(`${this._name}disconnect timeout got called despite being active, this should never happen`);
+            return;
+        }
+
+        if (!Jukebot.config.inactivityTimeout) return;
+        await this.cleanup(CleanUpReasons.Inactivity);
     }
 
     /** Removes listeners, stops playblack, and destroys connection.
      *
      * Should only be called when the Jukebox needs to kill itself.
      */
-    public async cleanup(): Promise<boolean> {
+    public async cleanup(reason: CleanUpReasons): Promise<boolean> {
         this._player.removeAllListeners();
         this._player.stop(true);
 
         this._connection.removeAllListeners();
         this._connection.destroy();
+
+        switch (reason) {
+            case CleanUpReasons.ClientRequest:
+                break;
+            case CleanUpReasons.ConnectionError:
+            case CleanUpReasons.ConnectionTimeout:
+                await this._latestInteraction.channel.send({ content: `Operation aborted due to ${reason}` });
+                break;
+            default:
+                await this._latestInteraction.channel.send({ content: `Left voice channel due to ${reason}` });
+        }
 
         return this._destroyCallback(this._startingInteraction.guildId);
     }

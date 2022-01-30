@@ -10,6 +10,7 @@ import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from '../classes/Jukebox';
 import { getConfig } from '../helpers/getConfig';
+import { CleanUpReasons } from '../types/Jukebox';
 
 export class Jukebot {
     public static config: Config = getConfig();
@@ -188,6 +189,6 @@ export class Jukebot {
     public async removeJukebox(interaction: GuildedInteraction): Promise<boolean> {
         const jukebox = this._jukeboxes.get(interaction.guildId);
         if (!jukebox) return false;
-        return await jukebox.cleanup();
+        return await jukebox.cleanup(CleanUpReasons.ClientRequest);
     }
 }

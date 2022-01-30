@@ -5,5 +5,7 @@
     "activityString": "sus remixes",
     "colourTheme": "#794c36",
     "maxQueueSize": 1000,
-    "volumeModifier": 0.5
+    "volumeModifier": 0.5,
+    "maxReadyTime": 5,
+    "inactivityTimeout": 60
 }

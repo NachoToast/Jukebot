@@ -51,6 +51,8 @@ export enum BaseFailureReasons {
     NoResults = 'No results found',
 
     QueueTooLarge = 'The queue is full, please try again later',
+
+    PlayerError = 'An unknown error occurred, please report this to NachoToast',
 }
 
 export type FailReason = BaseFailureReasons | YouTubeFailureReasons;
