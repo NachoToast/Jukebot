@@ -1,18 +1,20 @@
-import { defaultDiscArray, InputDiscData } from '../types/MusicDisc';
+import { defaultDiscArray } from '../types/MusicDisc';
 import { GuildedInteraction } from '../types/Interactions';
 import { MusicDisc } from './MusicDisc';
+import { YouTubeVideo } from 'play-dl';
 
 describe('MusicDisc', () => {
     const fakeInteraction = { member: null } as unknown as GuildedInteraction;
 
-    const fakeData: InputDiscData = {
-        title: 'song name',
+    const title = 'song name';
+    const fakeData = {
         duration: '1:23:45',
         url: 'https://example.com',
-    };
+        thumbnails: [],
+    } as unknown as YouTubeVideo;
 
     it('should make a DiscImage if no thumbnail provided', () => {
-        const { thumbnail } = new MusicDisc(fakeInteraction, fakeData);
+        const { thumbnail } = new MusicDisc(fakeInteraction, fakeData, title);
         expect(defaultDiscArray).toContain(thumbnail);
     });
 
@@ -21,7 +23,7 @@ describe('MusicDisc', () => {
 
         const [discA, discB, discC] = new Array(3)
             .fill(undefined)
-            .map(() => new MusicDisc(fakeInteraction, fakeData).thumbnail);
+            .map(() => new MusicDisc(fakeInteraction, fakeData, title).thumbnail);
 
         expect(discA).not.toBe(discB);
         expect(discB).not.toBe(discC);
