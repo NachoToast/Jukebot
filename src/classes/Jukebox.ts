@@ -115,6 +115,7 @@ export class Jukebox {
         { status: newStatus }: AudioPlayerState,
     ): Promise<void> {
         if (oldStatus === newStatus) return;
+        // console.log(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
 
         if (pausedStates.includes(newStatus)) {
             if (this.readyToPlay) {
