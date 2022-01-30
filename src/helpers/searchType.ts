@@ -73,10 +73,6 @@ export function getSearchType(s: string): SearchType {
         if (s.startsWith('http') || s.endsWith('.com')) {
             return { valid: false, type: OtherTypes.InvalidURL };
         }
-
-        if (s.length > 3) {
-            return { valid: true, type: OtherTypes.ValidTextSearch };
-        }
         return { valid: false, type: OtherTypes.InvalidTextSearch };
     }
 }
