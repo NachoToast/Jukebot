@@ -56,6 +56,7 @@ describe('getIdealChannel', () => {
         const botCommands = { ...validChannel, name: 'bot-commands' } as unknown as Channel;
         const bot = { ...validChannel, name: 'bot' } as unknown as Channel;
         const commands = { ...validChannel, name: 'commands' } as unknown as Channel;
+        const general = { ...validChannel, name: 'geNeral' } as unknown as Channel;
 
         it('always chooses jukebot if available', async () => {
             channelCollection.set('fakeId1', validChannel);
@@ -76,10 +77,14 @@ describe('getIdealChannel', () => {
 
         it('follows the preferred hierarchy', async () => {
             channelCollection.set('fakeId1', validChannel);
-            channelCollection.set('fakeId2', bot);
+            channelCollection.set('fakeId2', general);
             channelCollection.set('fakeId3', validChannel);
 
+            // try with general
+            expect(await getIdealChannel(fakeGuild)).toBe(general);
+
             // try with bot
+            channelCollection.set('fakeId3', bot);
             expect(await getIdealChannel(fakeGuild)).toBe(bot);
 
             // try with commands
