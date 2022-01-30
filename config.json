@@ -4,5 +4,6 @@
     "levenshteinThreshold": 0.1,
     "activityString": "sus remixes",
     "colourTheme": "#794c36",
-    "maxQueueSize": 1000
+    "maxQueueSize": 1000,
+    "volumeModifier": 0.5
 }

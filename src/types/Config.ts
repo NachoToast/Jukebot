@@ -31,4 +31,8 @@ export default interface Config {
      * Set to `0` to have no maximum size.
      */
     maxQueueSize: number;
+
+    /** Modifies the playback volume, valid range is between 0 and 1,
+     * with 1 being no modification and 0 muting audio entirely. */
+    volumeModifier: number;
 }
