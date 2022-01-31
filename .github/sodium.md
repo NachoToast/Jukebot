@@ -44,6 +44,10 @@ Here are some guides on fixing these errors, from personal experience.
 
     -   From [this thread](https://stackoverflow.com/questions/33716369/error-trk0005-failed-to-locate-cl-exe), open your Visual Studio 2015 download and create a new **Visual C++ Project**.
 
+-   Missing SDK 8.1
+
+    -   Install the missing SDK from [here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/).
+
 -   Sodium's [Windows install guide](https://github.com/paixaop/node-sodium#windows-install)
 
 ## Linux
