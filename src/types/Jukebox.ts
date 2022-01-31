@@ -20,6 +20,8 @@ export interface CurrentlyIdle {
     idleSince: number;
     wasPlaying: {
         musicDisc: MusicDisc;
+
+        /** How far through the song was, in seconds. */
         for: number;
     } | null;
 

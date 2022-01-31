@@ -18,6 +18,8 @@ import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '..
 import { AddResponse } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
 import { Jukebot } from '../client/Client';
+import { InteractionReplyOptions } from 'discord.js';
+import Messages from '../types/Messages';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -127,7 +129,7 @@ export class Jukebox {
                     wasPlaying: this.current.active
                         ? {
                               musicDisc: this.current.musicDisc,
-                              for: Date.now() - this.current.playingSince * 1000,
+                              for: Math.floor((Date.now() - this.current.playingSince) / 1000),
                           }
                         : null,
                     leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
@@ -164,6 +166,14 @@ export class Jukebox {
             }
         }
         return res;
+    }
+
+    public getNowPlaying(): InteractionReplyOptions {
+        if (!this.current.active) {
+            return { content: Messages.NotPlaying, ephemeral: true };
+        }
+        const embed = this._hopper.makeNowPlayingEmbed(this._latestInteraction, this.current.musicDisc, true);
+        return { embeds: [embed] };
     }
 
     /** Playes the next song in the queue.
@@ -217,9 +227,8 @@ export class Jukebox {
         };
 
         if (!silent) {
-            await this._latestInteraction.channel.send(
-                `now playing ${nextDisc.title} (requested by __${nextDisc.addedBy.user.username}__)`,
-            );
+            const nextEmbed = this.getNowPlaying();
+            await this._latestInteraction.channel.send({ ...nextEmbed });
         }
 
         return true;

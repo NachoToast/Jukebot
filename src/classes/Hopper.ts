@@ -144,6 +144,30 @@ export class Hopper {
         return musicDisc;
     }
 
+    /** Returns duration info about the currently playing song:
+     * `total duration`,
+     * `current duration` (how far through the song it is), and
+     * `remaining duration` (total - current)
+     * all in seconds.
+     *
+     */
+    private getCurrentSongInfo(): { total: number; current: number; remaining: number } {
+        let total: number;
+        let current: number;
+
+        const data = this._jukebox.current;
+
+        if (data.active) {
+            total = data.musicDisc.durationSeconds;
+            current = Math.floor((Date.now() - data.playingSince) / 1000);
+        } else if (data.wasPlaying) {
+            total = data.wasPlaying.musicDisc.durationSeconds;
+            current = data.wasPlaying.for;
+        } else throw new Error("Tried to get song info but wasn't playing anything now or previously");
+
+        return { total, current, remaining: total - current };
+    }
+
     /** Gets the time until a song will play in the queue.
      * @param {number} [position=1] The position of the item in the queue,
      * with 1 being the first item.
@@ -157,13 +181,11 @@ export class Hopper {
         const applicableSongs = this.inventory.slice(0, position - 1).map((e) => e.durationSeconds);
 
         let timeLeft = 0;
-        const currentlyPlayingSong = this._jukebox.current.active;
-        if (currentlyPlayingSong) {
-            const songDuration = this._jukebox.current.musicDisc.durationSeconds;
-            const playingSince = this._jukebox.current.playingSince;
-
-            const playingFor = Math.floor((Date.now() - playingSince) / 1000);
-            timeLeft += songDuration - playingFor;
+        try {
+            const { remaining } = this.getCurrentSongInfo();
+            timeLeft += remaining;
+        } catch (error) {
+            /* don't care */
         }
 
         if (!applicableSongs.length) return [0 + timeLeft, numericalToString(0 + timeLeft)];
@@ -211,7 +233,11 @@ export class Hopper {
         return embed;
     }
 
-    public makeNowPlayingEmbed(interaction: GuildedInteraction, disc: MusicDisc): MessageEmbed {
+    public makeNowPlayingEmbed(
+        interaction: GuildedInteraction,
+        disc: MusicDisc,
+        withProgressBar: boolean = false,
+    ): MessageEmbed {
         const embed = new MessageEmbed()
             .setAuthor({ name: 'Now Playing', iconURL: disc.addedBy.displayAvatarURL() })
             .setTitle(disc.title)
@@ -229,6 +255,29 @@ export class Hopper {
             })
             .setColor(Jukebot.config.colourTheme);
 
+        if (withProgressBar) {
+            const { current, remaining } = this.getCurrentSongInfo();
+
+            embed.addField(
+                'Progress',
+                `Current: ${numericalToString(current)} / ${numericalToString(remaining)}\n${this.makeProgressBar()}`,
+            );
+        }
+
         return embed;
+    }
+
+    private static _previous = '🔵';
+    private static _current = '🟢';
+    private static _next = '⚪';
+    private makeProgressBar(width: number = 20): string {
+        const { total, current } = this.getCurrentSongInfo();
+
+        const completedness = Math.floor((100 * current) / total);
+
+        const full = Hopper._previous.repeat(Math.floor((width * completedness) / 100));
+        const empty = Hopper._next.repeat(Math.ceil((width * (100 - completedness)) / 100));
+
+        return full.slice(0, -1) + Hopper._current + empty;
     }
 }
