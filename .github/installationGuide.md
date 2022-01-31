@@ -29,26 +29,26 @@ To set up your own version of JukeBot, follow these steps
 
         ```sh
         # with yarn
-        $ yarn
+        yarn
 
         # with npm
-        $ npm install
+        npm install
         ```
 
     - You can install yarn using:
 
         ```sh
-        $ npm i -g yarn
+        npm i -g yarn
         ```
 
     - You can install production-only dependencies using:
 
         ```sh
         # with yarn
-        $ yarn install --prod=true
+        yarn install --prod=true
 
         # with npm
-        $ npm install --only=true
+        npm install --only=true
         ```
 
 5. Start the Bot
@@ -57,10 +57,10 @@ To set up your own version of JukeBot, follow these steps
 
         ```sh
         # with yarn
-        $ yarn dev
+        yarn dev
 
         # with npm
-        $ npm run dev
+        npm run dev
         ```
 
     - In production
@@ -69,13 +69,13 @@ To set up your own version of JukeBot, follow these steps
 
             ```sh
             # with yarn
-            $ yarn build
+            yarn build
 
             # with npm
-            $ npm run build
+            npm run build
             ```
 
         - Start
             ```sh
-            $ node .
+            node .
             ```
