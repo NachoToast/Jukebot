@@ -21,7 +21,6 @@ export class Jukebot {
     private readonly _startTime = Date.now();
 
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
-    private _announcer?: Announcer;
 
     public constructor() {
         this.devMode = process.argv.slice(2).includes('--devmode');
@@ -173,7 +172,7 @@ export class Jukebot {
             process.exit(1);
         }
 
-        this._announcer = new Announcer(this.client.guilds);
+        new Announcer(this.client.guilds);
     }
 
     public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
