@@ -208,7 +208,7 @@ export class Jukebox {
         const resource = createAudioResource(youtTubeStream.stream, {
             inputType: youtTubeStream.type,
             // inlineVolume: !!Jukebot.config.volumeModifier,
-            metadata: nextDisc,
+            // metadata: nextDisc,
         });
 
         // if (Jukebot.config.volumeModifier) {
