@@ -2984,7 +2984,7 @@ natural-compare@^1.4.0:
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
-node-addon-api@^4.2.0:
+node-addon-api@*, node-addon-api@^4.2.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-4.3.0.tgz#52a1a0b475193e0928e98e0426a0d1254782b77f"
   integrity sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==
@@ -3510,6 +3510,13 @@ slash@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/slash/-/slash-3.0.0.tgz#6539be870c165adbd5240220dbe361f1bc4d4634"
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
+
+sodium@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/sodium/-/sodium-3.0.2.tgz#4dbd7eb4a21c92ca7e7f684756cd733fee78112e"
+  integrity sha512-IsTwTJeoNBU97km3XkrbCGC/n/9aUQejgD3QPr2YY2gtbSPru3TI6nhCqgoez9Mv88frF9oVZS/jrXFbd6WXyA==
+  dependencies:
+    node-addon-api "*"
 
 source-map-support@^0.5.6:
   version "0.5.21"

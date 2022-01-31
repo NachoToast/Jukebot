@@ -37,6 +37,7 @@
         "ffmpeg-static": "^4.4.1",
         "moment": "^2.29.1",
         "play-dl": "^1.8.2",
+        "sodium": "^3.0.2",
         "tiny-typed-emitter": "^2.1.0"
     },
     "jest": {
@@ -44,7 +45,11 @@
         "testEnvironment": "node"
     },
     "nodemonConfig": {
-        "watch": ["src", "auth.json", "config.json"],
+        "watch": [
+            "src",
+            "auth.json",
+            "config.json"
+        ],
         "ext": "ts",
         "ignore": [
             "**/*.test.ts"

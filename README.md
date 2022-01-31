@@ -14,6 +14,7 @@ See the [installation guide](./.github/installationGuide.md) for a more beginner
 <br >
 
 -   Node v16.13.0 or greater
+-   If you're getting install errors, it might be [sodium](./.github/sodium.md).
 -   Scopes
     -   bot
     -   applications.commands
