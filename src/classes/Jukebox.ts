@@ -84,7 +84,7 @@ export class Jukebox {
         this.postContructionReadyCheck();
     }
 
-    /** Just make sure the connection (made on class instantiation) connects in time. */
+    /** Make sure the connection (made on class instantiation) connects in time. */
     private async postContructionReadyCheck() {
         try {
             await entersState(this._connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
@@ -122,9 +122,8 @@ export class Jukebox {
         console.log(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
 
         if (pausedStates.includes(newStatus)) {
-            if (this.readyToPlay) {
-                await this.nextSong();
-            } else this.makeIdle();
+            if (this.readyToPlay) await this.nextSong();
+            else this.makeIdle();
         }
     }
 
