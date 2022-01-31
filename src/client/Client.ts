@@ -118,10 +118,21 @@ export class Jukebot {
 
     private async onInteractionCreate(interaction: Interaction): Promise<void> {
         if (!interaction.isCommand()) return;
+
+        const guildedInteraction = interaction as GuildedInteraction;
+
         const command = this._commands.get(interaction.commandName);
         if (command) {
+            if (!interaction.guild?.me && !command.allowNoGuild) {
+                await interaction.reply({
+                    content: 'Sorry, you can only use this command in a server',
+                    ephemeral: true,
+                });
+                return;
+            }
+
             try {
-                await command.execute({ interaction, jukebot: this });
+                await command.execute({ interaction: guildedInteraction, jukebot: this });
             } catch (error) {
                 console.log(error);
             }

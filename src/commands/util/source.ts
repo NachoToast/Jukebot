@@ -6,6 +6,7 @@ import Command, { CommandParams } from '../../types/Command';
 export class Source extends Command {
     public name = 'source';
     public description = 'Links to GitHub repo';
+    public allowNoGuild = true;
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }

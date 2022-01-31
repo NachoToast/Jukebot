@@ -15,10 +15,6 @@ export class Play extends Command {
     }
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
-        if (!interaction.guildId) {
-            await interaction.reply({ content: Messages.GuildOnly, ephemeral: false });
-            return;
-        }
         const guildedInteraction = interaction as GuildedInteraction;
 
         const existingJukebox = jukebot.getJukebox(guildedInteraction);

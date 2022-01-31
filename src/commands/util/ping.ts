@@ -4,6 +4,7 @@ import Command, { CommandParams } from '../../types/Command';
 export class Ping extends Command {
     public name = 'ping';
     public description = 'Replies with Pongers!';
+    public allowNoGuild = true;
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
