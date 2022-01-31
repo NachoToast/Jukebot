@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageActionRow, MessageButton } from 'discord.js';
-import { Jukebot } from '../../client/Client';
+import { Jukebot } from '../../classes/Client';
 import Command, { CommandParams } from '../../types/Command';
 
 export class Source extends Command {

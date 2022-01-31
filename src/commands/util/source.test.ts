@@ -1,10 +1,10 @@
 import { Interaction, MessageActionRow, MessageButton } from 'discord.js';
-import { Jukebot } from '../../client/Client';
+import { Jukebot } from '../../classes/Client';
 import { CommandParams } from '../../types/Command';
 import Config from '../../types/Config';
 import { Source } from './source';
 
-jest.mock('../../client/Client');
+jest.mock('../../classes/Client');
 
 interface Output {
     content: string;

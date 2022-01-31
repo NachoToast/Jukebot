@@ -1,7 +1,7 @@
 import { GuildManager, MessageEmbed } from 'discord.js';
 import { request, RequestOptions } from 'https';
 import moment from 'moment';
-import { Jukebot } from '../client/Client';
+import { Jukebot } from './Client';
 import { getIdealChannel } from '../helpers/getIdealChannel';
 import Colours from '../types/Colours';
 import { Release } from '../types/Release';

@@ -1,3 +1,3 @@
-import { Jukebot } from './client/Client';
+import { Jukebot } from './classes/Client';
 
 new Jukebot();

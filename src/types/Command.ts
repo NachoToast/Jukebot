@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { Jukebot } from '../client/Client';
+import { Jukebot } from '../classes/Client';
 import { GuildedInteraction } from './Interactions';
 
 export interface CommandParams {

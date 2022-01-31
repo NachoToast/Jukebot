@@ -17,7 +17,7 @@ import { Hopper } from './Hopper';
 import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '../types/Jukebox';
 import { AddResponse } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
-import { Jukebot } from '../client/Client';
+import { Jukebot } from './Client';
 import { InteractionReplyOptions } from 'discord.js';
 import Messages from '../types/Messages';
 

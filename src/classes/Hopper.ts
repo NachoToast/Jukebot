@@ -7,7 +7,7 @@ import { search, video_basic_info } from 'play-dl';
 import { MessageEmbed } from 'discord.js';
 import { viewCountFormatter } from '../helpers/viewCountFormatter';
 import { DiscImages } from '../types/MusicDisc';
-import { Jukebot } from '../client/Client';
+import { Jukebot } from './Client';
 import { Jukebox } from './Jukebox';
 import { memberNicknameMention } from '@discordjs/builders';
 import moment from 'moment';

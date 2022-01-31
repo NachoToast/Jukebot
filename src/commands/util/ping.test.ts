@@ -1,5 +1,5 @@
 import { Interaction } from 'discord.js';
-import { Jukebot } from '../../client/Client';
+import { Jukebot } from '../../classes/Client';
 import { CommandParams } from '../../types/Command';
 import { Ping } from './ping';
 

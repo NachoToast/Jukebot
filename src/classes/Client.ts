@@ -7,10 +7,10 @@ import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand, Snowflake } 
 import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
-import { Jukebox } from '../classes/Jukebox';
+import { Jukebox } from './Jukebox';
 import { getConfig } from '../helpers/getConfig';
 import { CleanUpReasons } from '../types/Jukebox';
-import { Announcer } from '../classes/Announcer';
+import { Announcer } from './Announcer';
 
 export class Jukebot {
     public static config: Config = getConfig();
