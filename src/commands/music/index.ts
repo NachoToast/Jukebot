@@ -1,3 +1,4 @@
 import nowPlaying from './nowPlaying';
 import play from './play';
-export default [play, nowPlaying];
+import queue from './queue';
+export default [play, nowPlaying, queue];

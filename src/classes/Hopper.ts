@@ -9,7 +9,7 @@ import { viewCountFormatter } from '../helpers/viewCountFormatter';
 import { DiscImages } from '../types/MusicDisc';
 import { Jukebot } from './Client';
 import { Jukebox } from './Jukebox';
-import { memberNicknameMention } from '@discordjs/builders';
+import { memberNicknameMention, userMention } from '@discordjs/builders';
 import moment from 'moment';
 
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
@@ -262,6 +262,37 @@ export class Hopper {
                 'Progress',
                 `Current: ${numericalToString(current)} / ${numericalToString(remaining)}\n${this.makeProgressBar()}`,
             );
+        }
+
+        return embed;
+    }
+
+    public makeQueueEmbed(interaction: GuildedInteraction): MessageEmbed {
+        const embed = new MessageEmbed()
+            .setAuthor({
+                name: `${interaction.guild.name} Music Queue`,
+                iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
+            })
+            .setTitle(`${this.inventory.length} Song${this.inventory.length !== 1 ? 's' : ''} Queued`)
+            .setDescription(`Total Length: ${this.totalQueueLength}`)
+            .setFooter({ text: `Showing ${this.inventory.length} of ${this.inventory.length} queued songs` })
+            .setColor(Jukebot.config.colourTheme);
+
+        let displayedItemCount = 0;
+        while (embed.length < 6000 && displayedItemCount < this.inventory.length) {
+            const nextItem = this.inventory[displayedItemCount];
+            embed.addField(
+                `${displayedItemCount + 1} - ${nextItem.title} (${nextItem.durationString})`,
+                `Requested by ${userMention(nextItem.addedBy.id)}`,
+                true,
+            );
+            displayedItemCount++;
+        }
+
+        if (displayedItemCount === this.inventory.length) {
+            embed.setFooter(null);
+        } else {
+            embed.setFooter({ text: `Showing ${displayedItemCount} of ${this.inventory.length} queued songs` });
         }
 
         return embed;

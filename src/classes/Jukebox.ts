@@ -18,7 +18,7 @@ import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '..
 import { AddResponse } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
 import { Jukebot } from './Client';
-import { InteractionReplyOptions } from 'discord.js';
+import { InteractionReplyOptions, MessageEmbed } from 'discord.js';
 import Messages from '../types/Messages';
 
 /** Each Jukebox instance handles audio playback for a single guild. */
@@ -174,6 +174,10 @@ export class Jukebox {
         }
         const embed = this._hopper.makeNowPlayingEmbed(this._latestInteraction, this.current.musicDisc, true);
         return { embeds: [embed] };
+    }
+
+    public getQueue(): MessageEmbed {
+        return this._hopper.makeQueueEmbed(this._latestInteraction);
     }
 
     /** Playes the next song in the queue.
