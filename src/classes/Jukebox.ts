@@ -14,7 +14,14 @@ import {
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
-import { CleanUpReasons, CurrentStatus, DestroyCallback, pausedStates } from '../types/Jukebox';
+import {
+    CleanUpReasons,
+    CurrentlyIdle,
+    CurrentStatus,
+    DestroyCallback,
+    pausedStates,
+    WasPlaying,
+} from '../types/Jukebox';
 import { AddResponse } from '../types/Hopper';
 import { stream, YouTubeStream } from 'play-dl';
 import { Jukebot } from './Client';
@@ -39,12 +46,7 @@ export class Jukebox {
     private _connection: VoiceConnection;
     private _player: AudioPlayer;
 
-    public current: CurrentStatus = {
-        active: false,
-        idleSince: Date.now(),
-        wasPlaying: null,
-        leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
-    };
+    public current: CurrentStatus = this.makeIdle();
 
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
@@ -122,20 +124,30 @@ export class Jukebox {
         if (pausedStates.includes(newStatus)) {
             if (this.readyToPlay) {
                 await this.nextSong();
-            } else {
-                this.current = {
-                    active: false,
-                    idleSince: Date.now(),
-                    wasPlaying: this.current.active
-                        ? {
-                              musicDisc: this.current.musicDisc,
-                              for: Math.floor((Date.now() - this.current.playingSince) / 1000),
-                          }
-                        : null,
-                    leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
-                };
-            }
+            } else this.makeIdle();
         }
+    }
+
+    /** Updates the `current` property to idle. Scheduling inactivity events to run.
+     * @returns {CurrentStatus} The newly updated state.
+     */
+    private makeIdle(): CurrentStatus {
+        let wasPlaying: WasPlaying | null = null;
+
+        if (this.current.active) {
+            wasPlaying = {
+                musicDisc: this.current.musicDisc,
+                for: Math.floor((Date.now() - this.current.playingSince) / 1000),
+            };
+        }
+        const newCurrent: CurrentlyIdle = {
+            active: false,
+            idleSince: Date.now(),
+            wasPlaying,
+            leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
+        };
+        this.current = newCurrent;
+        return newCurrent;
     }
 
     /** Whether this Jukebox instance is ready to play a song.

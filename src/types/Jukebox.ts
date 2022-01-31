@@ -14,16 +14,18 @@ export interface CurrentlyPlaying {
     playingSince: number;
 }
 
+export interface WasPlaying {
+    musicDisc: MusicDisc;
+
+    /** How far through the song was, in seconds. */
+    for: number;
+}
+
 export interface CurrentlyIdle {
     active: false;
 
     idleSince: number;
-    wasPlaying: {
-        musicDisc: MusicDisc;
-
-        /** How far through the song was, in seconds. */
-        for: number;
-    } | null;
+    wasPlaying: WasPlaying | null;
 
     leaveTimeout: NodeJS.Timeout;
 }
