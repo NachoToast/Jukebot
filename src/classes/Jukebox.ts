@@ -130,7 +130,7 @@ export class Jukebox {
                               for: Date.now() - this.current.playingSince * 1000,
                           }
                         : null,
-                    leaveTimeout: setTimeout(() => this.disconnectTimeout(), 10000),
+                    leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
                 };
             }
         }
