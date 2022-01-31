@@ -1,6 +1,5 @@
-import { Client, Collection, Interaction } from 'discord.js';
+import { Client, Collection, Intents, Interaction } from 'discord.js';
 import Colours, { colourCycle } from '../types/Colours';
-import intents from './Intents';
 import commands from '../commands';
 import Command from '../types/Command';
 import { REST } from '@discordjs/rest';
@@ -26,7 +25,9 @@ export class Jukebot {
 
     public constructor() {
         this.devMode = process.argv.slice(2).includes('--devmode');
-        this.client = new Client({ intents });
+        this.client = new Client({
+            intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES],
+        });
 
         this._removeJukebox = this._removeJukebox.bind(this);
 
