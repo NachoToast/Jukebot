@@ -2,11 +2,12 @@
 
 The following are rules for writing code in this repository that aren't enforced automatically via [eslint](./.eslintrc.js) and [prettier](./.prettierrc.json). You should try to follow them if possible, but exceptions can be made.
 
-- [Logging](#logging)
-  - [Error Logging](#error-logging)
-- [Error Handling](#error-handling)
+-   [Logging](#logging)
+    -   [Error Logging](#error-logging)
+-   [Error Handling](#error-handling)
 
 ### Logging
+
 -   `console.log` is preferred to `stdout` and other console methods.
 -   Messages shouldn't be capitalized or end in a full-stop.
 
@@ -14,12 +15,15 @@ The following are rules for writing code in this repository that aren't enforced
     ❌ console.log('Logged in successfully.');
     ✅ console.log('logged in successfully');
     ```
+
 #### Error Logging
+
 -   If the error is expected, log a custom message instead of the whole error.
-  
+
     ```ts
     // good
-    try { // ...
+    try {
+        // ...
     } catch (error) {
         if (error instanceof Error && error.message.includes('config.json')) {
             console.log(`missing ${Colours.FgMagenta}config.json${Colours.Reset} file in root directory`);
@@ -27,22 +31,25 @@ The following are rules for writing code in this repository that aren't enforced
     }
 
     // bad
-    try { // ...
+    try {
+        // ...
     } catch (error) {
         console.log(error);
     }
     ```
 
 ### Error Handling
-- Fatal errors can call `process.exit(1)`.
+
+-   Fatal errors can call `process.exit(1)`.
 
 ### Message Sending
-- When sending Discord messages, capitalize the first word but don't end in a full-stop.
+
+-   When sending Discord messages, capitalize the first word but don't end in a full-stop.
     ```ts
     ❌ channel.send({ content: 'Added to the queue.' });
     ✅ channel.send({ content: 'Added to the queue'});
     ```
-- Messages should be sent as `MessageOptions`, not `string`. This makes mocking easier.
+-   Messages should be sent as `MessageOptions`, not `string`. This makes mocking easier.
 
     ```ts
     ❌ channel.send('There are 5 items in the queue');

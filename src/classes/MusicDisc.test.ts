@@ -6,7 +6,6 @@ import { YouTubeVideo } from 'play-dl';
 describe('MusicDisc', () => {
     const fakeInteraction = { member: null } as unknown as GuildedInteraction;
 
-    const title = 'song name';
     const fakeData = {
         duration: '1:23:45',
         url: 'https://example.com',
@@ -14,7 +13,7 @@ describe('MusicDisc', () => {
     } as unknown as YouTubeVideo;
 
     it('should make a DiscImage if no thumbnail provided', () => {
-        const { thumbnail } = new MusicDisc(fakeInteraction, fakeData, title);
+        const { thumbnail } = new MusicDisc(fakeInteraction, fakeData);
         expect(defaultDiscArray).toContain(thumbnail);
     });
 
@@ -23,7 +22,7 @@ describe('MusicDisc', () => {
 
         const [discA, discB, discC] = new Array(3)
             .fill(undefined)
-            .map(() => new MusicDisc(fakeInteraction, fakeData, title).thumbnail);
+            .map(() => new MusicDisc(fakeInteraction, fakeData).thumbnail);
 
         expect(discA).not.toBe(discB);
         expect(discB).not.toBe(discC);

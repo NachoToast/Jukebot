@@ -10,7 +10,7 @@ export class Ping extends Command {
     }
 
     public async execute({ jukebot, interaction }: CommandParams): Promise<void> {
-        interaction.reply(
+        await interaction.reply(
             `Pongers!\nMy latency: ${Math.abs(Date.now() - interaction.createdTimestamp)}ms\nAPI Latency: ${Math.round(
                 jukebot.client.ws.ping,
             )}ms`,

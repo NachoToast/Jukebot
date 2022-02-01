@@ -1,142 +1,115 @@
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
-    AudioPlayerState,
     AudioPlayerStatus,
     createAudioPlayer,
-    createAudioResource,
     entersState,
     joinVoiceChannel,
     NoSubscriberBehavior,
     VoiceConnection,
-    VoiceConnectionState,
     VoiceConnectionStatus,
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
-import {
-    CleanUpReasons,
-    CurrentlyIdle,
-    CurrentStatus,
-    DestroyCallback,
-    pausedStates,
-    WasPlaying,
-} from '../types/Jukebox';
-import { AddResponse } from '../types/Hopper';
-import { stream, YouTubeStream } from 'play-dl';
+import { CurrentlyIdle, CurrentStatus, DestroyCallback, WasPlaying } from '../types/Jukebox';
 import { Jukebot } from './Client';
-import { InteractionReplyOptions, MessageEmbed } from 'discord.js';
-import Messages from '../types/Messages';
+import { MessageEmbed } from 'discord.js';
+import { MusicDisc } from './MusicDisc';
+import { promisify } from 'util';
+
+const wait = promisify(setTimeout);
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
     /** The interaction that created this instance. */
     private readonly _startingInteraction: FullInteraction;
-    /** The name of the guild of the `_startingInteraction`, for simplified logging. */
-    private readonly _name: string;
-
-    /** A function to run on `cleanup` */
-    private readonly _destroyCallback: DestroyCallback;
-
     /** The latest interaction that caused this instance to join or move to a voice channel. */
     private _latestInteraction: FullInteraction;
 
-    private _hopper: Hopper;
+    /** A function to run on {@link Jukebox.cleanup cleanup}. */
+    private readonly _destroyCallback: DestroyCallback;
 
     private _connection: VoiceConnection;
+    public get connection(): VoiceConnection {
+        return this._connection;
+    }
+
     private _player: AudioPlayer;
 
-    public current: CurrentStatus = this.makeIdle();
+    /** Array of to-be-played {@link MusicDisc music discs}. */
+    private _inventory: MusicDisc[] = [];
+    private _status: CurrentStatus = this.makeIdle();
+    private _playLock = false;
+
+    private get ready() {
+        const connectionReady = this._connection.state.status === VoiceConnectionStatus.Ready;
+        const playerIdle = this._player.state.status === AudioPlayerStatus.Idle;
+        const itemReady = !!this._inventory.at(0);
+        const notLocked = !this._playLock;
+
+        console.log(connectionReady, playerIdle, itemReady, notLocked);
+
+        return connectionReady && playerIdle && itemReady && notLocked;
+    }
 
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
-
-        this._name = interaction.guild.name;
         this._destroyCallback = destroyCallback;
-        this._hopper = new Hopper(this);
-
-        this.handleConnectionError = this.handleConnectionError.bind(this);
-        this.handleConnectionStateChange = this.handleConnectionStateChange.bind(this);
-
-        this.handlePlayerError = this.handlePlayerError.bind(this);
-        this.handlePlayerStateChange = this.handlePlayerStateChange.bind(this);
-
-        this.disconnectTimeout = this.disconnectTimeout.bind(this);
 
         this._connection = joinVoiceChannel({
-            channelId: this._latestInteraction.member.voice.channelId,
-            guildId: this._latestInteraction.guildId,
-            adapterCreator: this._latestInteraction.guild.voiceAdapterCreator,
+            channelId: interaction.member.voice.channelId,
+            guildId: interaction.guildId,
+            adapterCreator: interaction.guild.voiceAdapterCreator,
             selfDeaf: true,
         });
 
-        this._connection.on('error', this.handleConnectionError);
-        this._connection.on('stateChange', this.handleConnectionStateChange);
+        this._connection.on('error', (err) => this.handleConnectionError(err));
+        this._connection.on('stateChange', (a, b) => {
+            if (a.status === b.status) return;
+            console.log(`connection: ${a.status} => ${b.status}`);
+        });
 
         this._player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 
-        this._player.on('error', this.handlePlayerError);
-        this._player.on('stateChange', this.handlePlayerStateChange);
+        this._player.on('error', (err) => this.handlePlayerError(err));
+        this._player.on('stateChange', (a, b) => {
+            if (a.status === b.status) return;
+            console.log(`player: ${a.status} => ${b.status}`);
+        });
+        this._player.on(AudioPlayerStatus.Idle, () => void this.play(false));
+        this._player.on(AudioPlayerStatus.Paused, () => void this.makeIdle());
+        this._player.on(AudioPlayerStatus.AutoPaused, () => void this.makeIdle());
 
         this._connection.subscribe(this._player);
-
-        this.postContructionReadyCheck();
     }
 
-    /** Make sure the connection (made on class instantiation) connects in time. */
-    private async postContructionReadyCheck() {
-        try {
-            await entersState(this._connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
-        } catch (error) {
-            console.log(
-                `[${this._name}] (connection) ${Colours.FgRed}unable to be ready in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
-            );
-            await this.cleanup(CleanUpReasons.ConnectionTimeout);
-        }
+    private handleConnectionError(error: Error): void {
+        console.log(
+            `[${this._latestInteraction.guild.name}] (connection) ${Colours.FgRed}error${Colours.Reset}`,
+            error,
+        );
+        this.cleanup();
     }
 
-    private async handleConnectionError(error: Error): Promise<void> {
-        console.log(`[${this._name}] (connection) ${Colours.FgRed}error${Colours.Reset}`, error);
-        await this.cleanup(CleanUpReasons.ConnectionError);
+    private handlePlayerError(error: Error): void {
+        console.log(`[${this._latestInteraction.guild.name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
+        this.cleanup();
     }
 
-    private handleConnectionStateChange(
-        { status: oldStatus }: VoiceConnectionState,
-        { status: newStatus }: VoiceConnectionState,
-    ): void {
-        if (oldStatus === newStatus) return;
-        console.log(`[${this._name}] (connection) ${oldStatus} => ${newStatus}`);
-    }
-
-    private async handlePlayerError(error: Error): Promise<void> {
-        console.log(`[${this._name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
-        await this.cleanup(CleanUpReasons.PlayerError);
-    }
-
-    private async handlePlayerStateChange(
-        { status: oldStatus }: AudioPlayerState,
-        { status: newStatus }: AudioPlayerState,
-    ): Promise<void> {
-        if (oldStatus === newStatus) return;
-        console.log(`[${this._name}] (player) ${oldStatus} => ${newStatus}`);
-
-        if (pausedStates.includes(newStatus)) {
-            if (this.readyToPlay) await this.nextSong();
-            else this.makeIdle();
-        }
-    }
-
-    /** Updates the `current` property to idle. Scheduling inactivity events to run.
+    /** Updates the
+     * {@link Jukebox._status current} property to idle.
+     * Scheduling {@link Jukebox.disconnectTimeout inactivity events} to run.
      * @returns {CurrentStatus} The newly updated state.
      */
     private makeIdle(): CurrentStatus {
         let wasPlaying: WasPlaying | null = null;
 
-        if (this.current.active) {
+        // optional chaining since this method is called on startup (current will be undefined),
+        if (this._status?.active) {
             wasPlaying = {
-                musicDisc: this.current.musicDisc,
-                for: Math.floor((Date.now() - this.current.playingSince) / 1000),
+                musicDisc: this._status.musicDisc,
+                for: Math.floor((Date.now() - this._status.playingSince) / 1000),
             };
         }
         const newCurrent: CurrentlyIdle = {
@@ -145,148 +118,189 @@ export class Jukebox {
             wasPlaying,
             leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
         };
-        this.current = newCurrent;
+        this._status = newCurrent;
         return newCurrent;
     }
 
-    /** Whether this Jukebox instance is ready to play a song.
+    /** Adds an item to the {@link Jukebox._inventory queue}, and starts playing it if possible.
+     * @param {GuildedInteraction} interaction - The interaction that invoked this request.
+     * @param {boolean} liveEdit - Whether to make and edit a response over time,
+     *  or just return one
+     * once everything has completed.
      *
-     * - Has successfully connected to a voice channel.
-     * - Player is ready and **not currently playing anything**.
-     * - Queue has at least 1 item in it.
+     * @returns {Object} A promised object containing:
+     * `outputEmbed`: A {@link MessageEmbed} containing "added to queue",
+     *  "now playing", or error information.
+     * `success` A boolean stating whether the operation was a success.
      */
-    private get readyToPlay(): boolean {
-        const playerReady = this._player.state.status === AudioPlayerStatus.Idle;
-        const connectionReady = this._connection.state.status === VoiceConnectionStatus.Ready;
-        const itemReady = !!this._hopper.inventory.length;
-        return playerReady && connectionReady && itemReady;
+    public async add(
+        interaction: GuildedInteraction,
+        liveEdit: boolean,
+    ): Promise<{ outputEmbed: MessageEmbed; success: boolean }> {
+        const { items } = await Hopper.add(interaction);
+        if (!items.length) {
+            // TODO: make no results embed
+            const outputEmbed = new MessageEmbed().setTitle('No Results').setDescription('No results found.');
+            if (liveEdit) await interaction.editReply({ embeds: [outputEmbed] });
+            return { success: false, outputEmbed };
+        }
+        this._inventory.push(...items);
+        // console.log(meta);
+
+        // TODO: make "added to queue" embeds for playlist and single song
+        const enqueuedEmbed = new MessageEmbed().setTitle('Added To Queue');
+        if (items.length > 1) {
+            enqueuedEmbed.setDescription(`Added ${items.length} songs to the queue.`);
+        } else {
+            enqueuedEmbed.setDescription(`Added ${items[0].title}" to the queue.`);
+        }
+
+        if (!this.ready) {
+            if (liveEdit) {
+                await interaction.editReply({ embeds: [enqueuedEmbed] });
+            }
+            return { success: true, outputEmbed: enqueuedEmbed };
+        }
+
+        const { success, outputEmbed } = await this.play(true);
+        if (liveEdit) {
+            await interaction.editReply({ embeds: [outputEmbed] });
+        }
+        return { success, outputEmbed };
     }
 
-    public async add(interaction: GuildedInteraction): Promise<AddResponse> {
-        const res = await this._hopper.add(interaction);
-        if (!res.failure && this.readyToPlay) {
-            await this.nextSong(true);
-            if (this.current.active) {
-                const embed = this._hopper.makeNowPlayingEmbed(interaction, this.current.musicDisc);
-                return { failure: false, output: { embeds: [embed] } };
-            } else {
-                return {
-                    failure: false,
-                    output: { content: 'started playing but no activity, you should never see this message' },
-                };
+    /** Attemts to play the next item in the queue.
+     * @param {booolean} silent - Whether to send a {@link MessageEmbed messageEmbed }
+     * in the output channel.
+     *
+     * @returns {Promise<Object>} A promised object containing:
+     * - `outputEmbed` A {@link MessageEmbed} containing "now playing" or error information.
+     * - `success` A boolean stating whether the operation was a success.
+     */
+    private async play(silent: boolean): Promise<{ outputEmbed: MessageEmbed; success: boolean }> {
+        console.log(`setting playlock to true (was ${this._playLock}), so shouldn't be called anymore`);
+        this._playLock = true;
+        const nextItem = this._inventory.shift();
+        if (!nextItem) {
+            this.makeIdle();
+            this._playLock = false;
+            // TODO: make queue finished embed
+            const outputEmbed = new MessageEmbed().setTitle('Queue Finished').setDescription('The queue has finished.');
+
+            if (!silent) {
+                await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+            }
+            return { success: false, outputEmbed };
+        }
+
+        let resource = nextItem.resource;
+        if (resource) {
+            console.log(`${nextItem.title} was already prepared`);
+        } else {
+            console.log(`preparing ${nextItem.title}`);
+            nextItem.prepare();
+            await wait(Jukebot.config.maxReadyTime * 1000);
+            resource = nextItem.resource;
+            if (!resource) {
+                this.play(silent);
+                // TODO: make error embed
+                const outputEmbed = new MessageEmbed()
+                    .setTitle('Error')
+                    .setDescription(
+                        `Unable to generate audio resource in reasonable time (${Jukebot.config.maxReadyTime} seconds).`,
+                    );
+                if (!silent) {
+                    await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+                }
+                return { success: false, outputEmbed };
             }
         }
-        return res;
-    }
-
-    public getNowPlaying(): InteractionReplyOptions {
-        if (!this.current.active) {
-            return { content: Messages.NotPlaying, ephemeral: true };
-        }
-        const embed = this._hopper.makeNowPlayingEmbed(this._latestInteraction, this.current.musicDisc, true);
-        return { embeds: [embed] };
-    }
-
-    public getQueue(): MessageEmbed {
-        return this._hopper.makeQueueEmbed(this._latestInteraction);
-    }
-
-    /** Playes the next song in the queue.
-     *
-     * This will replace the currently playing song.
-     *
-     * Will error if the player does not start playing in the configured amount of time.
-     *
-     * @param {boolean} [silent=false] Whether to announce the next song in chat.
-     */
-    public async nextSong(silent: boolean = false): Promise<boolean> {
-        const nextDisc = this._hopper.inventory.shift();
-        if (!nextDisc) return false;
-
-        const youtTubeStream = (await stream(nextDisc.url)) as YouTubeStream;
-
-        const resource = createAudioResource(youtTubeStream.stream, {
-            inputType: youtTubeStream.type,
-            // inlineVolume: !!Jukebot.config.volumeModifier,
-            // metadata: nextDisc,
-        });
-
-        // if (Jukebot.config.volumeModifier) {
-        //     resource.volume?.setVolume(Jukebot.config.volumeModifier);
-        // }
 
         this._player.play(resource);
-
         try {
             await entersState(this._player, AudioPlayerStatus.Playing, Jukebot.config.maxReadyTime * 1000);
         } catch (error) {
-            console.log(
-                `[${this._name}] (player) ${Colours.FgRed}unable to start playing in ${Jukebot.config.maxReadyTime} seconds${Colours.Reset}`,
-            );
-            await this.cleanup(CleanUpReasons.PlayerTimeout);
-            return false;
+            this.cleanup();
+            // TODO: make error embed
+            const outputEmbed = new MessageEmbed()
+                .setTitle('Error')
+                .setDescription(`Unable to start playing in reasonable time (${Jukebot.config.maxReadyTime} seconds).`);
+            if (!silent) {
+                await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+            }
+            return { success: false, outputEmbed };
         }
+
+        console.log('setting playlock to false');
+        this._playLock = false;
 
         let playingSince = Date.now();
-
-        if (!this.current.active) {
-            clearTimeout(this.current.leaveTimeout);
-            if (this.current.wasPlaying?.for) {
-                playingSince -= this.current.wasPlaying.for * 1000;
+        if (!this._status.active) {
+            if (this._status.wasPlaying) {
+                playingSince -= this._status.wasPlaying.for * 1000;
             }
+            clearTimeout(this._status.leaveTimeout);
         }
-        this.current = {
+
+        this._status = {
             active: true,
-            musicDisc: nextDisc,
+            musicDisc: nextItem,
             playingSince,
         };
-
-        if (!silent) {
-            const nextEmbed = this.getNowPlaying();
-            await this._latestInteraction.channel.send({ ...nextEmbed });
+        const nextNextItem = this._inventory.at(0);
+        if (nextNextItem) {
+            nextNextItem.prepare(); // note lack of 'await'
         }
 
-        return true;
+        // TODO: make "now playing embed"
+        const outputEmbed = new MessageEmbed()
+            .setTitle('Now Playing')
+            .setDescription(nextItem.title)
+            .setThumbnail(nextItem.thumbnail);
+        if (!silent) {
+            await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+        }
+        return { success: true, outputEmbed };
     }
 
-    /** Called once the bot has been idle for more than the configure idle time.
-     * Disconnecting the bot from the voice channel and terminating the instance.
+    /** Called once the bot has been idle for more than the
+     * {@link Jukebot.config configured idle time}.
+     *
+     * Calls the {@link Jukebox.cleanup} method after some basic checks.
      */
-    private async disconnectTimeout(): Promise<void> {
-        if (this.current.active) {
-            console.log(`[${this._name}] disconnect timeout got called despite being active, this should never happen`);
+    private disconnectTimeout(): void {
+        if (this._status.active) {
+            console.log(
+                `[${this._latestInteraction.guild.name}] disconnect timeout got called despite being active, this should never happen`,
+            );
             return;
-        }
+        } else console.log('disconnect timeout called');
 
         if (!Jukebot.config.inactivityTimeout) return;
-        await this.cleanup(CleanUpReasons.Inactivity);
+        return this.cleanup();
     }
 
-    /** Removes listeners, stops playblack, and destroys connection.
+    /** Removes listeners, stops playblack, clears the queue, and destroys connection.
      *
      * Should only be called when the Jukebox needs to kill itself.
+     *
+     * All error logging should be done prior to this.
      */
-    public async cleanup(reason: CleanUpReasons): Promise<boolean> {
+    public cleanup(): void {
+        console.log('cleaning up');
         this._player.removeAllListeners();
-        this._player.stop(true);
-
         this._connection.removeAllListeners();
+
+        try {
+            this._player.stop(true);
+        } catch (error) {
+            // don't care
+        }
 
         try {
             this._connection.destroy();
         } catch (error) {
             // don't care
-        }
-
-        switch (reason) {
-            case CleanUpReasons.ClientRequest:
-                break;
-            case CleanUpReasons.ConnectionError:
-            case CleanUpReasons.ConnectionTimeout:
-                await this._latestInteraction.channel.send({ content: `Operation aborted due to ${reason}` });
-                break;
-            default:
-                await this._latestInteraction.channel.send({ content: `Left voice channel due to ${reason}` });
         }
 
         return this._destroyCallback(this._startingInteraction.guildId);

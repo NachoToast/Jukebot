@@ -9,8 +9,8 @@ import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from './Jukebox';
 import { getConfig } from '../helpers/getConfig';
-import { CleanUpReasons } from '../types/Jukebox';
 import { Announcer } from './Announcer';
+import { entersState, VoiceConnectionStatus } from '@discordjs/voice';
 
 export class Jukebot {
     public static config: Config = getConfig();
@@ -186,11 +186,21 @@ export class Jukebot {
         new Announcer(this.client.guilds);
     }
 
-    public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
+    /** Gets an existing Jukebox, or makes one if nonexistent.
+     * @throws Will throw an error if the Jukebox instance it made doesn't connect in time.
+     */
+    public async getOrMakeJukebox(interaction: FullInteraction): Promise<Jukebox> {
         const existingBlock = this.getJukebox(interaction);
         if (existingBlock) return existingBlock;
 
-        const newBlock = new Jukebox(interaction, this._removeJukebox);
+        const newBlock = new Jukebox(interaction, (guildId) => this._removeJukebox(guildId));
+        try {
+            await entersState(newBlock.connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
+        } catch (error) {
+            // TODO: pass a "notTracked" parameter down command chain to avoid this
+            console.log('About to destroy an untracked Jukebox, sorry :P');
+            newBlock.cleanup();
+        }
         this._jukeboxes.set(interaction.guildId, newBlock);
         return newBlock;
     }
@@ -200,17 +210,20 @@ export class Jukebot {
     }
 
     /** Used internally by Jukebox instances wanting to kill themselves. */
-    private _removeJukebox(guildId: Snowflake): boolean {
-        return this._jukeboxes.delete(guildId);
+    private _removeJukebox(guildId: Snowflake): void {
+        const deleted = this._jukeboxes.delete(guildId);
+        if (!deleted) {
+            console.log(
+                `Got destroy callback from untracked Jukebox, id ${Colours.FgMagenta}${guildId}${Colours.Reset}`,
+            );
+        }
     }
 
     /** Attempts to delete a Jukebox from the tracked collection.
      * @param {GuildedInteraction} interaction The interaction this request originated from.
      * @returns {boolean} Whether the deletion was successful.
      */
-    public async removeJukebox(interaction: GuildedInteraction): Promise<boolean> {
-        const jukebox = this._jukeboxes.get(interaction.guildId);
-        if (!jukebox) return false;
-        return await jukebox.cleanup(CleanUpReasons.ClientRequest);
+    public removeJukebox(interaction: GuildedInteraction): void {
+        return this._jukeboxes.get(interaction.guildId)?.cleanup();
     }
 }

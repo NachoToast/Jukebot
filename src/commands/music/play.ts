@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import Command, { CommandParams } from '../../types/Command';
 import Messages from '../../types/Messages';
 import { FullInteraction, GuildedInteraction } from '../../types/Interactions';
+import { Jukebot } from '../../classes/Client';
 
 export class Play extends Command {
     public name = 'play';
@@ -14,6 +15,7 @@ export class Play extends Command {
         return cmd;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const guildedInteraction = interaction as GuildedInteraction;
 
@@ -22,12 +24,7 @@ export class Play extends Command {
         await interaction.deferReply({ ephemeral: false });
         // if already playing audio, skip voice channel checks
         if (existingJukebox) {
-            const res = await existingJukebox.add(guildedInteraction);
-            if (res.failure) {
-                await interaction.editReply({ content: res.reason });
-            } else {
-                await interaction.editReply({ ...res.output });
-            }
+            await existingJukebox.add(guildedInteraction, true);
             return;
         }
 
@@ -38,12 +35,14 @@ export class Play extends Command {
 
         const fullInteraction = interaction as FullInteraction;
 
-        const jukeBox = jukebot.getOrMakeJukebox(fullInteraction);
-        const res = await jukeBox.add(guildedInteraction);
-        if (res.failure) {
-            await interaction.editReply({ content: res.reason });
-        } else {
-            await interaction.editReply({ ...res.output });
+        try {
+            const jukeBox = await jukebot.getOrMakeJukebox(fullInteraction);
+            await jukeBox.add(guildedInteraction, true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `Failed to connect in reasonable time (${Jukebot.config.readyTimeout} seconds)`,
+            });
+            return;
         }
     }
 }

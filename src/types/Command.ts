@@ -14,5 +14,5 @@ export default abstract class Command {
     /** If true, this command can be executed from a DM. */
     public allowNoGuild = false;
     public abstract build(client: Jukebot): SlashCommandBuilder;
-    public abstract execute({ interaction, jukebot }: CommandParams): Promise<void>;
+    public abstract execute({ interaction, jukebot }: CommandParams): Promise<void> | void;
 }

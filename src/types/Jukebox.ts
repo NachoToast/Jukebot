@@ -40,7 +40,7 @@ export enum JukeboxStatuses {
     Playing,
 }
 
-export type DestroyCallback = (guildId: Snowflake) => boolean;
+export type DestroyCallback = (guildId: Snowflake) => void;
 
 export enum CleanUpReasons {
     Inactivity = 'inactivity',

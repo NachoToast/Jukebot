@@ -1,314 +1,257 @@
 import { GuildedInteraction } from '../types/Interactions';
 import { MusicDisc } from './MusicDisc';
-import { AddResponse, BaseFailureReasons, FailReason, YouTubeFailureReasons } from '../types/Hopper';
-import { numericalToString } from '../helpers/timeConverters';
-import { getSearchType, OtherTypes, SpotifyURLTypes, YouTubeURLTypes } from '../helpers/searchType';
-import { search, video_basic_info } from 'play-dl';
-import { MessageEmbed } from 'discord.js';
-import { viewCountFormatter } from '../helpers/viewCountFormatter';
-import { DiscImages } from '../types/MusicDisc';
+import { getSearchType, OtherTypes, SearchType, SpotifyURLTypes, YouTubeURLTypes } from '../helpers/searchType';
+import {
+    playlist_info,
+    search,
+    spotify,
+    SpotifyAlbum,
+    SpotifyPlaylist,
+    SpotifyTrack,
+    video_basic_info,
+    YouTubeVideo,
+} from 'play-dl';
+import { levenshteinDistance } from '../helpers/levenshtein';
 import { Jukebot } from './Client';
-import { Jukebox } from './Jukebox';
-import { memberNicknameMention, userMention } from '@discordjs/builders';
-import moment from 'moment';
+
+export interface OperationMeta {
+    /** The number of items successfully converted to MusicDiscs. */
+    songsAdded: number;
+
+    /** The total number of items found. */
+    songsFound: number;
+
+    /** Total duration of all added items, in seconds. */
+    totalDuration: number;
+    sources: {
+        spotify: number;
+        youtube: number;
+    };
+
+    /** Levenshtein results of all items queried.
+     *
+     */
+    levenshteinNumbers: {
+        /** Input search term, either the title of a spotify track or the user's direct input. */
+        searchTerm: string;
+        /** The title of the YouTube video the `searchTerm` gave.
+         *
+         * In the event nothing was found in the search, this will be undefined.
+         */
+        foundTerm: string | undefined;
+
+        /** Similarity between `searchTerm` and `foundTerm`, using Levenshtein distance.
+         *
+         * If `foundTerm` is undefined, this will be undefined too.
+         */
+        similarity: number | undefined;
+    }[];
+
+    /** The type of search that was inferred. */
+    searchType: SearchType;
+}
+
+interface PlaylistReturn {
+    discs: MusicDisc[];
+    levenshteinNumbers: OperationMeta['levenshteinNumbers'];
+    itemsFound: number;
+}
 
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
-export class Hopper {
-    private readonly _jukebox: Jukebox;
-
-    /** The queued songs. */
-    public inventory: MusicDisc[] = [];
-
-    public constructor(jukebox: Jukebox) {
-        this._jukebox = jukebox;
-    }
-
-    /** Attempts to search for and add a song, album or playlist to the queue.
+export abstract class Hopper {
+    /** Attempts to find the relevant media from a search term.
      *
-     * The bulk of this method is handling different search types.
-     *
-     * @param {GuildedInteraction} interaction The interaction, must have a `song` option specified.
-     *
+     * @param {GuildedInteraction} interaction - The interaction,
+     * must have a `song` option specified
      * @returns {Promise<AddResponse>} Information about the operation.
+     *
+     * @throws Will throw an error if the interactions `song` option is not specified,
+     * too short (<3 characters long), or not a string.
      */
-    public async add(interaction: GuildedInteraction): Promise<AddResponse> {
-        if (Jukebot.config.maxQueueSize && this.inventory.length >= Jukebot.config.maxQueueSize) {
-            return { failure: true, reason: BaseFailureReasons.QueueTooLarge };
-        }
-
+    public static async add(interaction: GuildedInteraction): Promise<{ items: MusicDisc[]; meta: OperationMeta }> {
         const queryString = interaction.options.get('song', true).value;
         if (!queryString || typeof queryString !== 'string' || queryString.length < 3) {
-            return { failure: true, reason: BaseFailureReasons.InvalidQuery };
+            throw new TypeError("invalid 'song' option");
         }
 
         const searchType = getSearchType(queryString);
-
-        if (!searchType.valid) {
-            let reason: FailReason;
-            switch (searchType.type) {
-                case YouTubeURLTypes.Invalid:
-                    reason = YouTubeFailureReasons.InvalidURL;
-                    break;
-                case SpotifyURLTypes.Invalid:
-                    reason = BaseFailureReasons.InvalidSpotifyURL;
-                    break;
-                case OtherTypes.InvalidURL:
-                case OtherTypes.InvalidTextSearch:
-                default:
-                    reason = BaseFailureReasons.InvalidQuery;
-                    break;
-            }
-            return { failure: true, reason };
-        }
+        const meta: OperationMeta = {
+            songsAdded: 0,
+            songsFound: 0,
+            totalDuration: 0,
+            sources: {
+                spotify: 0,
+                youtube: 0,
+            },
+            levenshteinNumbers: [],
+            searchType,
+        };
+        const items: MusicDisc[] = [];
+        if (!searchType.valid) return { items, meta };
 
         switch (searchType.type) {
             case YouTubeURLTypes.Video: {
-                const res = await this.addFromYouTubeVideoURL(interaction, queryString);
-                if (res instanceof MusicDisc) {
-                    return {
-                        failure: false,
-                        output: { embeds: [this.makeEnqueuedSongEmbed(interaction, this.inventory.length - 1)] },
-                    };
-                }
-                return { failure: true, reason: res };
+                const discs = await Hopper.handleYouTubeVideoURL(interaction, queryString);
+                items.push(...discs);
+                meta.songsAdded += discs.length;
+                meta.songsFound += discs.length;
+                meta.sources.youtube += discs.length;
+                break;
             }
-            case YouTubeURLTypes.Playlist:
-                return { failure: false, output: { content: 'not yet implemented' } };
-            case SpotifyURLTypes.Track:
-                return { failure: false, output: { content: 'not yet implemented' } };
-            case SpotifyURLTypes.Playlist:
-                return { failure: false, output: { content: 'not yet implemented' } };
+            case YouTubeURLTypes.Playlist: {
+                const discs = await Hopper.handleYouTubePlaylistURL(interaction, queryString);
+                items.push(...discs);
+                meta.songsAdded += discs.length;
+                meta.songsFound += discs.length;
+                meta.sources.youtube += discs.length;
+                break;
+            }
+            case OtherTypes.ValidTextSearch: {
+                const { discs, levenshteinNumbers } = await Hopper.handleTextSearch(interaction, [queryString]);
+                items.push(...discs);
+                meta.songsAdded += discs.length;
+                meta.songsFound += discs.length;
+                meta.sources.youtube += discs.length;
+                meta.levenshteinNumbers.push(...levenshteinNumbers);
+                break;
+            }
             case SpotifyURLTypes.Album:
-                return { failure: false, output: { content: 'not yet implemented' } };
+            case SpotifyURLTypes.Playlist:
+            case SpotifyURLTypes.Track: {
+                const { discs, levenshteinNumbers, itemsFound } = await Hopper.handleSpotifyURL(
+                    interaction,
+                    queryString,
+                );
+                items.push(...discs);
+                meta.songsAdded += discs.length;
+                meta.sources.spotify += discs.length;
+                meta.levenshteinNumbers.push(...levenshteinNumbers);
+                meta.songsFound += itemsFound;
+                break;
+            }
         }
 
-        const res = await this.addFromtextSearchTerm(interaction, queryString);
-        if (res instanceof MusicDisc) {
-            return {
-                failure: false,
-                output: { embeds: [this.makeEnqueuedSongEmbed(interaction, this.inventory.length - 1)] },
-            };
-        }
-        return { failure: true, reason: res };
+        meta.totalDuration = Hopper.getTotalLength(items);
+
+        return { items, meta };
     }
 
-    /** Add from a YouTube video URL. */
-    private async addFromYouTubeVideoURL(
-        interaction: GuildedInteraction,
-        url: string,
-    ): Promise<FailReason | MusicDisc> {
-        const video = (await video_basic_info(url)).video_details;
-
-        if (!video) return YouTubeFailureReasons.NonExistent;
-        if (video.private) return YouTubeFailureReasons.Private;
-        if (video.upcoming) return YouTubeFailureReasons.Premiere;
-        if (video.live) return YouTubeFailureReasons.Live;
-        if (!video.title) return YouTubeFailureReasons.NoData;
-
-        const title = video.title;
-
-        const musicDisc = new MusicDisc(interaction, video, title);
-        this.inventory.push(musicDisc);
-        return musicDisc;
-    }
-
-    /** Add from a YouTube playlist URL.
-     * @deprecated Don't use this yet.
-     */
-    private async addFromyouTubePlaylistURL(
-        interaction: GuildedInteraction,
-        url: string,
-    ): Promise<FailReason | MusicDisc[]> {
-        const playlist = (await search(url, { source: { youtube: 'playlist' }, limit: 1 })).shift();
-        playlist;
-        return YouTubeFailureReasons.NoData;
-    }
-
-    /** Add from a text search. */
-    private async addFromtextSearchTerm(
-        interaction: GuildedInteraction,
-        queryString: string,
-    ): Promise<FailReason | MusicDisc> {
-        const video = (await search(queryString, { source: { youtube: 'video' }, limit: 1 })).shift();
-
-        if (!video) return YouTubeFailureReasons.NonExistent;
-        if (video.private) return YouTubeFailureReasons.Private;
-        if (video.upcoming) return YouTubeFailureReasons.Premiere;
-        if (video.live) return YouTubeFailureReasons.Live;
-        if (!video.title) return YouTubeFailureReasons.NoData;
-
-        const title = video.title;
-
-        const musicDisc = new MusicDisc(interaction, video, title);
-        this.inventory.push(musicDisc);
-        return musicDisc;
-    }
-
-    /** Returns duration info about the currently playing song:
-     * `total duration`,
-     * `current duration` (how far through the song it is), and
-     * `remaining duration` (total - current)
-     * all in seconds.
+    /** Converts an array of
+     * {@link YouTubeVideo youtube videos}
+     * into a set of {@link MusicDisc music discs}.
      *
+     * Notably will filter out "invalid" videos, such as videos that are:
+     * - Private
+     * - Upcoming (Premieres)
+     * - Live
      */
-    private getCurrentSongInfo(): { total: number; current: number; remaining: number } {
-        let total: number;
-        let current: number;
+    private static handleYouTubeVideo(interaction: GuildedInteraction, videos: YouTubeVideo[]): MusicDisc[] {
+        const output: MusicDisc[] = [];
 
-        const data = this._jukebox.current;
+        videos.forEach((video) => {
+            if (video.private || video.upcoming || video.live || video.type !== 'video') return;
 
-        if (data.active) {
-            total = data.musicDisc.durationSeconds;
-            current = Math.floor((Date.now() - data.playingSince) / 1000);
-        } else if (data.wasPlaying) {
-            total = data.wasPlaying.musicDisc.durationSeconds;
-            current = data.wasPlaying.for;
-        } else throw new Error("Tried to get song info but wasn't playing anything now or previously");
+            output.push(new MusicDisc(interaction, video));
+        });
 
-        return { total, current, remaining: total - current };
+        return output;
     }
 
-    /** Gets the time until a song will play in the queue.
-     * @param {number} [position=1] The position of the item in the queue,
-     * with 1 being the first item.
-     * @returns {[number, string]} The time until this song will be played,
-     * in seconds and in string form.
-     */
-    public getTimeTillPlay(position: number = 1): [number, string] {
-        // TODO: account for currently playing song,
-        // cuz currently position 1 = 0 seconds
-
-        const applicableSongs = this.inventory.slice(0, position - 1).map((e) => e.durationSeconds);
-
-        let timeLeft = 0;
-        try {
-            const { remaining } = this.getCurrentSongInfo();
-            timeLeft += remaining;
-        } catch (error) {
-            /* don't care */
-        }
-
-        if (!applicableSongs.length) return [0 + timeLeft, numericalToString(0 + timeLeft)];
-
-        const timeNumerical = applicableSongs.reduce((prev, next) => prev + next) + timeLeft;
-
-        const timeString = numericalToString(timeNumerical);
-
-        return [timeNumerical, timeString];
+    private static async handleYouTubeVideoURL(interaction: GuildedInteraction, url: string): Promise<MusicDisc[]> {
+        const video = (await video_basic_info(url)).video_details;
+        return Hopper.handleYouTubeVideo(interaction, [video]);
     }
 
-    private get totalQueueLength(): number {
-        if (!this.inventory.length) return 0;
-        return this.inventory.map((e) => e.durationSeconds).reduce((prev, next) => prev + next);
+    private static async handleYouTubePlaylistURL(interaction: GuildedInteraction, url: string): Promise<MusicDisc[]> {
+        const playlist = await playlist_info(url, { incomplete: true });
+        const videos = (await playlist.all_videos()).slice(0, Jukebot.config.maxQueueSize);
+        return Hopper.handleYouTubeVideo(interaction, videos);
     }
 
-    private makeEnqueuedSongEmbed(interaction: GuildedInteraction, discIndex: number): MessageEmbed {
-        const disc = this.inventory.at(discIndex);
-
-        if (!disc)
-            throw new Error(
-                `tried to get non-existent disc at index ${discIndex} (valid indexes 0 to ${
-                    this.inventory.length - 1
-                })`,
-            );
-
-        const timeTillPlay = this.getTimeTillPlay(discIndex + 1);
-        const embed = new MessageEmbed()
-            .setAuthor({ name: 'Added to Queue', iconURL: interaction.member.displayAvatarURL() })
-            .setTitle(disc.title)
-            .setURL(disc.url)
-            .setThumbnail(disc.thumbnail)
-            .setDescription(
-                `Duration: ${disc.durationString}\nViews: ${viewCountFormatter(disc.views)}\nChannel: ${disc.channel}`,
-            )
-            .addField(`Position in Queue: ${discIndex + 1}`, `Time till play: ${timeTillPlay[1]}`)
-            .setFooter({
-                text: `Queue Length: ${numericalToString(this.totalQueueLength)} (${this.inventory.length} song${
-                    this.inventory.length !== 1 ? 's' : ''
-                })`,
-                iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
-            })
-            .setColor(Jukebot.config.colourTheme);
-
-        return embed;
-    }
-
-    public makeNowPlayingEmbed(
+    private static async handleTextSearch(
         interaction: GuildedInteraction,
-        disc: MusicDisc,
-        withProgressBar: boolean = false,
-    ): MessageEmbed {
-        const embed = new MessageEmbed()
-            .setAuthor({ name: 'Now Playing', iconURL: disc.addedBy.displayAvatarURL() })
-            .setTitle(disc.title)
-            .setURL(disc.url)
-            .setThumbnail(disc.thumbnail)
-            .setDescription(
-                `Duration: ${disc.durationString}\nViews: ${viewCountFormatter(disc.views)}\nChannel: ${disc.channel}`,
+        searchStrings: string[],
+    ): Promise<PlaylistReturn> {
+        const searchResults = (
+            await Promise.all(
+                searchStrings.map((searchString) =>
+                    search(searchString, { source: { youtube: 'video' }, fuzzy: true, limit: 1 }),
+                ),
             )
-            .addField('Requested By', `${memberNicknameMention(disc.addedBy.id)} ${moment(disc.addedAt).fromNow()}`)
-            .setFooter({
-                text: `Queue Length: ${numericalToString(this.totalQueueLength)} (${this.inventory.length} song${
-                    this.inventory.length !== 1 ? 's' : ''
-                })`,
-                iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
-            })
-            .setColor(Jukebot.config.colourTheme);
+        )
+            // each search returns an array of videos, but we only want the first result
+            // `limit: 1` means we should at max have 1 result per search string anyway
+            .map((results) => results.at(0));
 
-        if (withProgressBar) {
-            const { current, remaining } = this.getCurrentSongInfo();
+        const levenshteinNumbers: OperationMeta['levenshteinNumbers'] = new Array(searchResults.length);
 
-            embed.addField(
-                'Progress',
-                `Current: ${numericalToString(current)} / ${numericalToString(remaining)}\n${this.makeProgressBar()}`,
-            );
-        }
+        let itemsFound = 0;
 
-        return embed;
+        /** Videos that have passed the following Levenshtein checks. */
+        const validVideos: YouTubeVideo[] = [];
+
+        searchResults.forEach((video, index) => {
+            const searchTerm = searchStrings[index];
+            const foundTerm = video?.title;
+            const similarity = foundTerm ? levenshteinDistance(foundTerm, searchTerm) : undefined;
+            levenshteinNumbers.push({
+                searchTerm,
+                foundTerm,
+                similarity,
+            });
+
+            if (video && similarity !== undefined && similarity >= Jukebot.config.levenshteinThreshold) {
+                validVideos.push(video);
+                itemsFound++;
+            } else if (video) itemsFound++;
+        });
+
+        const discs = Hopper.handleYouTubeVideo(interaction, validVideos);
+
+        return { discs, levenshteinNumbers, itemsFound };
     }
 
-    public makeQueueEmbed(interaction: GuildedInteraction): MessageEmbed {
-        const embed = new MessageEmbed()
-            .setAuthor({
-                name: `${interaction.guild.name} Music Queue`,
-                iconURL: interaction.guild.iconURL() || DiscImages.Pigstep,
-            })
-            .setTitle(`${this.inventory.length} Song${this.inventory.length !== 1 ? 's' : ''} Queued`)
-            .setDescription(`Total Length: ${this.totalQueueLength}`)
-            .setFooter({ text: `Showing ${this.inventory.length} of ${this.inventory.length} queued songs` })
-            .setColor(Jukebot.config.colourTheme);
-
-        let displayedItemCount = 0;
-        while (embed.length < 6000 && displayedItemCount < this.inventory.length) {
-            const nextItem = this.inventory[displayedItemCount];
-            embed.addField(
-                `${displayedItemCount + 1} - ${nextItem.title} (${nextItem.durationString})`,
-                `Requested by ${userMention(nextItem.addedBy.id)}`,
-                true,
-            );
-            displayedItemCount++;
+    private static async handleSpotifyURL(interaction: GuildedInteraction, url: string): Promise<PlaylistReturn> {
+        const res = await spotify(url);
+        switch (res.type) {
+            case 'album':
+                return await Hopper.handleSpotifyAlbum(interaction, res as SpotifyAlbum);
+            case 'playlist':
+                return await Hopper.handleSpotifyPlaylist(interaction, res as SpotifyPlaylist);
+            case 'track':
+                return await Hopper.handleSpotifyTrack(interaction, res as SpotifyTrack);
         }
-
-        if (displayedItemCount === this.inventory.length) {
-            embed.setFooter(null);
-        } else {
-            embed.setFooter({ text: `Showing ${displayedItemCount} of ${this.inventory.length} queued songs` });
-        }
-
-        return embed;
     }
 
-    private static _previous = '🔵';
-    private static _current = '🟢';
-    private static _next = '⚪';
-    private makeProgressBar(width: number = 20): string {
-        const { total, current } = this.getCurrentSongInfo();
+    private static async handleSpotifyAlbum(
+        interaction: GuildedInteraction,
+        album: SpotifyAlbum,
+    ): Promise<PlaylistReturn> {
+        const songNames = (await album.all_tracks()).slice(0, Jukebot.config.maxQueueSize).map(({ name }) => name);
+        return await Hopper.handleTextSearch(interaction, songNames);
+    }
 
-        const completedness = Math.floor((100 * current) / total);
+    private static async handleSpotifyPlaylist(
+        interaction: GuildedInteraction,
+        playlist: SpotifyPlaylist,
+    ): Promise<PlaylistReturn> {
+        const songNames = (await playlist.all_tracks()).slice(0, Jukebot.config.maxQueueSize).map(({ name }) => name);
+        return await Hopper.handleTextSearch(interaction, songNames);
+    }
 
-        const full = Hopper._previous.repeat(Math.floor((width * completedness) / 100));
-        const empty = Hopper._next.repeat(Math.ceil((width * (100 - completedness)) / 100));
+    private static async handleSpotifyTrack(
+        interaction: GuildedInteraction,
+        track: SpotifyTrack,
+    ): Promise<PlaylistReturn> {
+        return await Hopper.handleTextSearch(interaction, [track.name]);
+    }
 
-        return full.slice(0, -1) + Hopper._current + empty;
+    /** Gets the total length of all added items in secons. */
+    private static getTotalLength(items: MusicDisc[]): number {
+        let totalDuration = 0;
+        for (const item of items) {
+            totalDuration += item.durationSeconds;
+        }
+        return totalDuration;
     }
 }

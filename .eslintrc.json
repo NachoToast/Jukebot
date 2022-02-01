@@ -32,7 +32,7 @@
         ],
         "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
         "camelcase": "off",
-        "class-methods-use-this": "error",
+        "require-await": "error",
         "@typescript-eslint/no-dupe-class-members": ["error"],
         "@typescript-eslint/explicit-member-accessibility": [
             "error",
