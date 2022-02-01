@@ -15,9 +15,16 @@ export class Announcer {
         this.init();
     }
 
-    /** Init dispatches an announcement once the bot starts up,
-     * giving information about it's latest release. */
+    /** Dispatches an announcement once the bot starts up,
+     * giving information about it's latest release.'
+     *
+     * Will only send an announcement if:
+     * - The configured `sourceCode` is unmodified.
+     * - The latest release meets the configured `releaseRecentThreshold`.
+     */
     private async init(): Promise<void> {
+        if (Jukebot.config.sourceCode !== 'https://github.com/NachoToast/Jukebot') return;
+
         let latestRelease: Release;
 
         try {
