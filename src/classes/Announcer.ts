@@ -21,7 +21,7 @@ export class Announcer {
         let latestRelease: Release;
 
         try {
-            const releases = await this.getRequest();
+            const releases = await Announcer.getRequest();
             const latest = releases.shift();
             if (!latest) {
                 console.log('[Announcer] no GitHub releases found');
@@ -90,7 +90,7 @@ export class Announcer {
         );
     }
 
-    private getRequest(): Promise<Release[]> {
+    private static getRequest(): Promise<Release[]> {
         return new Promise<Release[]>((resolve, reject) => {
             const options: RequestOptions = {
                 hostname: 'api.github.com',
