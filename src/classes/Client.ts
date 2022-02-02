@@ -13,8 +13,8 @@ import { Announcer } from './Announcer';
 import Auth from '../types/Auth';
 
 export class Jukebot {
-    public static config: Config = getConfig();
-    public static auth: Auth = getAuth();
+    public static config: Config;
+    public static auth: Auth;
 
     public readonly devMode: boolean;
     public readonly client: Client<true>;
@@ -24,6 +24,9 @@ export class Jukebot {
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
 
     public constructor() {
+        Jukebot.config = getConfig();
+        Jukebot.auth = getAuth();
+
         this.devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({
             intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES],
