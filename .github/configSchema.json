@@ -6,53 +6,85 @@
             "description": "Link to to the bot's source code.",
             "default": "https://github.com/NachoToast/Jukebot"
         },
-        "readyTimeout": {
+        "activityString": {
+            "type": "string",
+            "description": "What Discord shows the bot is listening to.",
+            "default": "sus remixes"
+        },
+        "maxQueueSize": {
             "type": "integer",
-            "description": "If the bot doesn't connect to Discord after this many seconds, the process will terminate.\nSet to 0 to never terminate.",
-            "default": 10
+            "description": "Maximum number of items in the queue at any given time.\nSet to 0 to have no maximum size.",
+            "default": 1000
+        },
+        "volumeModifier": {
+            "type": "number",
+            "description": "Global volume modifier, with 1 being no modification and 0 muting audio entirely.",
+            "default": 0.5
+        },
+        "colourTheme": {
+            "type": "string",
+            "description": "The colour that embeds will have. Must be a hexadecimal colour string.",
+            "default": "#794c36"
         },
         "levenshteinThreshold": {
             "type": "number",
             "description": "Minimum string similarity of search result and queried search.\nResults below this number won't be queued.\nUsed to prevent unintentionally queueing random videos.",
             "default": 0.1
         },
-        "activityString": {
-            "type": "string",
-            "description": "What Discord shows the bot is listening to.", "default": "sus remixes"
+        "announcementSystem": {
+            "type": "object",
+            "description": "Detect and announce new releases on startup.",
+            "properties": {
+                "dontAnnounceOlderThan": {
+                    "type": "integer",
+                    "description": "Don't announce releases older than this many minutes.",
+                    "default": 5
+                },
+                "enabledInDevelopment": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "enabledInProduction": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
         },
-        "colourTheme": {
-            "type": "string",
-            "description": "This is the colour that embeds will have.\nMust be a HEX colour string (and start with a #).",
-            "default": "#794c36",
-            "examples": [
-                "#FF00FF",
-                "#c0c0c0"
-            ]
-        },
-        "maxQueueSize": {
-            "type": "integer",
-            "description": "Won't allow adding items to queues greater than or equal to this in length.\nSet to `0` to have no maximum size.",
-            "default": 1000
-        },
-        "volumeModifier": {
-            "type": "number",
-            "description": "Modifies the playback volume, valid range is between 0 and 1, with 1 being no modification and 0 muting audio entirely.",
-            "default": 0.5
-        },
-        "maxReadyTime": {
-            "type": "number",
-            "description": "The maximum time to wait (in seconds) for the bot to connect and start playing audio once.\nConnecting and playing audio counts as 2 seperate tasks, so the maximum time to connect AND play is 2 x this value",
-            "default": 5
-        },
-        "inactivityTimeout": {
-            "type": "number",
-            "description": "The maximum time (in seconds) Jukebot will stay in voice channels without playing anything.\nSet to 0 to stay in voice channels forever.",
-            "default": 60
-        },
-        "releaseRecentThreshold": {
-            "type": "number",
-            "description": "Releases from more than this many minutes ago won't be announced.Doesn't apply in devmode.\n",
-            "default": 5
+        "timeoutThresholds": {
+            "type": "object",
+            "description": "Maximum time in seconds to perform a certain action. Set to `0` to have no maximum time.",
+            "properties": {
+                "connect": {
+                    "type": "integer",
+                    "description": "Connect to a voice channel.",
+                    "default": 3
+                },
+                "generateResource": {
+                    "type": "integer",
+                    "description": "Generate audio resource from stream.",
+                    "default": 3
+                },
+                "getSearchResult": {
+                    "type": "integer",
+                    "description": "Load initial results from search term or link.",
+                    "default": 3
+                },
+                "inactivity": {
+                    "type": "integer",
+                    "description": "Leave after not playing anything.",
+                    "default": 10
+                },
+                "login": {
+                    "type": "integer",
+                    "description": "Login to Discord.",
+                    "default": 5
+                },
+                "play": {
+                    "type": "integer",
+                    "description": "Start playing an audio resource.",
+                    "default": 3
+                }
+            }
         }
     }
 }

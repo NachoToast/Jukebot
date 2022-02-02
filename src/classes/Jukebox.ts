@@ -2,6 +2,7 @@ import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
     AudioPlayerStatus,
+    AudioResource,
     createAudioPlayer,
     entersState,
     joinVoiceChannel,
@@ -10,12 +11,14 @@ import {
     VoiceConnectionStatus,
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
-import { Hopper } from './Hopper';
 import { CurrentlyIdle, CurrentlyPlaying, CurrentStatus, DestroyCallback, WasPlaying } from '../types/Jukebox';
 import { Jukebot } from './Client';
-import { MessageEmbed } from 'discord.js';
+import { InteractionReplyOptions, MessageEmbed } from 'discord.js';
 import { MusicDisc } from './MusicDisc';
 import { promisify } from 'util';
+import Messages from '../types/Messages';
+import { getSearchType } from '../helpers/searchType';
+import Hopper, { AddResponse } from './Hopper';
 
 const wait = promisify(setTimeout);
 
@@ -23,14 +26,17 @@ const wait = promisify(setTimeout);
 export class Jukebox {
     /** The interaction that created this instance. */
     private readonly _startingInteraction: FullInteraction;
-    /** The latest interaction that caused this instance to join or move to a voice channel. */
+    /** The latest interaction that caused this instance to join (or move to) a voice channel. */
     private _latestInteraction: FullInteraction;
 
-    /** A function to run on {@link Jukebox.cleanup cleanup}. */
+    /** A function to run after {@link Jukebox.cleanup cleanup}.
+     *
+     * See how {@link Jukebot._removeJukebox Jukebot uses this}.
+     */
     private readonly _destroyCallback: DestroyCallback;
 
     private _connection: VoiceConnection;
-    public get connection(): VoiceConnection {
+    public get connection(): VoiceConnection | undefined {
         return this._connection;
     }
 
@@ -40,15 +46,6 @@ export class Jukebox {
     private _inventory: MusicDisc[] = [];
     private _status: CurrentStatus = this.makeIdle();
     private _playLock = false;
-
-    private get ready() {
-        const connectionReady = this._connection.state.status === VoiceConnectionStatus.Ready;
-        const playerIdle = this._player.state.status === AudioPlayerStatus.Idle;
-        const itemReady = !!this._inventory.at(0);
-        const notLocked = !this._playLock;
-
-        return connectionReady && playerIdle && itemReady && notLocked;
-    }
 
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
@@ -62,18 +59,28 @@ export class Jukebox {
             selfDeaf: true,
         });
 
-        this._connection.on('error', (err) => this.handleConnectionError(err));
-        // this._connection.on('stateChange', (a, b) => {
-        //     if (a.status === b.status) return;
-        //     console.log(`connection: ${a.status} => ${b.status}`);
-        // });
+        this._connection.on('error', (error) => {
+            console.log(
+                `[${this._latestInteraction.guild.name}] (connection) ${Colours.FgRed}error${Colours.Reset}`,
+                error,
+            );
+            this.cleanup();
+        });
+
+        this._connection.on('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
+            if (oldStatus === newStatus) return;
+            if (newStatus === VoiceConnectionStatus.Ready) this._connecting = false;
+            else this._connecting = true;
+        });
 
         this._player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 
-        this._player.on('error', (err) => this.handlePlayerError(err));
-        this._player.on('stateChange', (a, b) => {
-            if (a.status === b.status) return;
-            console.log(`player: ${a.status} => ${b.status}`);
+        this._player.on('error', (error) => {
+            console.log(
+                `[${this._latestInteraction.guild.name}] (player) ${Colours.FgRed}error${Colours.Reset}`,
+                error,
+            );
+            this.cleanup();
         });
         this._player.on(AudioPlayerStatus.Idle, () => void this.play(false));
         this._player.on(AudioPlayerStatus.Paused, () => void this.makeIdle());
@@ -82,17 +89,31 @@ export class Jukebox {
         this._connection.subscribe(this._player);
     }
 
-    private handleConnectionError(error: Error): void {
-        console.log(
-            `[${this._latestInteraction.guild.name}] (connection) ${Colours.FgRed}error${Colours.Reset}`,
-            error,
-        );
-        this.cleanup();
+    private _connecting = true;
+
+    /** Resolves once the connection has successfully joined the voice channel.
+     * @throws Throws an error if it doesn't join in time.
+     */
+    private async waitTillConnected(): Promise<void> {
+        if (this._connection.state.status === VoiceConnectionStatus.Ready) return;
+
+        const maxTimeTillConnect = Jukebot.config.timeoutThresholds.connect;
+        if (maxTimeTillConnect) {
+            await entersState(this._connection, VoiceConnectionStatus.Ready, maxTimeTillConnect * 1000);
+        } else {
+            return new Promise<void>((resolve) => {
+                this._connection.once(VoiceConnectionStatus.Ready, () => resolve());
+            });
+        }
     }
 
-    private handlePlayerError(error: Error): void {
-        console.log(`[${this._latestInteraction.guild.name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
-        this.cleanup();
+    private get ready() {
+        const connectionReady = this._connection.state.status === VoiceConnectionStatus.Ready;
+        const playerIdle = this._player.state.status === AudioPlayerStatus.Idle;
+        const itemReady = !!this._inventory.at(0);
+        const notLocked = !this._playLock;
+
+        return connectionReady && playerIdle && itemReady && notLocked;
     }
 
     /** Updates the
@@ -110,11 +131,15 @@ export class Jukebox {
                 for: Math.floor((Date.now() - this._status.playingSince) / 1000),
             };
         }
+
         const newCurrent: CurrentlyIdle = {
             active: false,
             idleSince: Date.now(),
             wasPlaying,
-            leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
+            leaveTimeout: setTimeout(
+                () => this.disconnectTimeout(),
+                Jukebot.config.timeoutThresholds.inactivity * 1000,
+            ),
         };
         this._status = newCurrent;
         return newCurrent;
@@ -146,96 +171,158 @@ export class Jukebox {
     }
 
     /** Adds an item to the {@link Jukebox._inventory queue}, and starts playing it if possible.
-     * @param {GuildedInteraction} interaction - The interaction that invoked this request.
-     * @param {boolean} liveEdit - Whether to make and edit a response over time,
-     *  or just return one
-     * once everything has completed.
-     *
-     * @returns {Object} A promised object containing:
-     * `outputEmbed`: A {@link MessageEmbed} containing "added to queue",
-     *  "now playing", or error information.
-     * `success` A boolean stating whether the operation was a success.
+     * @param {GuildedInteraction} interaction - The interaction that invoke this request.
+     * @param {boolean} [liveEdit] - Whether to make and edit a response over time,
+     * or return everything all at once.
      */
-    public async add(
-        interaction: GuildedInteraction,
-        liveEdit: boolean,
-    ): Promise<{ outputEmbed: MessageEmbed; success: boolean }> {
-        const items: MusicDisc[] = [];
+    public async add(interaction: GuildedInteraction, liveEdit: true): Promise<void>;
+    public async add(interaction: GuildedInteraction, liveEdit?: false): Promise<InteractionReplyOptions>;
+    public async add(interaction: GuildedInteraction, liveEdit?: boolean): Promise<InteractionReplyOptions | void> {
+        // search term validation
+        const searchTerm = interaction.options.get('song', false)?.value;
+        if (typeof searchTerm !== 'string') {
+            const output = { content: 'Please specify something to search for' };
+            if (liveEdit) {
+                await interaction.editReply(output);
+                return;
+            } else return output;
+        }
 
-        try {
-            const response = await Hopper.add(interaction);
-            if (!response.valid) {
-                response;
-                // TODO: make invalid search type embed
-                const outputEmbed = new MessageEmbed()
-                    .setTitle('Invalid Search')
-                    .setDescription(`${interaction.options.get('song')} (invalid ${response.searchType.type}`);
-                if (liveEdit) {
-                    await interaction.editReply({ embeds: [outputEmbed] });
-                }
-                return { success: false, outputEmbed };
+        // more search term validation
+        const searchType = getSearchType(searchTerm);
+        if (!searchType.valid) {
+            const output = { content: '' };
+            switch (searchType.type) {
+                case 'otherURL':
+                    output.content = 'Not a valid URL';
+                    break;
+                case 'spotify':
+                    output.content = 'Not a valid Spotify URL';
+                    break;
+                case 'youtube':
+                    output.content = 'Not a valid YouTube URL';
+                    break;
+                case 'textSearch':
+                    output.content = 'Search term must be at least 3 letters long';
+                    break;
             }
-            if (!response.success) {
-                throw new Error(response.errorMessages.join(','));
+            if (liveEdit) {
+                await interaction.editReply(output);
+                return;
+            } else return output;
+        }
+
+        // getting results
+        const race: Promise<AddResponse | void>[] = [Hopper.add(interaction, searchTerm, searchType)];
+        if (Jukebot.config.timeoutThresholds.getSearchResult) {
+            const timeout = wait(Jukebot.config.timeoutThresholds.getSearchResult * 1000);
+            race.push(timeout);
+        }
+        const results = await Promise.race(race);
+        if (!results) {
+            const output = {
+                content: `Failed to find search results in reasonable time (${Jukebot.config.timeoutThresholds.getSearchResult} seconds)`,
+            };
+            if (liveEdit) {
+                await interaction.editReply(output);
+                return;
+            } else return output;
+        }
+
+        // checking if search was successful
+        if (!results.success) {
+            const output = { content: results.errorMessages.join('\n') };
+            if (liveEdit) {
+                await interaction.editReply(output);
+                return;
+            } else return output;
+        }
+        if (results.type === 'multiple') {
+            this._inventory.push(...results.items);
+        } else {
+            this._inventory.push(results.items);
+        }
+
+        if (this._connecting) {
+            try {
+                await this.waitTillConnected();
+            } catch (error) {
+                this.cleanup();
+                const output = {
+                    content: `Failed to connect in reasonable time (${Jukebot.config.timeoutThresholds.connect} seconds)`,
+                };
+                if (!liveEdit) {
+                    await interaction.editReply(output);
+                } else return output;
             }
-            const { items: newItems, type } = response;
-            const maxAddedItems = Jukebot.config.maxQueueSize - this._inventory.length;
-            const numAdded = Math.min(newItems.length, maxAddedItems);
+        }
 
-            items.push(...newItems.slice(0, numAdded));
-
-            if (type !== 'single') {
-                console.log(response.playlistName, response.playlistSize);
-                if (response.source === 'spotify') {
-                    console.log(
-                        response.conversionInfo
-                            .map((e) => `${e.originalName} => ${e.youtubeEquivalent} (${e.levenshtein})`)
-                            .join('\n'),
-                    );
-                }
-            }
-        } catch (error) {
-            // TODO: make error embed
-            const outputEmbed = new MessageEmbed().setTitle('Error');
-            if (error instanceof Error) {
-                outputEmbed.setDescription(`${error.name}\n${error.message}`);
-            } else outputEmbed.setDescription(`${error}`);
-
+        // if ready to play another item, return the 'now playing' embed;
+        if (this.ready) {
+            const { outputEmbed } = await this.play(true);
             if (liveEdit) {
                 await interaction.editReply({ embeds: [outputEmbed] });
-            }
-            return { success: false, outputEmbed };
-        }
-
-        if (!items.length) {
-            // TODO: make no results embed
-            const outputEmbed = new MessageEmbed().setTitle('No Results').setDescription('No results found.');
-            if (liveEdit) await interaction.editReply({ embeds: [outputEmbed] });
-            return { success: false, outputEmbed };
-        }
-        this._inventory.push(...items);
-        // console.log(meta);
-
-        // TODO: make "added to queue" embeds for playlist and single song
-        const enqueuedEmbed = new MessageEmbed().setTitle('Added To Queue');
-        if (items.length > 1) {
-            enqueuedEmbed.setDescription(`Added ${items.length} songs to the queue.`);
+            } else return { embeds: [outputEmbed] };
         } else {
-            enqueuedEmbed.setDescription(`Added ${items[0].title}" to the queue.`);
-        }
-
-        if (!this.ready) {
-            if (liveEdit) {
-                await interaction.editReply({ embeds: [enqueuedEmbed] });
+            let embed: MessageEmbed;
+            // otherwise make the added to queue embed
+            if (results.type === 'multiple') {
+                embed = new MessageEmbed().setTitle(`Added ${results.items.length} songs to the queue`).setDescription(
+                    results.items
+                        .slice(0, 10)
+                        .map((e) => e.title)
+                        .join('\n'),
+                );
+            } else {
+                results.items;
+                embed = new MessageEmbed()
+                    .setTitle('Added to Queue')
+                    .setDescription(results.items.title)
+                    .setThumbnail(results.items.thumbnail);
             }
-            return { success: true, outputEmbed: enqueuedEmbed };
+            if (liveEdit) {
+                await interaction.editReply({ embeds: [embed] });
+            } else return { embeds: [embed] };
         }
+    }
 
-        const { success, outputEmbed } = await this.play(true);
-        if (liveEdit) {
-            await interaction.editReply({ embeds: [outputEmbed] });
+    public get queue(): InteractionReplyOptions {
+        if (!this._inventory.length) {
+            return { content: 'The queue is empty' };
         }
-        return { success, outputEmbed };
+        const embed = new MessageEmbed().setTitle('Queue');
+        if (this._inventory.length < 10) {
+            embed.setDescription(
+                this._inventory.map((e, i) => `${i + 1}. ${e.title} (${e.durationString})`).join('\n'),
+            );
+        } else {
+            embed.setDescription(
+                this._inventory
+                    .slice(0, 10)
+                    .map((e, i) => `${i + 1}. ${e.title} (${e.durationString})`)
+                    .join('\n') + `*+${this._inventory.length - 10} more...*`,
+            );
+        }
+        return { embeds: [embed] };
+    }
+
+    public get nowPlaying(): InteractionReplyOptions {
+        if (!this._status.active) {
+            return { content: Messages.NotPlaying };
+        }
+        const embed = new MessageEmbed().setTitle('Currently Playing');
+
+        const { title, thumbnail } = this._status.musicDisc;
+        embed.setDescription(title).setThumbnail(thumbnail);
+
+        return { embeds: [embed] };
+    }
+
+    public async skip(): Promise<InteractionReplyOptions> {
+        const { outputEmbed, success } = await this.play(true);
+        if (success) {
+            return { embeds: [outputEmbed] };
+        } else return { content: 'Failed to skip the current song' };
     }
 
     /** Attemts to play the next item in the queue.
@@ -265,17 +352,23 @@ export class Jukebox {
         if (resource) {
             console.log(`${nextItem.title}${Colours.FgGreen} was already prepared${Colours.Reset}`);
         } else {
-            console.log(`${Colours.FgYellow}preparing ${Colours.Reset}${nextItem.title}`);
-            nextItem.prepare();
-            await wait(Jukebot.config.maxReadyTime * 1000);
-            resource = nextItem.resource;
+            const race: Promise<AudioResource<MusicDisc> | void>[] = [nextItem.prepare()];
+            if (Jukebot.config.timeoutThresholds.generateResource) {
+                const timeout = wait(Jukebot.config.timeoutThresholds.generateResource * 1000);
+                race.push(timeout);
+            }
+
+            console.log(`${Colours.FgRed}preparing ${Colours.Reset}${nextItem.title}`);
+            const nextResource = await Promise.race(race);
+            resource = nextResource ?? undefined;
             if (!resource) {
+                // try play next song
                 this.play(silent);
                 // TODO: make error embed
                 const outputEmbed = new MessageEmbed()
                     .setTitle('Error')
                     .setDescription(
-                        `Unable to generate audio resource in reasonable time (${Jukebot.config.maxReadyTime} seconds).`,
+                        `Unable to generate audio resource in reasonable time (${Jukebot.config.timeoutThresholds.generateResource} seconds).\nSkipping to next song in queue.`,
                     );
                 if (!silent) {
                     await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
@@ -285,18 +378,23 @@ export class Jukebox {
         }
 
         this._player.play(resource);
-        try {
-            await entersState(this._player, AudioPlayerStatus.Playing, Jukebot.config.maxReadyTime * 1000);
-        } catch (error) {
-            this.cleanup();
-            // TODO: make error embed
-            const outputEmbed = new MessageEmbed()
-                .setTitle('Error')
-                .setDescription(`Unable to start playing in reasonable time (${Jukebot.config.maxReadyTime} seconds).`);
-            if (!silent) {
-                await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+
+        const maxTimeTillPlay = Jukebot.config.timeoutThresholds.play;
+        if (maxTimeTillPlay) {
+            try {
+                await entersState(this._player, AudioPlayerStatus.Playing, maxTimeTillPlay * 1000);
+            } catch (error) {
+                const outputEmbed = new MessageEmbed()
+                    .setTitle('Error')
+                    .setDescription(
+                        `Unable to start playing in reasonable time (${maxTimeTillPlay} seconds).\nSkipping to next song in queue.`,
+                    );
+                this.play(silent);
+                if (!silent) {
+                    await this._latestInteraction.channel.send({ embeds: [outputEmbed] });
+                }
+                return { success: false, outputEmbed };
             }
-            return { success: false, outputEmbed };
         }
 
         console.log('setting playlock to false');
@@ -333,7 +431,7 @@ export class Jukebox {
             return;
         } else console.log('disconnect timeout called');
 
-        if (!Jukebot.config.inactivityTimeout) return;
+        if (!Jukebot.config.timeoutThresholds.inactivity) return;
         return this.cleanup();
     }
 

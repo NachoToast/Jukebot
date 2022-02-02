@@ -2,9 +2,9 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import Command, { CommandParams } from '../../types/Command';
 import Messages from '../../types/Messages';
 
-export class NowPlaying extends Command {
-    public name = 'nowplaying';
-    public description = "Get the currently playing song's info";
+export class Skip extends Command {
+    public name = 'skip';
+    public description = 'Skip the current song';
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
@@ -16,8 +16,8 @@ export class NowPlaying extends Command {
             return;
         }
 
-        await interaction.reply(jukebox.nowPlaying);
+        await interaction.reply(await jukebox.skip());
     }
 }
 
-export default new NowPlaying();
+export default new Skip();

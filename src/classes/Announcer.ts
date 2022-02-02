@@ -41,10 +41,10 @@ export class Announcer {
                 );
                 return;
             }
-            if (
-                Math.floor((Date.now() - new Date(latestTime).getTime()) / 1000) >
-                Jukebot.config.releaseRecentThreshold * 60
-            ) {
+
+            const minsSinceRelease = 60 * Math.floor((Date.now() - new Date(latestTime).getTime()) / 1000);
+
+            if (minsSinceRelease > Jukebot.config.announcementSystem.dontAnnounceOlderThan) {
                 console.log(
                     `[Announcer] latest release (${Colours.FgMagenta}${latest.name}${
                         Colours.Reset

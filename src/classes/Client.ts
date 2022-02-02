@@ -10,7 +10,6 @@ import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from './Jukebox';
 import { getAuth, getConfig } from '../helpers/getConfig';
 import { Announcer } from './Announcer';
-import { entersState, VoiceConnectionStatus } from '@discordjs/voice';
 import Auth from '../types/Auth';
 
 export class Jukebot {
@@ -65,18 +64,20 @@ export class Jukebot {
         this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
 
         // logging in
-        const timeout = Jukebot.config.readyTimeout
+        const timeout = Jukebot.config.timeoutThresholds.login
             ? setTimeout(() => {
-                  console.log(`took too long to login (max ${Jukebot.config.readyTimeout}s)`);
+                  console.log(`took too long to login (max ${Jukebot.config.timeoutThresholds.login}s)`);
                   process.exit(1);
-              }, Jukebot.config.readyTimeout * 1000)
+              }, Jukebot.config.timeoutThresholds.login * 1000)
             : null;
         try {
             await this.client.login(loginToken);
             if (timeout) clearTimeout(timeout);
         } catch (error) {
             if (error instanceof Error && error.message === 'TOKEN_INVALID') {
-                console.log(`invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
+                console.log(
+                    `invalid ${this.devMode ? 'dev' : ''}token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
+                );
             } else console.log(error);
             process.exit(1);
         }
@@ -107,6 +108,16 @@ export class Jukebot {
         // deploying commands
         if (this.devMode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
+
+        if (this.devMode) {
+            if (Jukebot.config.announcementSystem.enabledInDevelopment) {
+                new Announcer(this.client.guilds);
+            }
+        } else {
+            if (Jukebot.config.announcementSystem.enabledInProduction) {
+                new Announcer(this.client.guilds);
+            }
+        }
     }
 
     private async onInteractionCreate(interaction: Interaction): Promise<void> {
@@ -175,28 +186,14 @@ export class Jukebot {
             console.log(error);
             process.exit(1);
         }
-
-        new Announcer(this.client.guilds);
     }
 
-    /** Gets an existing Jukebox, or makes one if nonexistent.
-     * @throws Will throw an error if the Jukebox instance it made doesn't connect in time.
-     */
-    public async getOrMakeJukebox(interaction: FullInteraction): Promise<Jukebox> {
+    /** Gets an existing Jukebox, or makes one if nonexistent. */
+    public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
         const existingBlock = this.getJukebox(interaction);
         if (existingBlock) return existingBlock;
 
         const newBlock = new Jukebox(interaction, (guildId) => this._removeJukebox(guildId));
-        try {
-            await entersState(newBlock.connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
-        } catch (error) {
-            // TODO: pass a "notTracked" parameter down command chain to avoid this
-            console.log(
-                `About to destroy an untracked Jukebox (connection status: ${newBlock.connection.state.status}), sorry :P`,
-            );
-            newBlock.cleanup();
-            throw new Error(`Failed to connect in reasonable time (${Jukebot.config.maxReadyTime} seconds)`);
-        }
         this._jukeboxes.set(interaction.guildId, newBlock);
         return newBlock;
     }
@@ -205,7 +202,7 @@ export class Jukebot {
         return this._jukeboxes.get(interaction.guildId);
     }
 
-    /** Used internally by Jukebox instances wanting to kill themselves. */
+    /** Callback from Jukebox instances wanting to kill themselves. */
     private _removeJukebox(guildId: Snowflake): void {
         const deleted = this._jukeboxes.delete(guildId);
         if (!deleted) {

@@ -4,11 +4,20 @@ export default interface Config {
     /** Link to to the bot's source code. */
     sourceCode: string;
 
-    /** If the bot doesn't connect to Discord after this many seconds, the process will terminate.
+    /** What Discord shows the bot is listening to. */
+    activityString: string;
+
+    /** Maximum number of items in the queue at any given time.
      *
-     * Set to 0 to never terminate.
+     * Set to `0` to have no maximum size.
      */
-    readyTimeout: number;
+    maxQueueSize: number;
+
+    /** Global volume modifier, with 1 being no modification and 0 muting audio entirely. */
+    volumeModifier: number;
+
+    /** The colour that embeds will have. Must be a hexadecimal colour string. */
+    colourTheme: HexColorString;
 
     /** Minimum string similarity of search result and queried search.
      *
@@ -20,40 +29,33 @@ export default interface Config {
      */
     levenshteinThreshold: number;
 
-    /** What Discord shows the bot is listening to. */
-    activityString: string;
+    /** Detect and announce new releases on startup. */
+    announcementSystem: {
+        /** Don't announce releases older than this many minutes. */
+        dontAnnounceOlderThan: number;
 
-    /** This is the colour that embeds will have. */
-    colourTheme: HexColorString;
+        enabledInDevelopment: boolean;
+        enabledInProduction: boolean;
+    };
 
-    /** Won't allow adding items to queues greater than or equal to this in length.
-     *
-     * Set to `0` to have no maximum size.
-     */
-    maxQueueSize: number;
+    /** Maximum time in seconds to perform a certain action. Set to `0` to have no maximum time. */
+    timeoutThresholds: {
+        /** Connect to a voice channel. */
+        connect: number;
 
-    /** Modifies the playback volume, valid range is between 0 and 1,
-     * with 1 being no modification and 0 muting audio entirely. */
-    volumeModifier: number;
+        /** Generate audio resource from stream. */
+        generateResource: number;
 
-    /** The maximum time to wait (in seconds) for the bot to connect and start playing audio once.
-     *
-     * Connecting and playing audio counts as 2 seperate tasks,
-     * so the maximum time to connect AND play is `2 * maxReadyTime`
-     *
-     */
-    maxReadyTime: number;
+        /** Load initial results from search term or link. */
+        getSearchResult: number;
 
-    /** The maximum time (in seconds) Jukebot will
-     * stay in voice channels without playing anything.
-     *
-     * Set to `0` to stay in voice channels forever.
-     */
-    inactivityTimeout: number;
+        /** Leave after not playing anything. */
+        inactivity: number;
 
-    /** Releases from more than this many minutes ago won't be announced.
-     *
-     * Doesn't apply in devmode.
-     */
-    releaseRecentThreshold: number;
+        /** Login to Discord. */
+        login: number;
+
+        /** Start playing an audio resource. */
+        play: number;
+    };
 }

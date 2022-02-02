@@ -1,7 +1,6 @@
 import { GuildedInteraction } from '../types/Interactions';
 import { MusicDisc } from './MusicDisc';
 import {
-    getSearchType,
     SearchType,
     SpotifyAlbumURL,
     SpotifyPlaylistURL,
@@ -35,38 +34,25 @@ interface ConversionInfo {
 }
 
 interface BaseResponse {
-    searchType: SearchType;
-    valid: boolean;
-}
-
-/** The search was invalid because the given URL or search term was invalid. */
-interface InvalidResponse extends BaseResponse {
-    searchType: SearchType & { valid: false };
-    valid: false;
-}
-
-interface ValidResponse extends BaseResponse {
     searchType: SearchType & { valid: true };
     success: boolean;
-    valid: true;
 }
 
 /** The search could not be completed due to unexpected errors. */
-interface ErrorResponse extends ValidResponse {
+interface ErrorResponse extends BaseResponse {
     success: false;
     errorMessages: string[];
 }
 
-interface NonErrorResponse extends ValidResponse {
+interface NonErrorResponse extends BaseResponse {
     success: true;
-    type: 'single' | 'multiple';
-    items: MusicDisc[];
 }
 
 /** The search resulted in a single item being added. */
 interface BaseSingleResponse extends NonErrorResponse {
     searchType: SpotifyTrackURL | SpotifyAlbumURL | YouTubeVideoURL | ValidTextSearch;
     type: 'single';
+    items: MusicDisc;
 }
 
 interface SingleYouTubeResponse extends BaseSingleResponse {
@@ -85,6 +71,8 @@ interface BaseMultiResponse extends NonErrorResponse {
     playlistImageURL: string;
     playlistSize: number;
     source: 'youtube' | 'spotify';
+    items: MusicDisc[];
+    type: 'multiple';
 }
 
 interface MultiYouTubeResponse extends BaseMultiResponse {
@@ -101,11 +89,10 @@ interface MultiNonYouTubeResponse extends BaseMultiResponse {
 type SingleResponse = SingleYouTubeResponse | SingleNonYouTubeResponse;
 type MultiResponse = MultiYouTubeResponse | MultiNonYouTubeResponse;
 
-type ValidAddResponse = SingleResponse | MultiResponse | ErrorResponse;
-type AddResponse = ValidAddResponse | InvalidResponse;
+export type AddResponse = SingleResponse | MultiResponse | ErrorResponse;
 
 /** Hopper instances handle the storing and serving of `MusicDiscs` to a `Jukeblock`. */
-export abstract class Hopper {
+class Hopper {
     /** Attempts to find the relevant media from a search term.
      *
      * @param {GuildedInteraction} interaction - The interaction,
@@ -113,39 +100,25 @@ export abstract class Hopper {
      *
      * @returns {Promise<AddResponse>} - A list of items added and metadata.
      *
-     * @throws Throws a {@link TypeError} if the provided interaction doesn't have
-     *  (or has an invalid) `song` option.
      */
-    public static async add(interaction: GuildedInteraction): Promise<AddResponse> {
-        let queryString: unknown;
-        try {
-            queryString = interaction.options.get('song', true).value;
-            if (typeof queryString !== 'string') throw new TypeError();
-            if (queryString.length < 3) throw new TypeError();
-        } catch (error) {
-            return {
-                valid: false,
-                searchType: { valid: false, type: 'textSearch' },
-            };
-        }
-
-        const searchType = getSearchType(queryString);
-        if (!searchType.valid) return { searchType, valid: false };
-
-        switch (searchType.type) {
+    public async add(
+        interaction: GuildedInteraction,
+        queryString: string,
+        queryType: SearchType & { valid: true },
+    ): Promise<AddResponse> {
+        switch (queryType.type) {
             case 'youtube': {
-                return await this.handleYouTubeURL(interaction, queryString, searchType.subtype);
+                return await this.handleYouTubeURL(interaction, queryString, queryType.subtype);
             }
             case 'spotify':
-                return await this.handleSpotifyURL(interaction, queryString, searchType.subtype);
+                return await this.handleSpotifyURL(interaction, queryString, queryType.subtype);
             case 'textSearch': {
                 const { items, conversionInfo } = await this.handleTextSearch(interaction, [queryString]);
                 const response: SingleNonYouTubeResponse = {
-                    valid: true,
-                    searchType,
+                    searchType: queryType,
                     success: true,
                     type: 'single',
-                    items,
+                    items: items[0],
                     conversionInfo: conversionInfo[0],
                 };
                 return response;
@@ -153,39 +126,38 @@ export abstract class Hopper {
         }
     }
 
-    private static async handleYouTubeURL(
+    private async handleYouTubeURL(
         interaction: GuildedInteraction,
         url: string,
         subtype: YouTubeURLSubtypes,
-    ): Promise<ValidAddResponse> {
+    ): Promise<AddResponse> {
         switch (subtype) {
             case YouTubeURLSubtypes.Video:
-                return await Hopper.handleYouTubeVideoURL(interaction, url);
+                return await this.handleYouTubeVideoURL(interaction, url);
             case YouTubeURLSubtypes.Playlist:
-                return await Hopper.handleYouTubePlaylistURL(interaction, url);
+                return await this.handleYouTubePlaylistURL(interaction, url);
         }
     }
 
-    private static async handleSpotifyURL(
+    private async handleSpotifyURL(
         interaction: GuildedInteraction,
         url: string,
         subtype: SpotifyURLSubtypes,
-    ): Promise<ValidAddResponse | ErrorResponse> {
+    ): Promise<AddResponse | ErrorResponse> {
         if (is_expired()) await refreshToken();
 
         try {
             const res = await spotify(url);
             switch (res.type) {
                 case 'album':
-                    return await Hopper.handleSpotifyAlbum(interaction, res as SpotifyAlbum);
+                    return await this.handleSpotifyAlbum(interaction, res as SpotifyAlbum);
                 case 'playlist':
-                    return await Hopper.handleSpotifyPlaylist(interaction, res as SpotifyPlaylist);
+                    return await this.handleSpotifyPlaylist(interaction, res as SpotifyPlaylist);
                 case 'track':
-                    return await Hopper.handleSpotifyTrack(interaction, res as SpotifyTrack);
+                    return await this.handleSpotifyTrack(interaction, res as SpotifyTrack);
             }
         } catch (error) {
             return {
-                valid: true,
                 searchType: { valid: true, type: 'spotify', subtype },
                 success: false,
                 errorMessages: [`Error getting Spotify url <${url}>`],
@@ -203,7 +175,7 @@ export abstract class Hopper {
      * - Live
      *
      */
-    private static handleYouTubeVideo(interaction: GuildedInteraction, videos: YouTubeVideo[]): MusicDisc[] {
+    private handleYouTubeVideo(interaction: GuildedInteraction, videos: YouTubeVideo[]): MusicDisc[] {
         const output: MusicDisc[] = [];
 
         videos.forEach((video) => {
@@ -215,19 +187,18 @@ export abstract class Hopper {
         return output;
     }
 
-    private static async handleYouTubeVideoURL(
+    private async handleYouTubeVideoURL(
         interaction: GuildedInteraction,
         url: string,
     ): Promise<SingleYouTubeResponse | ErrorResponse> {
         const searchType: YouTubeVideoURL = { valid: true, type: 'youtube', subtype: YouTubeURLSubtypes.Video };
         try {
             const video = (await video_basic_info(url)).video_details;
-            const items = Hopper.handleYouTubeVideo(interaction, [video]);
-            return { valid: true, searchType, success: true, type: 'single', items };
+            const items = this.handleYouTubeVideo(interaction, [video]);
+            return { searchType, success: true, type: 'single', items: items[0] };
         } catch (error) {
             console.log(error);
             return {
-                valid: true,
                 searchType,
                 success: false,
                 errorMessages: [`Error getting video from YouTube video <${url}>`],
@@ -235,7 +206,7 @@ export abstract class Hopper {
         }
     }
 
-    private static async handleYouTubePlaylistURL(
+    private async handleYouTubePlaylistURL(
         interaction: GuildedInteraction,
         url: string,
     ): Promise<MultiYouTubeResponse | ErrorResponse> {
@@ -243,9 +214,8 @@ export abstract class Hopper {
         try {
             const playlist = await playlist_info(url, { incomplete: true });
             const videos = (await playlist.all_videos()).slice(0, Jukebot.config.maxQueueSize);
-            const items = Hopper.handleYouTubeVideo(interaction, videos);
+            const items = this.handleYouTubeVideo(interaction, videos);
             return {
-                valid: true,
                 searchType,
                 success: true,
                 type: 'multiple',
@@ -258,7 +228,6 @@ export abstract class Hopper {
         } catch (error) {
             console.log(error);
             return {
-                valid: true,
                 searchType,
                 success: false,
                 errorMessages: [`Error getting videos from YouTube playlist <${url}>`],
@@ -266,7 +235,7 @@ export abstract class Hopper {
         }
     }
 
-    private static async handleTextSearch(
+    private async handleTextSearch(
         interaction: GuildedInteraction,
         searchStrings: string[],
     ): Promise<{ conversionInfo: ConversionInfo[]; items: MusicDisc[] }> {
@@ -299,22 +268,21 @@ export abstract class Hopper {
 
             if (similarity < Jukebot.config.levenshteinThreshold) continue;
 
-            items.push(...Hopper.handleYouTubeVideo(interaction, [video]));
+            items.push(...this.handleYouTubeVideo(interaction, [video]));
         }
 
         return { conversionInfo, items };
     }
 
-    private static async handleSpotifyAlbum(
+    private async handleSpotifyAlbum(
         interaction: GuildedInteraction,
         album: SpotifyAlbum,
     ): Promise<MultiNonYouTubeResponse | ErrorResponse> {
         const searchType: SpotifyAlbumURL = { valid: true, type: 'spotify', subtype: SpotifyURLSubtypes.Album };
         try {
             const songNames = (await album.all_tracks()).slice(0, Jukebot.config.maxQueueSize).map(({ name }) => name);
-            const { conversionInfo, items } = await Hopper.handleTextSearch(interaction, songNames);
+            const { conversionInfo, items } = await this.handleTextSearch(interaction, songNames);
             return {
-                valid: true,
                 searchType,
                 success: true,
                 type: 'multiple',
@@ -328,7 +296,6 @@ export abstract class Hopper {
         } catch (error) {
             console.log(error);
             return {
-                valid: true,
                 searchType,
                 success: false,
                 errorMessages: [`Error getting videos from Spotify album <${album.url}>`],
@@ -336,7 +303,7 @@ export abstract class Hopper {
         }
     }
 
-    private static async handleSpotifyPlaylist(
+    private async handleSpotifyPlaylist(
         interaction: GuildedInteraction,
         playlist: SpotifyPlaylist,
     ): Promise<MultiNonYouTubeResponse | ErrorResponse> {
@@ -345,9 +312,8 @@ export abstract class Hopper {
             const songNames = (await playlist.all_tracks())
                 .slice(0, Jukebot.config.maxQueueSize)
                 .map(({ name }) => name);
-            const { conversionInfo, items } = await Hopper.handleTextSearch(interaction, songNames);
+            const { conversionInfo, items } = await this.handleTextSearch(interaction, songNames);
             return {
-                valid: true,
                 searchType,
                 success: true,
                 type: 'multiple',
@@ -361,7 +327,6 @@ export abstract class Hopper {
         } catch (error) {
             console.log(error);
             return {
-                valid: true,
                 searchType,
                 success: false,
                 errorMessages: [`Error getting videos from Spotify playlist <${playlist.url}>`],
@@ -369,25 +334,23 @@ export abstract class Hopper {
         }
     }
 
-    private static async handleSpotifyTrack(
+    private async handleSpotifyTrack(
         interaction: GuildedInteraction,
         track: SpotifyTrack,
     ): Promise<SingleNonYouTubeResponse | ErrorResponse> {
         const searchType: SpotifyTrackURL = { valid: true, type: 'spotify', subtype: SpotifyURLSubtypes.Track };
         try {
-            const { conversionInfo, items } = await Hopper.handleTextSearch(interaction, [track.name]);
+            const { conversionInfo, items } = await this.handleTextSearch(interaction, [track.name]);
             return {
-                valid: true,
                 searchType,
                 success: true,
                 type: 'single',
-                items,
+                items: items[0],
                 conversionInfo: conversionInfo[0],
             };
         } catch (error) {
             console.log(error);
             return {
-                valid: true,
                 searchType,
                 success: false,
                 errorMessages: [`Error getting Spotify track <${track.url}>`],
@@ -396,7 +359,7 @@ export abstract class Hopper {
     }
 
     /** Gets the total length of all added items in secons. */
-    private static getTotalLength(items: MusicDisc[]): number {
+    private getTotalLength(items: MusicDisc[]): number {
         let totalDuration = 0;
         for (const item of items) {
             totalDuration += item.durationSeconds;
@@ -404,3 +367,5 @@ export abstract class Hopper {
         return totalDuration;
     }
 }
+
+export default new Hopper();

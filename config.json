@@ -1,13 +1,22 @@
 {
     "$schema": ".github/configSchema.json",
-    "sourceCode": "https://github.com/NachoToast/Jukebot",
-    "readyTimeout": 10,
-    "levenshteinThreshold": 0.1,
+    "sourceCode":"https://github.com/NachoToast/Jukebot",
     "activityString": "sus remixes",
-    "colourTheme": "#794c36",
     "maxQueueSize": 1000,
     "volumeModifier": 0.5,
-    "maxReadyTime": 5,
-    "inactivityTimeout": 60,
-    "releaseRecentThreshold": 5
+    "colourTheme": "#794c36",
+    "levenshteinThreshold": 0.1,
+    "announcementSystem": {
+        "dontAnnounceOlderThan": 5,
+        "enabledInDevelopment": true,
+        "enabledInProduction": true
+    },
+    "timeoutThresholds": {
+        "login": 5,
+        "connect": 3,
+        "generateResource": 3,
+        "getSearchResult": 3,
+        "inactivity": 10,
+        "play": 3
+    }
 }
