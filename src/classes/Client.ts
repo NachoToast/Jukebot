@@ -8,12 +8,14 @@ import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from './Jukebox';
-import { getConfig } from '../helpers/getConfig';
+import { getAuth, getConfig } from '../helpers/getConfig';
 import { Announcer } from './Announcer';
 import { entersState, VoiceConnectionStatus } from '@discordjs/voice';
+import Auth from '../types/Auth';
 
 export class Jukebot {
     public static config: Config = getConfig();
+    public static auth: Auth = getAuth();
 
     public readonly devMode: boolean;
     public readonly client: Client<true>;
@@ -38,32 +40,23 @@ export class Jukebot {
         // not done in the constructor, since logging in is an asynchronous process
         let loginToken: string;
 
-        // loading auth
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const { token, devToken } = require('../../auth.json');
-
-            if (this.devMode) {
-                if (!devToken) throw new Error('devNoAuth');
-                loginToken = devToken;
-            } else {
-                if (!token) throw new Error('prodNoAuth');
-                loginToken = token;
-            }
-        } catch (error) {
-            const isInstance = error instanceof Error;
-            if (isInstance && error.message.includes('auth.json')) {
-                console.log(`missing ${Colours.FgMagenta}auth.json${Colours.Reset} file in root directory`);
-            } else if (isInstance && error.message === 'devNoAuth') {
+        const { token, devToken } = Jukebot.auth;
+        if (this.devMode) {
+            if (!devToken) {
                 console.log(
                     `running in devmode with no auth token, add a ${Colours.FgCyan}devToken${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
                 );
-            } else if (isInstance && error.message === 'prodNoAuth') {
+                process.exit(1);
+            }
+            loginToken = devToken;
+        } else {
+            if (!token) {
                 console.log(
                     `running with no auth token, add a ${Colours.FgCyan}token${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
                 );
-            } else console.log(error);
-            process.exit(1);
+                process.exit(1);
+            }
+            loginToken = token;
         }
 
         // add event listeners
@@ -198,8 +191,11 @@ export class Jukebot {
             await entersState(newBlock.connection, VoiceConnectionStatus.Ready, Jukebot.config.maxReadyTime * 1000);
         } catch (error) {
             // TODO: pass a "notTracked" parameter down command chain to avoid this
-            console.log('About to destroy an untracked Jukebox, sorry :P');
+            console.log(
+                `About to destroy an untracked Jukebox (connection status: ${newBlock.connection.state.status}), sorry :P`,
+            );
             newBlock.cleanup();
+            throw new Error(`Failed to connect in reasonable time (${Jukebot.config.maxReadyTime} seconds)`);
         }
         this._jukeboxes.set(interaction.guildId, newBlock);
         return newBlock;

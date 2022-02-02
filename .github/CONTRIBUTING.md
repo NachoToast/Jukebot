@@ -9,11 +9,11 @@ The following are rules for writing code in this repository that aren't enforced
 ### Logging
 
 -   `console.log` is preferred to `stdout` and other console methods.
--   Messages shouldn't be capitalized or end in a full-stop.
+-   Messages should be capitalized but not end in a full-stop.
 
     ```ts
-    ❌ console.log('Logged in successfully.');
-    ✅ console.log('logged in successfully');
+    ❌ console.log('logged in successfully.');
+    ✅ console.log('Logged in successfully');
     ```
 
 #### Error Logging

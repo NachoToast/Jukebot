@@ -11,7 +11,7 @@ import {
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
 import { Hopper } from './Hopper';
-import { CurrentlyIdle, CurrentStatus, DestroyCallback, WasPlaying } from '../types/Jukebox';
+import { CurrentlyIdle, CurrentlyPlaying, CurrentStatus, DestroyCallback, WasPlaying } from '../types/Jukebox';
 import { Jukebot } from './Client';
 import { MessageEmbed } from 'discord.js';
 import { MusicDisc } from './MusicDisc';
@@ -47,8 +47,6 @@ export class Jukebox {
         const itemReady = !!this._inventory.at(0);
         const notLocked = !this._playLock;
 
-        console.log(connectionReady, playerIdle, itemReady, notLocked);
-
         return connectionReady && playerIdle && itemReady && notLocked;
     }
 
@@ -65,10 +63,10 @@ export class Jukebox {
         });
 
         this._connection.on('error', (err) => this.handleConnectionError(err));
-        this._connection.on('stateChange', (a, b) => {
-            if (a.status === b.status) return;
-            console.log(`connection: ${a.status} => ${b.status}`);
-        });
+        // this._connection.on('stateChange', (a, b) => {
+        //     if (a.status === b.status) return;
+        //     console.log(`connection: ${a.status} => ${b.status}`);
+        // });
 
         this._player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 
@@ -98,11 +96,11 @@ export class Jukebox {
     }
 
     /** Updates the
-     * {@link Jukebox._status current} property to idle.
+     * {@link Jukebox._status status} property to idle.
      * Scheduling {@link Jukebox.disconnectTimeout inactivity events} to run.
      * @returns {CurrentStatus} The newly updated state.
      */
-    private makeIdle(): CurrentStatus {
+    private makeIdle(): CurrentlyIdle {
         let wasPlaying: WasPlaying | null = null;
 
         // optional chaining since this method is called on startup (current will be undefined),
@@ -117,6 +115,31 @@ export class Jukebox {
             idleSince: Date.now(),
             wasPlaying,
             leaveTimeout: setTimeout(() => this.disconnectTimeout(), Jukebot.config.inactivityTimeout * 1000),
+        };
+        this._status = newCurrent;
+        return newCurrent;
+    }
+
+    /** Updates the
+     * {@link Jukebox._status status} property to active.
+     * @param {MusicDisc} musicDisc - The {@link MusicDisc music disc} that is now playing.
+     *
+     * @returns {CurrentlyPlaying} The new playing status.
+     */
+    private makeActive(musicDisc: MusicDisc): CurrentlyPlaying {
+        let playingSince = Date.now();
+
+        if (!this._status.active) {
+            if (this._status.wasPlaying) {
+                playingSince -= this._status.wasPlaying.for * 1000;
+            }
+            clearTimeout(this._status.leaveTimeout);
+        }
+
+        const newCurrent: CurrentlyPlaying = {
+            active: true,
+            musicDisc,
+            playingSince,
         };
         this._status = newCurrent;
         return newCurrent;
@@ -137,7 +160,53 @@ export class Jukebox {
         interaction: GuildedInteraction,
         liveEdit: boolean,
     ): Promise<{ outputEmbed: MessageEmbed; success: boolean }> {
-        const { items } = await Hopper.add(interaction);
+        const items: MusicDisc[] = [];
+
+        try {
+            const response = await Hopper.add(interaction);
+            if (!response.valid) {
+                response;
+                // TODO: make invalid search type embed
+                const outputEmbed = new MessageEmbed()
+                    .setTitle('Invalid Search')
+                    .setDescription(`${interaction.options.get('song')} (invalid ${response.searchType.type}`);
+                if (liveEdit) {
+                    await interaction.editReply({ embeds: [outputEmbed] });
+                }
+                return { success: false, outputEmbed };
+            }
+            if (!response.success) {
+                throw new Error(response.errorMessages.join(','));
+            }
+            const { items: newItems, type } = response;
+            const maxAddedItems = Jukebot.config.maxQueueSize - this._inventory.length;
+            const numAdded = Math.min(newItems.length, maxAddedItems);
+
+            items.push(...newItems.slice(0, numAdded));
+
+            if (type !== 'single') {
+                console.log(response.playlistName, response.playlistSize);
+                if (response.source === 'spotify') {
+                    console.log(
+                        response.conversionInfo
+                            .map((e) => `${e.originalName} => ${e.youtubeEquivalent} (${e.levenshtein})`)
+                            .join('\n'),
+                    );
+                }
+            }
+        } catch (error) {
+            // TODO: make error embed
+            const outputEmbed = new MessageEmbed().setTitle('Error');
+            if (error instanceof Error) {
+                outputEmbed.setDescription(`${error.name}\n${error.message}`);
+            } else outputEmbed.setDescription(`${error}`);
+
+            if (liveEdit) {
+                await interaction.editReply({ embeds: [outputEmbed] });
+            }
+            return { success: false, outputEmbed };
+        }
+
         if (!items.length) {
             // TODO: make no results embed
             const outputEmbed = new MessageEmbed().setTitle('No Results').setDescription('No results found.');
@@ -178,7 +247,6 @@ export class Jukebox {
      * - `success` A boolean stating whether the operation was a success.
      */
     private async play(silent: boolean): Promise<{ outputEmbed: MessageEmbed; success: boolean }> {
-        console.log(`setting playlock to true (was ${this._playLock}), so shouldn't be called anymore`);
         this._playLock = true;
         const nextItem = this._inventory.shift();
         if (!nextItem) {
@@ -195,9 +263,9 @@ export class Jukebox {
 
         let resource = nextItem.resource;
         if (resource) {
-            console.log(`${nextItem.title} was already prepared`);
+            console.log(`${nextItem.title}${Colours.FgGreen} was already prepared${Colours.Reset}`);
         } else {
-            console.log(`preparing ${nextItem.title}`);
+            console.log(`${Colours.FgYellow}preparing ${Colours.Reset}${nextItem.title}`);
             nextItem.prepare();
             await wait(Jukebot.config.maxReadyTime * 1000);
             resource = nextItem.resource;
@@ -234,19 +302,8 @@ export class Jukebox {
         console.log('setting playlock to false');
         this._playLock = false;
 
-        let playingSince = Date.now();
-        if (!this._status.active) {
-            if (this._status.wasPlaying) {
-                playingSince -= this._status.wasPlaying.for * 1000;
-            }
-            clearTimeout(this._status.leaveTimeout);
-        }
+        this.makeActive(nextItem);
 
-        this._status = {
-            active: true,
-            musicDisc: nextItem,
-            playingSince,
-        };
         const nextNextItem = this._inventory.at(0);
         if (nextNextItem) {
             nextNextItem.prepare(); // note lack of 'await'

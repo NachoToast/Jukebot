@@ -1,4 +1,9 @@
 {
     "token": "your_discord_token",
-    "devToken": "another_discord_token (optional)"
+    "devToken": "another_discord_token (optional)",
+    "spotify": {
+        "clientId": "spotify_client_id",
+        "clientSecret": "spotify_client_secret",
+        "market": "spotify_market"
+    }
 }

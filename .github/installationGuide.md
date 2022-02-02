@@ -19,9 +19,9 @@ To set up your own version of JukeBot, follow these steps
 
 3. Create an Authorization File
 
-    1. Copy the [`auth.example.json`](../auth.example.json) file
-    2. Rename the copy to [`auth.json`](../auth.json)
-    3. Fill out the `devToken` field with the token from step 1
+    1. Copy the [`auth.example.json`](../auth.example.json) file 2. Rename the copy to [`auth.json`](../auth.json) 3. Fill out the `devToken` field with the token from step 1
+    2. Run the Spotify authorization script using `yarn spotify` or `npm run spotify`
+        1. Fill in your Spotify client ID and secret, the redirect URL doesn't matter so just make it any valid URL.
 
 4. Install Dependencies
 

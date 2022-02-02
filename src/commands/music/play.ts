@@ -2,7 +2,6 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import Command, { CommandParams } from '../../types/Command';
 import Messages from '../../types/Messages';
 import { FullInteraction, GuildedInteraction } from '../../types/Interactions';
-import { Jukebot } from '../../classes/Client';
 
 export class Play extends Command {
     public name = 'play';
@@ -39,9 +38,7 @@ export class Play extends Command {
             const jukeBox = await jukebot.getOrMakeJukebox(fullInteraction);
             await jukeBox.add(guildedInteraction, true);
         } catch (error) {
-            await interaction.editReply({
-                content: `Failed to connect in reasonable time (${Jukebot.config.readyTimeout} seconds)`,
-            });
+            await interaction.editReply({ content: `${error}` });
             return;
         }
     }

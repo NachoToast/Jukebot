@@ -30,21 +30,3 @@ export enum DiscImages {
     /** Java and Bedrock have different images. */
     Eleven2 = 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/4/47/Music_Disc_11_JE1_BE1.png/revision/latest/scale-to-width-down/160?cb=20191127011614',
 }
-
-export const defaultDiscArray: DiscImages[] = [
-    DiscImages.Blocks,
-    DiscImages.Cat,
-    DiscImages.Chip,
-    DiscImages.Eleven,
-    DiscImages.Eleven2,
-    DiscImages.Far,
-    DiscImages.Mall,
-    DiscImages.Mellohi,
-    DiscImages.Otherwise,
-    DiscImages.Pigstep,
-    DiscImages.Stal,
-    DiscImages.Strad,
-    DiscImages.Thirteen,
-    DiscImages.Wait,
-    DiscImages.Ward,
-];

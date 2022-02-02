@@ -27,6 +27,8 @@ See the [installation guide](./.github/installationGuide.md) for a more beginner
 -   Put your bot token in [`auth.json`](./auth.json)
     -   See [auth.example.json](./auth.example.json) for syntax.
     -   `yarn dev` uses `devToken`, otherwise `token` is used.
+-   Run `yarn spotify` to set up Spotify authorization.
+    -   Your redirect URL can be anything, it doesn't matter.
 
 ```sh
 # development

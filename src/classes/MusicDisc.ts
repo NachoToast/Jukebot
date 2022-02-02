@@ -10,10 +10,10 @@ import {
 import { GuildMember } from 'discord.js';
 import { stream, YouTubeStream, YouTubeVideo } from 'play-dl';
 import { GuildedInteraction } from '../types/Interactions';
-import { defaultDiscArray, DiscImages } from '../types/MusicDisc';
 import ytdl from 'ytdl-core';
 import internal from 'stream';
 import { promisify } from 'util';
+import { chooseRandomDisc } from '../helpers/chooseRandomDisc';
 
 const wait = promisify(setTimeout);
 
@@ -56,7 +56,7 @@ export class MusicDisc {
         this.url = url;
         this.durationSeconds = durationInSec;
         this.durationString = durationRaw;
-        this.thumbnail = thumbnails.shift()?.url || MusicDisc.chooseRandomDisc();
+        this.thumbnail = thumbnails.shift()?.url || chooseRandomDisc();
         this.views = views;
         this.channel = channel?.name || 'Unknown Artist';
     }
@@ -127,11 +127,5 @@ export class MusicDisc {
         }
 
         return success;
-    }
-
-    /** If there isn't thumbnail URL, this gets a random music disc image. */
-    private static chooseRandomDisc(): DiscImages {
-        const randomIndex = Math.floor(Math.random() * defaultDiscArray.length);
-        return defaultDiscArray[randomIndex];
     }
 }

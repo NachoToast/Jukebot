@@ -6,3 +6,4 @@ media/
 auth.json
 package-lock.json
 *.log
+.data
