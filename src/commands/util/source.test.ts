@@ -4,8 +4,6 @@ import { CommandParams } from '../../types/Command';
 import Config from '../../types/Config';
 import { Source } from './source';
 
-jest.mock('../../classes/Client');
-
 interface Output {
     content: string;
     components: MessageActionRow[];
