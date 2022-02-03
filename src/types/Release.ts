@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+/** A GitHub user object. */
 interface User {
     login: string;
     id: number;
@@ -20,6 +21,7 @@ interface User {
     site_admin: boolean;
 }
 
+/** A GitHub release object. */
 export interface Release {
     url: string;
     html_url: string;

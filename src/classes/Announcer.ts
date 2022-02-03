@@ -1,4 +1,4 @@
-import { GuildManager, MessageEmbed } from 'discord.js';
+import { Client, MessageEmbed } from 'discord.js';
 import { request, RequestOptions } from 'https';
 import moment from 'moment';
 import { Jukebot } from './Client';
@@ -7,75 +7,80 @@ import Colours from '../types/Colours';
 import { Release } from '../types/Release';
 
 /** The announcer handles dispatching global announcements. */
-export class Announcer {
-    private _guilds: GuildManager;
-
-    public constructor(guilds: GuildManager) {
-        this._guilds = guilds;
-        this.init();
-    }
-
-    /** Dispatches an announcement once the bot starts up,
-     * giving information about it's latest release.'
+export abstract class Announcer {
+    /** Dispatches an announcement with information about the latest GitHub release.
      *
      * Will only send an announcement if:
-     * - The configured `sourceCode` is unmodified.
-     * - The latest release meets the configured `releaseRecentThreshold`.
+     *
+     * - The configured {@link Jukebot.config.sourceCode sourceCode}
+     *  is unmodified.
+     * - The release was published within the configured
+     * {@link Jukebot.config.announcementSystem.dontAnnounceOlderThan recency} threshold.
+     * - The release is not a pre-release.
      */
-    private async init(): Promise<void> {
+    public static async init(client: Client<true>): Promise<void> {
         if (Jukebot.config.sourceCode !== 'https://github.com/NachoToast/Jukebot') return;
 
-        let latestRelease: Release;
+        let release: Release;
 
+        // get latest release
         try {
-            const releases = await Announcer.getRequest();
-            const latest = releases.shift();
-            if (!latest) {
+            const gitHubReleases = await Announcer.getRequest();
+
+            const latestRelease = gitHubReleases.filter((release) => !release.prerelease).shift();
+            if (!latestRelease) {
                 console.log('[Announcer] no GitHub releases found');
                 return;
             }
-            const latestTime = latest?.published_at;
-            if (!latestTime || latest?.draft) {
+
+            const releasedAt = latestRelease?.published_at;
+            if (!releasedAt || latestRelease?.draft) {
                 console.log(
-                    `[Announcer] latest release (${Colours.FgMagenta}${latest.name}${Colours.Reset}) hasn't been published yet`,
+                    `[Announcer] latest release (${Colours.FgMagenta}${latestRelease.name}${Colours.Reset}) hasn't been published yet`,
                 );
                 return;
             }
 
-            const minsSinceRelease = 60 * Math.floor((Date.now() - new Date(latestTime).getTime()) / 1000);
+            const minsSinceRelease = 60 * Math.floor((Date.now() - new Date(releasedAt).getTime()) / 1000);
+            const timeAgoThreshold = Jukebot.config.announcementSystem.dontAnnounceOlderThan;
 
-            if (minsSinceRelease > Jukebot.config.announcementSystem.dontAnnounceOlderThan) {
+            if (timeAgoThreshold && minsSinceRelease > timeAgoThreshold) {
                 console.log(
-                    `[Announcer] latest release (${Colours.FgMagenta}${latest.name}${
+                    `[Announcer] latest release (${Colours.FgMagenta}${latestRelease.name}${
                         Colours.Reset
-                    }) was published ${moment(latestTime).fromNow()}, so not announcing`,
+                    }) was published ${moment(releasedAt).fromNow()}, so not announcing`,
                 );
                 return;
             }
-            latestRelease = latest;
+
+            release = latestRelease;
         } catch (error) {
             console.log('[Announcer] failed to get latest GitHub release');
             return;
         }
 
+        // construct message
         const embed = new MessageEmbed()
             .setAuthor({
-                name: `Update ${latestRelease.tag_name}`,
+                name: `Updated to Version ${release.tag_name}`,
                 iconURL: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
             })
-            .setTitle(latestRelease.name)
-            .setDescription(latestRelease.body)
-            .setURL(latestRelease.html_url)
+            // .setTitle(release.name)
+            .setThumbnail(client.user.avatarURL() ?? '')
+            .setDescription(release.body)
+            .setURL(release.html_url)
             .setFooter({
-                text: `Published by ${latestRelease.author.login} ${moment(latestRelease.published_at).fromNow()}`,
-                iconURL: latestRelease.author.avatar_url,
+                text: `${release.author.login} (${moment(release.published_at).fromNow()})`,
+                iconURL: release.author.avatar_url,
             })
             .setColor(Jukebot.config.colourTheme);
 
-        let successfulAnnouncements = 0;
-        let erroredAnnouncements = 0;
+        // send message
+        const guilds = await client.guilds.fetch();
 
-        const guilds = await this._guilds.fetch();
+        let successes = 0;
+        let errors = 0;
+        const total = guilds.size;
 
         for (const [, authGuild] of guilds) {
             const guild = await authGuild.fetch();
@@ -83,20 +88,32 @@ export class Announcer {
             if (!idealChannel) continue;
             try {
                 await idealChannel.send({ embeds: [embed] });
-                successfulAnnouncements++;
+                successes++;
             } catch (error) {
                 console.log(
                     `[Announcer] failed to announce to guild ${Colours.FgMagenta}${guild.name}${Colours.Reset}`,
+                    error,
                 );
-                erroredAnnouncements++;
+                errors++;
             }
         }
 
+        // log results
         console.log(
-            `[Announcer] Announced release ${Colours.FgMagenta}${latestRelease.tag_name}${Colours.Reset} to ${Colours.FgGreen}${successfulAnnouncements}${Colours.Reset} out of ${Colours.FgMagenta}${guilds.size}${Colours.Reset} guilds (${Colours.FgRed}${erroredAnnouncements}${Colours.Reset} errors)`,
+            `[Announcer] Announced release ${Colours.FgMagenta}${release.tag_name}${Colours.Reset} to ${
+                Colours.FgGreen
+            }${successes}${Colours.Reset} out of ${Colours.FgMagenta}${total}${Colours.Reset} guilds (${
+                Colours.FgRed
+            }${errors}${Colours.Reset} error${errors !== 1 ? 's' : ''})`,
         );
     }
 
+    /** Sends a GET request to Jukebot's GitHub repository.
+     *
+     * @returns {Promise<Release[]>} An array of release objects.
+     *
+     * @throws Throws an error if the GET request failed. It may fail if there are no releases.
+     */
     private static getRequest(): Promise<Release[]> {
         return new Promise<Release[]>((resolve, reject) => {
             const options: RequestOptions = {
@@ -119,7 +136,7 @@ export class Announcer {
                     try {
                         resolve(JSON.parse(output) as Release[]);
                     } catch (error) {
-                        reject('Invalid shapee');
+                        reject('Invalid shape');
                     }
                 });
             });

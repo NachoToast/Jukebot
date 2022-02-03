@@ -112,14 +112,12 @@ export class Jukebot {
         if (this.devMode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
 
-        if (this.devMode) {
-            if (Jukebot.config.announcementSystem.enabledInDevelopment) {
-                new Announcer(this.client.guilds);
-            }
-        } else {
-            if (Jukebot.config.announcementSystem.enabledInProduction) {
-                new Announcer(this.client.guilds);
-            }
+        // making announcement
+        const devModeAnnouncer = this.devMode && Jukebot.config.announcementSystem.enabledInDevelopment;
+        const prodAnnouncer = !this.devMode && Jukebot.config.announcementSystem.enabledInProduction;
+
+        if (devModeAnnouncer || prodAnnouncer) {
+            Announcer.init(this.client);
         }
     }
 
