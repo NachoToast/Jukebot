@@ -12,7 +12,7 @@
         "test": "jest",
         "typecheck": "tsc --noEmit",
         "check-all": "yarn test && yarn lint && yarn typecheck",
-        "spotify": "node ./scripts/spotifyLogin.js"
+        "auth": "node ./scripts/login.js"
     },
     "devDependencies": {
         "@types/jest": "^27.4.0",
