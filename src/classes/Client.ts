@@ -8,7 +8,7 @@ import { Routes } from 'discord-api-types/v9';
 import Config from '../types/Config';
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import { Jukebox } from './Jukebox';
-import { getAuth, getConfig } from '../helpers/getConfig';
+import { getAuth, getConfig } from '../helpers/getAuthConfig';
 import { Announcer } from './Announcer';
 import Auth from '../types/Auth';
 
