@@ -465,7 +465,7 @@ export class Jukebox {
                 .setLabel(`Page ${page + 1}`)
                 .setStyle('PRIMARY');
 
-        const getItems = (): InteractionReplyOptions => {
+        const getItems = (withoutButtons: boolean = false): InteractionReplyOptions => {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const newEmbed = new MessageEmbed().setAuthor(embed.author).setTitle(embed.title!).setColor(embed.color!);
 
@@ -478,6 +478,7 @@ export class Jukebox {
                     ),
                 );
 
+            if (withoutButtons) return { embeds: [newEmbed] };
             const row = new MessageActionRow();
 
             if (page !== 1) row.addComponents(prevPageButton());
@@ -491,7 +492,11 @@ export class Jukebox {
 
         await interaction.reply(getItems());
 
-        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+        const collector = interaction.channel.createMessageComponentCollector({
+            filter,
+            time: Jukebot.config.timeoutThresholds.stopQueuePagination * 1000,
+        });
+
         collector.on('collect', async (i) => {
             if (i.customId === nextPageId) {
                 page++;
@@ -500,6 +505,10 @@ export class Jukebox {
                 page--;
                 await i.update(getItems());
             }
+        });
+
+        collector.on('end', async () => {
+            await interaction.editReply({ components: [] });
         });
     }
 

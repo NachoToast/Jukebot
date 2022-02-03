@@ -17,6 +17,7 @@
         "generateResource": 3,
         "getSearchResult": 5,
         "inactivity": 60,
-        "play": 3
+        "play": 3,
+        "stopQueuePagination": 30
     }
 }

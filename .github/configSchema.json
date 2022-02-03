@@ -67,12 +67,12 @@
                 "getSearchResult": {
                     "type": "integer",
                     "description": "Load initial results from search term or link.",
-                    "default": 3
+                    "default": 5
                 },
                 "inactivity": {
                     "type": "integer",
                     "description": "Leave after not playing anything.",
-                    "default": 10
+                    "default": 60
                 },
                 "login": {
                     "type": "integer",
@@ -83,6 +83,12 @@
                     "type": "integer",
                     "description": "Start playing an audio resource.",
                     "default": 3
+                },
+                "stopQueuePagination": {
+                    "type": "integer",
+                    "description": "Stop responding to page changes for queue embeds. Must be at least 3 seconds.",
+                    "default": 30,
+                    "minimum": 3
                 }
             }
         }

@@ -57,5 +57,8 @@ export default interface Config {
 
         /** Start playing an audio resource. */
         play: number;
+
+        /** Stop responding to page changes for queue embeds. Must be at least 3 seconds. */
+        stopQueuePagination: number;
     };
 }
