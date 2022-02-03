@@ -15,8 +15,7 @@ export class Queue extends Command {
             await interaction.reply({ content: Messages.NotPlaying, ephemeral: true });
             return;
         }
-
-        await interaction.reply(jukebox.queue);
+        await jukebox.getQueueEmbed(interaction, true);
     }
 }
 

@@ -14,11 +14,14 @@ import Colours from '../types/Colours';
 import { Jukebot } from './Client';
 import {
     BaseMessageComponentOptions,
+    CollectorFilter,
     InteractionReplyOptions,
     Message,
     MessageActionRow,
     MessageActionRowOptions,
     MessageAttachment,
+    MessageButton,
+    MessageComponentInteraction,
     MessageEmbed,
     MessageEmbedOptions,
     Snowflake,
@@ -400,24 +403,104 @@ export class Jukebox {
         }
     }
 
-    public get queue(): InteractionReplyOptions {
+    public async getQueueEmbed(interaction: GuildedInteraction, pagination: true): Promise<void>;
+    public async getQueueEmbed(interaction: GuildedInteraction, pagination: false): Promise<InteractionReplyOptions>;
+    // eslint-disable-next-line require-await
+    public async getQueueEmbed(
+        interaction: GuildedInteraction,
+        pagination: boolean,
+    ): Promise<InteractionReplyOptions | void> {
         if (!this._inventory.length) {
-            return { content: 'The queue is empty' };
+            return { content: 'The queue is empty', ephemeral: true };
         }
-        const embed = new MessageEmbed().setTitle('Queue');
-        if (this._inventory.length < 10) {
-            embed.setDescription(
-                this._inventory.map((e, i) => `${i + 1}. ${e.title} (${e.durationString})`).join('\n'),
-            );
-        } else {
-            embed.setDescription(
-                this._inventory
-                    .slice(0, 10)
-                    .map((e, i) => `${i + 1}. ${e.title} (${e.durationString})`)
-                    .join('\n') + `*+${this._inventory.length - 10} more...*`,
-            );
+
+        const description: string[] = [`Total Length: ${numericalToString(this.getTotalLength())}`, '\u200b'];
+
+        const embed = new MessageEmbed()
+            .setAuthor({
+                name: `${this._latestInteraction.guild.name} Music Queue`,
+                iconURL: this._latestInteraction.guild.iconURL() || DiscImages.Pigstep,
+            })
+            .setTitle(`${this._inventory.length} Song${this._inventory.length !== 1 ? 's' : ''} Queued`)
+            .setColor(Jukebot.config.colourTheme);
+
+        if (!pagination) {
+            if (this._inventory.length > 10) {
+                this._inventory.slice(0, 10).forEach((disc, index) => {
+                    embed.addField(
+                        `${index + 1}. ${disc.title} (${disc.durationString})`,
+                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
+                    );
+                });
+                embed.setFooter({ text: `${this._inventory.length - 10} more...`, iconURL: DiscImages.Pigstep });
+            } else {
+                this._inventory.forEach((disc, index) => {
+                    embed.addField(
+                        `${index + 1}. ${disc.title} (${disc.durationString})`,
+                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
+                    );
+                });
+            }
+            embed.setDescription(description.join('\n'));
+
+            return { embeds: [embed] };
         }
-        return { embeds: [embed] };
+
+        const perPage = 10;
+        let page = 1;
+        const numPages = Math.ceil(this._inventory.length / perPage);
+
+        const nextPageId = interaction.id + '_next';
+        const prevPageId = interaction.id + '_prev';
+
+        const prevPageButton = () =>
+            new MessageButton()
+                .setCustomId(prevPageId)
+                .setLabel(`Page ${page - 1}`)
+                .setStyle('PRIMARY');
+
+        const nextPageButton = () =>
+            new MessageButton()
+                .setCustomId(nextPageId)
+                .setLabel(`Page ${page + 1}`)
+                .setStyle('PRIMARY');
+
+        const getItems = (): InteractionReplyOptions => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const newEmbed = new MessageEmbed().setAuthor(embed.author).setTitle(embed.title!).setColor(embed.color!);
+
+            this._inventory
+                .slice(page - 1, page - 1 + perPage)
+                .forEach((disc, index) =>
+                    newEmbed.addField(
+                        `${(page - 1) * perPage + index + 1}. ${disc.title} (${disc.durationString})`,
+                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
+                    ),
+                );
+
+            const row = new MessageActionRow();
+
+            if (page !== 1) row.addComponents(prevPageButton());
+            if (page !== numPages) row.addComponents(nextPageButton());
+
+            return { embeds: [newEmbed], components: [row] };
+        };
+
+        const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) =>
+            i.customId === nextPageId || i.customId === prevPageId;
+
+        await interaction.reply(getItems());
+
+        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+        collector.on('collect', async (i) => {
+            if (i.customId === nextPageId) {
+                page++;
+                await i.update(getItems());
+            } else {
+                page--;
+                await i.update(getItems());
+            }
+        });
     }
 
     public get nowPlaying(): InteractionReplyOptions {
