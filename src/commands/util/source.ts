@@ -5,7 +5,7 @@ import Command, { CommandParams } from '../../types/Command';
 
 export class Source extends Command {
     public name = 'source';
-    public description = 'Links to GitHub repo';
+    public description = 'Get a link to my source code';
     public allowNoGuild = true;
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
@@ -16,7 +16,7 @@ export class Source extends Command {
             new MessageButton().setLabel('Sauce').setStyle('LINK').setURL(Jukebot.config.sourceCode),
         );
 
-        await interaction.reply({ content: "Here's my source code!", components: [row], ephemeral: true });
+        await interaction.reply({ content: "📁 Here's my source code!", components: [row], ephemeral: true });
     }
 }
 
