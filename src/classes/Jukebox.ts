@@ -11,9 +11,8 @@ import {
     VoiceConnectionStatus,
 } from '@discordjs/voice';
 import Colours from '../types/Colours';
-import { CurrentlyIdle, CurrentlyPlaying, CurrentStatus, DestroyCallback, WasPlaying } from '../types/Jukebox';
 import { Jukebot } from './Client';
-import { InteractionReplyOptions, MessageEmbed } from 'discord.js';
+import { InteractionReplyOptions, MessageEmbed, Snowflake } from 'discord.js';
 import { MusicDisc } from './MusicDisc';
 import { promisify } from 'util';
 import Messages from '../types/Messages';
@@ -21,6 +20,33 @@ import { getSearchType } from '../helpers/searchType';
 import Hopper, { AddResponse } from './Hopper';
 
 const wait = promisify(setTimeout);
+
+type DestroyCallback = (guildId: Snowflake) => void;
+
+interface ActiveStatus {
+    active: true;
+    musicDisc: MusicDisc;
+
+    /** This should NOT be used to determine when a song started playing,
+     * only how long the song has been playing for.
+     *
+     * This is because the player can be paused. */
+    playingSince: number;
+}
+
+interface IdleStatus {
+    active: false;
+    idleSince: number;
+    wasPlaying?: {
+        musicDisc: MusicDisc;
+
+        /** How far through the song was, in seconds. */
+        for: number;
+    };
+    leaveTimeout: NodeJS.Timeout;
+}
+
+type Status = IdleStatus | ActiveStatus;
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -44,8 +70,15 @@ export class Jukebox {
 
     /** Array of to-be-played {@link MusicDisc music discs}. */
     private _inventory: MusicDisc[] = [];
-    private _status: CurrentStatus = this.makeIdle();
+    private _status: Status = this.makeIdle();
+
+    /** Whether this is currently in the process of playing something
+     * (e.g. waiting for a resource).
+     */
     private _playLock = false;
+
+    /** Whether the connection is attempting to join a channel. */
+    private _connecting = true;
 
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
@@ -89,8 +122,6 @@ export class Jukebox {
         this._connection.subscribe(this._player);
     }
 
-    private _connecting = true;
-
     /** Resolves once the connection has successfully joined the voice channel.
      * @throws Throws an error if it doesn't join in time.
      */
@@ -121,10 +152,10 @@ export class Jukebox {
      * Scheduling {@link Jukebox.disconnectTimeout inactivity events} to run.
      * @returns {CurrentStatus} The newly updated state.
      */
-    private makeIdle(): CurrentlyIdle {
-        let wasPlaying: WasPlaying | null = null;
+    private makeIdle(): IdleStatus {
+        let wasPlaying: IdleStatus['wasPlaying'];
 
-        // optional chaining since this method is called on startup (current will be undefined),
+        // optional chaining since this method is called on startup (status will be undefined),
         if (this._status?.active) {
             wasPlaying = {
                 musicDisc: this._status.musicDisc,
@@ -132,7 +163,7 @@ export class Jukebox {
             };
         }
 
-        const newCurrent: CurrentlyIdle = {
+        const newCurrent: IdleStatus = {
             active: false,
             idleSince: Date.now(),
             wasPlaying,
@@ -149,9 +180,9 @@ export class Jukebox {
      * {@link Jukebox._status status} property to active.
      * @param {MusicDisc} musicDisc - The {@link MusicDisc music disc} that is now playing.
      *
-     * @returns {CurrentlyPlaying} The new playing status.
+     * @returns {ActiveStatus} The new playing status.
      */
-    private makeActive(musicDisc: MusicDisc): CurrentlyPlaying {
+    private makeActive(musicDisc: MusicDisc): ActiveStatus {
         let playingSince = Date.now();
 
         if (!this._status.active) {
@@ -161,7 +192,7 @@ export class Jukebox {
             clearTimeout(this._status.leaveTimeout);
         }
 
-        const newCurrent: CurrentlyPlaying = {
+        const newCurrent: ActiveStatus = {
             active: true,
             musicDisc,
             playingSince,
@@ -397,7 +428,6 @@ export class Jukebox {
             }
         }
 
-        console.log('setting playlock to false');
         this._playLock = false;
 
         this.makeActive(nextItem);
