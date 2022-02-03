@@ -8,15 +8,15 @@
     "levenshteinThreshold": 0.1,
     "announcementSystem": {
         "dontAnnounceOlderThan": 5,
-        "enabledInDevelopment": true,
+        "enabledInDevelopment": false,
         "enabledInProduction": true
     },
     "timeoutThresholds": {
         "login": 5,
         "connect": 3,
         "generateResource": 3,
-        "getSearchResult": 3,
-        "inactivity": 10,
+        "getSearchResult": 5,
+        "inactivity": 60,
         "play": 3
     }
 }

@@ -1,12 +1,12 @@
 export enum SpotifyURLSubtypes {
-    Track,
-    Playlist,
-    Album,
+    Track = 'track',
+    Playlist = 'playlist',
+    Album = 'album',
 }
 
 export enum YouTubeURLSubtypes {
-    Video,
-    Playlist,
+    Video = 'video',
+    Playlist = 'playlist',
 }
 
 interface BaseYouTubeURL {

@@ -16,7 +16,17 @@ export class Skip extends Command {
             return;
         }
 
-        await interaction.reply(await jukebox.skip());
+        try {
+            await jukebox.skip();
+
+            await interaction.reply({ content: '⏭️ Skipped!', ephemeral: true });
+        } catch (error) {
+            if (error instanceof Error) {
+                await interaction.reply({ content: error.message });
+            } else {
+                await interaction.reply({ content: 'Unknown error occurred' });
+            }
+        }
     }
 }
 

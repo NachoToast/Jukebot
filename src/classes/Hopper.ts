@@ -50,29 +50,30 @@ interface NonErrorResponse extends BaseResponse {
 
 /** The search resulted in a single item being added. */
 interface BaseSingleResponse extends NonErrorResponse {
-    searchType: SpotifyTrackURL | SpotifyAlbumURL | YouTubeVideoURL | ValidTextSearch;
     type: 'single';
     items: MusicDisc;
 }
 
 interface SingleYouTubeResponse extends BaseSingleResponse {
     searchType: YouTubeVideoURL;
+    source: 'youtube';
 }
 
-interface SingleNonYouTubeResponse extends BaseSingleResponse {
+export interface SingleNonYouTubeResponse extends BaseSingleResponse {
     searchType: SpotifyTrackURL | SpotifyAlbumURL | ValidTextSearch;
     conversionInfo: ConversionInfo;
+    source: 'nonYouTube';
 }
 
 /** Metadata given when searching for multiple items. */
 interface BaseMultiResponse extends NonErrorResponse {
-    searchType: SpotifyPlaylistURL | SpotifyAlbumURL | YouTubePlaylistURL;
     playlistName: string;
     playlistImageURL: string;
     playlistSize: number;
-    source: 'youtube' | 'spotify';
+    playlistURL: string;
     items: MusicDisc[];
     type: 'multiple';
+    createdBy: string[];
 }
 
 interface MultiYouTubeResponse extends BaseMultiResponse {
@@ -116,6 +117,7 @@ class Hopper {
                 const { items, conversionInfo } = await this.handleTextSearch(interaction, [queryString]);
                 const response: SingleNonYouTubeResponse = {
                     searchType: queryType,
+                    source: 'nonYouTube',
                     success: true,
                     type: 'single',
                     items: items[0],
@@ -153,8 +155,9 @@ class Hopper {
                     return await this.handleSpotifyAlbum(interaction, res as SpotifyAlbum);
                 case 'playlist':
                     return await this.handleSpotifyPlaylist(interaction, res as SpotifyPlaylist);
-                case 'track':
+                case 'track': {
                     return await this.handleSpotifyTrack(interaction, res as SpotifyTrack);
+                }
             }
         } catch (error) {
             return {
@@ -195,9 +198,9 @@ class Hopper {
         try {
             const video = (await video_basic_info(url)).video_details;
             const items = this.handleYouTubeVideo(interaction, [video]);
-            return { searchType, success: true, type: 'single', items: items[0] };
+            return { searchType, source: 'youtube', success: true, type: 'single', items: items[0] };
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return {
                 searchType,
                 success: false,
@@ -224,9 +227,11 @@ class Hopper {
                 playlistImageURL: playlist.thumbnail?.url || chooseRandomDisc(),
                 playlistSize: playlist.videoCount ?? 0,
                 source: 'youtube',
+                playlistURL: playlist.url || url,
+                createdBy: [playlist.channel?.name ?? 'Unknown Channel'],
             };
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return {
                 searchType,
                 success: false,
@@ -280,7 +285,9 @@ class Hopper {
     ): Promise<MultiNonYouTubeResponse | ErrorResponse> {
         const searchType: SpotifyAlbumURL = { valid: true, type: 'spotify', subtype: SpotifyURLSubtypes.Album };
         try {
-            const songNames = (await album.all_tracks()).slice(0, Jukebot.config.maxQueueSize).map(({ name }) => name);
+            const songNames = (await album.all_tracks())
+                .slice(0, Jukebot.config.maxQueueSize)
+                .map((track) => Hopper.trackToYouTubeSearch(track));
             const { conversionInfo, items } = await this.handleTextSearch(interaction, songNames);
             return {
                 searchType,
@@ -292,9 +299,11 @@ class Hopper {
                 conversionInfo,
                 playlistSize: album.tracksCount,
                 source: 'spotify',
+                playlistURL: album.url,
+                createdBy: album.artists.map(({ name }) => name),
             };
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return {
                 searchType,
                 success: false,
@@ -311,7 +320,7 @@ class Hopper {
         try {
             const songNames = (await playlist.all_tracks())
                 .slice(0, Jukebot.config.maxQueueSize)
-                .map(({ name }) => name);
+                .map((track) => Hopper.trackToYouTubeSearch(track));
             const { conversionInfo, items } = await this.handleTextSearch(interaction, songNames);
             return {
                 searchType,
@@ -323,9 +332,11 @@ class Hopper {
                 conversionInfo,
                 playlistSize: playlist.tracksCount,
                 source: 'spotify',
+                playlistURL: playlist.url,
+                createdBy: playlist.collaborative ? [playlist.owner.name, 'others'] : [playlist.owner.name],
             };
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return {
                 searchType,
                 success: false,
@@ -340,16 +351,19 @@ class Hopper {
     ): Promise<SingleNonYouTubeResponse | ErrorResponse> {
         const searchType: SpotifyTrackURL = { valid: true, type: 'spotify', subtype: SpotifyURLSubtypes.Track };
         try {
-            const { conversionInfo, items } = await this.handleTextSearch(interaction, [track.name]);
+            const { conversionInfo, items } = await this.handleTextSearch(interaction, [
+                Hopper.trackToYouTubeSearch(track),
+            ]);
             return {
                 searchType,
                 success: true,
                 type: 'single',
                 items: items[0],
                 conversionInfo: conversionInfo[0],
+                source: 'nonYouTube',
             };
         } catch (error) {
-            console.log(error);
+            // console.log(error);
             return {
                 searchType,
                 success: false,
@@ -358,13 +372,13 @@ class Hopper {
         }
     }
 
-    /** Gets the total length of all added items in secons. */
-    private getTotalLength(items: MusicDisc[]): number {
-        let totalDuration = 0;
-        for (const item of items) {
-            totalDuration += item.durationSeconds;
-        }
-        return totalDuration;
+    /** Converts data from a track into a string to search Youtube with.
+     *
+     * Currently it just does "author names song name", e.g.
+     * "Alan Walker Faded"
+     */
+    private static trackToYouTubeSearch({ artists, name }: SpotifyTrack): string {
+        return `${artists.map(({ name }) => name).join(' ')} ${name}`;
     }
 }
 
