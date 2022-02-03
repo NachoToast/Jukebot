@@ -28,11 +28,6 @@ export class MusicDisc {
         return this._resource;
     }
 
-    private _compatibilityMode = false;
-    public get compatibilityMode(): boolean {
-        return this._compatibilityMode;
-    }
-
     public constructor(interaction: GuildedInteraction, video: YouTubeVideo) {
         const { url, durationRaw, durationInSec, thumbnails, channel, views, title } = video;
 
