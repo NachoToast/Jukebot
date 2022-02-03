@@ -256,7 +256,7 @@ export class Jukebox {
         // queue length checks
         const maxQueueSize = Jukebot.config.maxQueueSize;
         if (maxQueueSize && this._inventory.length >= maxQueueSize) {
-            const output: InteractionReplyOptions = { content: `❌ The queue is at maximum size (${maxQueueSize})` };
+            const output = { content: `❌ The queue is at maximum size (${maxQueueSize})` };
             if (liveEdit) {
                 await interaction.editReply(output);
                 return;
@@ -266,7 +266,7 @@ export class Jukebox {
         // search term validation
         const searchTerm = interaction.options.get('song', false)?.value;
         if (typeof searchTerm !== 'string') {
-            const output: InteractionReplyOptions = { content: 'Please specify something to search for' };
+            const output = { content: 'Please specify something to search for' };
             if (liveEdit) {
                 await interaction.editReply(output);
                 return;
@@ -303,7 +303,21 @@ export class Jukebox {
             const timeout = wait(Jukebot.config.timeoutThresholds.getSearchResult * 1000);
             race.push(timeout);
         }
-        const results = await Promise.race(race);
+        let results: AddResponse | void;
+        try {
+            results = await Promise.race(race);
+        } catch (error) {
+            const output = {
+                content: `${error instanceof Error ? 'An error' : 'An unknown error'} occurred searching for results${
+                    error instanceof Error ? `: ${error.name}\n${error.message}` : ''
+                }`,
+            };
+            if (liveEdit) {
+                await interaction.editReply(output);
+                return;
+            } else return output;
+        }
+
         if (!results) {
             const output = {
                 content: `Failed to find search results in reasonable time (${Jukebot.config.timeoutThresholds.getSearchResult} seconds)`,
@@ -316,7 +330,7 @@ export class Jukebox {
 
         // checking if search was successful
         if (!results.success) {
-            const output = { content: results.errorMessages.join('\n') };
+            const output = { content: results.errorMessage };
             if (liveEdit) {
                 await interaction.editReply(output);
                 return;
@@ -367,7 +381,7 @@ export class Jukebox {
             const nowPlayingEmbed = await this.play(true);
 
             // adding a playlist should an 'added to queue' instead of a 'now playing'
-            const payloadToSend: InteractionReplyOptions =
+            const payloadToSend =
                 results.type === 'single'
                     ? nowPlayingEmbed
                     : { embeds: [this.makeAddedToQueueEmbed(interaction, firstIndex, results)] };

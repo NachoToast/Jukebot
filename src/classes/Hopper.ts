@@ -41,7 +41,7 @@ interface BaseResponse {
 /** The search could not be completed due to unexpected errors. */
 interface ErrorResponse extends BaseResponse {
     success: false;
-    errorMessages: string[];
+    errorMessage: string;
 }
 
 interface NonErrorResponse extends BaseResponse {
@@ -160,10 +160,14 @@ class Hopper {
                 }
             }
         } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting Spotify URL: ${error.name}\n${error.message}`
+                    : 'Unknown error getting Spotify URL';
             return {
                 searchType: { valid: true, type: 'spotify', subtype },
                 success: false,
-                errorMessages: [`Error getting Spotify url <${url}>`],
+                errorMessage,
             };
         }
     }
@@ -200,11 +204,14 @@ class Hopper {
             const items = this.handleYouTubeVideo(interaction, [video]);
             return { searchType, source: 'youtube', success: true, type: 'single', items: items[0] };
         } catch (error) {
-            // console.log(error);
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting YouTube video: ${error.name}\n${error.message}`
+                    : 'Unknown error getting YouTube video';
             return {
                 searchType,
                 success: false,
-                errorMessages: [`Error getting video from YouTube video <${url}>`],
+                errorMessage,
             };
         }
     }
@@ -231,11 +238,14 @@ class Hopper {
                 createdBy: [playlist.channel?.name ?? 'Unknown Channel'],
             };
         } catch (error) {
-            // console.log(error);
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting videos from YouTube playlist: ${error.name}\n${error.message}`
+                    : 'Unknown error getting videos from YouTbue playlist';
             return {
                 searchType,
                 success: false,
-                errorMessages: [`Error getting videos from YouTube playlist <${url}>`],
+                errorMessage,
             };
         }
     }
@@ -303,11 +313,14 @@ class Hopper {
                 createdBy: album.artists.map(({ name }) => name),
             };
         } catch (error) {
-            // console.log(error);
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting tracks from Spotify album: ${error.name}\n${error.message}`
+                    : 'Unknown error getting tracks from Spotify album';
             return {
                 searchType,
                 success: false,
-                errorMessages: [`Error getting videos from Spotify album <${album.url}>`],
+                errorMessage,
             };
         }
     }
@@ -336,11 +349,14 @@ class Hopper {
                 createdBy: playlist.collaborative ? [playlist.owner.name, 'others'] : [playlist.owner.name],
             };
         } catch (error) {
-            // console.log(error);
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting tracks from Spotify playlist: ${error.name}\n${error.message}`
+                    : 'Unknown error getting tracks from Spotify playlist';
             return {
                 searchType,
                 success: false,
-                errorMessages: [`Error getting videos from Spotify playlist <${playlist.url}>`],
+                errorMessage,
             };
         }
     }
@@ -363,11 +379,14 @@ class Hopper {
                 source: 'nonYouTube',
             };
         } catch (error) {
-            // console.log(error);
+            const errorMessage =
+                error instanceof Error
+                    ? `Error getting Spotify track: ${error.name}\n${error.message}`
+                    : 'Unknown error getting Spotify track';
             return {
                 searchType,
                 success: false,
-                errorMessages: [`Error getting Spotify track <${track.url}>`],
+                errorMessage,
             };
         }
     }
