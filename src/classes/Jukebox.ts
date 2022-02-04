@@ -13,17 +13,13 @@ import {
 import Colours from '../types/Colours';
 import { Jukebot } from './Client';
 import {
-    BaseMessageComponentOptions,
     CollectorFilter,
     InteractionReplyOptions,
-    Message,
     MessageActionRow,
-    MessageActionRowOptions,
     MessageAttachment,
     MessageButton,
     MessageComponentInteraction,
     MessageEmbed,
-    MessageEmbedOptions,
     Snowflake,
 } from 'discord.js';
 import { MusicDisc } from './MusicDisc';
@@ -36,19 +32,12 @@ import { memberNicknameMention } from '@discordjs/builders';
 import { numericalToString } from '../helpers/timeConverters';
 import moment from 'moment';
 import { DiscImages } from '../types/MusicDisc';
-import { APIEmbed } from 'discord-api-types';
 import { createCanvas, registerFont } from 'canvas';
 import path from 'path';
 
 const wait = promisify(setTimeout);
 
 type DestroyCallback = (guildId: Snowflake) => void;
-
-interface SendOrEditOptions {
-    content?: string | null;
-    embeds?: (MessageEmbed | MessageEmbedOptions | APIEmbed)[];
-    components?: (MessageActionRow | (Required<BaseMessageComponentOptions> & MessageActionRowOptions))[];
-}
 
 /** Information about how far through the current song is.
  * All values are in seconds.
@@ -93,12 +82,6 @@ export class Jukebox {
     /** The latest interaction that caused this instance to join (or move to) a voice channel. */
     private _latestInteraction: FullInteraction;
 
-    /** The latest automatic "now playing" message that was sent.
-     *
-     * Doesn't count ones sent by the /nowplaying command.
-     */
-    private _latestNowPlaying?: Message;
-
     /** A function to run after {@link Jukebox.cleanup cleanup}.
      *
      * See how {@link Jukebot._removeJukebox Jukebot uses this}.
@@ -118,9 +101,6 @@ export class Jukebox {
      */
     private _playLock = false;
 
-    /** Whether the connection is attempting to join a channel. */
-    private _connecting = true;
-
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
         this._latestInteraction = interaction;
@@ -135,7 +115,7 @@ export class Jukebox {
             );
             this.cleanup();
         });
-        this._player.on(AudioPlayerStatus.Idle, () => void this.play(false));
+        this._player.on(AudioPlayerStatus.Idle, () => void this.play());
         this._player.on(AudioPlayerStatus.Paused, () => void this.makeIdle());
         this._player.on(AudioPlayerStatus.AutoPaused, () => void this.makeIdle());
     }
@@ -174,8 +154,6 @@ export class Jukebox {
 
         connection.on('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
             if (oldStatus === newStatus) return;
-            if (newStatus === VoiceConnectionStatus.Ready) this._connecting = false;
-            else this._connecting = true;
         });
 
         connection.subscribe(this._player);
@@ -186,12 +164,11 @@ export class Jukebox {
     }
 
     private get ready() {
-        const connectionReady = this._connection?.state.status === VoiceConnectionStatus.Ready;
         const playerIdle = this._player.state.status === AudioPlayerStatus.Idle;
         const itemReady = !!this._inventory.at(0);
         const notLocked = !this._playLock;
 
-        return connectionReady && playerIdle && itemReady && notLocked;
+        return playerIdle && itemReady && notLocked;
     }
 
     /** Updates the
@@ -200,6 +177,7 @@ export class Jukebox {
      * @returns {CurrentStatus} The newly updated state.
      */
     private makeIdle(): IdleStatus {
+        console.log('making idle');
         let wasPlaying: IdleStatus['wasPlaying'];
 
         // optional chaining since this method is called on startup (status will be undefined),
@@ -208,6 +186,9 @@ export class Jukebox {
                 musicDisc: this._status.musicDisc,
                 for: Math.floor((Date.now() - this._status.playingSince) / 1000),
             };
+        } else if (this._status?.leaveTimeout) {
+            console.log('clearing duplicate timeout');
+            clearTimeout(this._status.leaveTimeout);
         }
 
         const newCurrent: IdleStatus = {
@@ -230,6 +211,7 @@ export class Jukebox {
      * @returns {ActiveStatus} The new playing status.
      */
     private makeActive(musicDisc: MusicDisc): ActiveStatus {
+        console.log('making active');
         let playingSince = Date.now();
 
         if (!this._status.active) {
@@ -250,30 +232,23 @@ export class Jukebox {
 
     /** Adds an item to the {@link Jukebox._inventory queue}, and starts playing it if possible.
      * @param {GuildedInteraction} interaction - The interaction that invoke this request.
-     * @param {boolean} [liveEdit] - Whether to make and edit a response over time,
-     * or return everything all at once.
+     * @param {boolean} liveEdit - Whether to make and edit a reply over time.
      */
-    public async add(interaction: GuildedInteraction, liveEdit: true): Promise<void>;
-    public async add(interaction: GuildedInteraction, liveEdit?: false): Promise<InteractionReplyOptions>;
-    public async add(interaction: GuildedInteraction, liveEdit?: boolean): Promise<InteractionReplyOptions | void> {
+    public async add(interaction: GuildedInteraction, liveEdit: boolean): Promise<InteractionReplyOptions> {
         // queue length checks
         const maxQueueSize = Jukebot.config.maxQueueSize;
         if (maxQueueSize && this._inventory.length >= maxQueueSize) {
             const output = { content: `❌ The queue is at maximum size (${maxQueueSize})` };
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         // search term validation
         const searchTerm = interaction.options.get('song', false)?.value;
         if (typeof searchTerm !== 'string') {
             const output = { content: 'Please specify something to search for' };
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         // more search term validation
@@ -294,13 +269,12 @@ export class Jukebox {
                     output.content = 'Search term must be at least 3 letters long';
                     break;
             }
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         // getting results
+        if (liveEdit) await interaction.editReply('Searching...');
         const race: Promise<AddResponse | void>[] = [Hopper.add(interaction, searchTerm, searchType)];
         if (Jukebot.config.timeoutThresholds.getSearchResult) {
             const timeout = wait(Jukebot.config.timeoutThresholds.getSearchResult * 1000);
@@ -315,44 +289,34 @@ export class Jukebox {
                     error instanceof Error ? `: ${error.name}\n${error.message}` : ''
                 }`,
             };
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         if (!results) {
             const output = {
                 content: `Failed to find search results in reasonable time (${Jukebot.config.timeoutThresholds.getSearchResult} seconds)`,
             };
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         // checking if search was successful
         if (!results.success) {
             const output = { content: results.errorMessage };
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
         // check if search actually had results
         if ((results.type === 'multiple' && !results.items.length) || (results.type === 'single' && !results.items)) {
             const output = this.makeNoResultsEmbed(results);
-            if (liveEdit) {
-                await interaction.editReply(output);
-                return;
-            } else return output;
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
 
-        // slice results to enforce max queue length
-
+        // adding results to queue
         const firstIndex = this._inventory.length;
-
         if (results.type === 'multiple') {
             // enforce max queue length
             if (maxQueueSize) {
@@ -365,82 +329,55 @@ export class Jukebox {
             this._inventory.push(results.items);
         }
 
-        if (this._connecting) {
-            try {
-                await this.waitTillConnected();
-            } catch (error) {
-                this.cleanup();
-                const output = {
-                    content: `Failed to connect in reasonable time (${Jukebot.config.timeoutThresholds.connect} seconds)`,
-                };
-                if (!liveEdit) {
-                    await interaction.editReply(output);
-                } else return output;
-            }
-        }
-
         // if ready to play instantly, return the 'now playing' embed
         if (this.ready) {
-            const nowPlayingEmbed = await this.play(true);
+            let output = await this.play({
+                liveEdit: liveEdit ? interaction : undefined,
+                editNowPlaying: results.type === 'single',
+            });
 
-            // adding a playlist should an 'added to queue' instead of a 'now playing'
-            const payloadToSend =
-                results.type === 'single'
-                    ? nowPlayingEmbed
-                    : { embeds: [this.makeAddedToQueueEmbed(interaction, firstIndex, results)] };
-
-            if (liveEdit) {
-                await interaction.editReply(payloadToSend);
-            } else return payloadToSend;
+            if (results.type === 'multiple') {
+                // adding a playlist should an 'added to queue' instead of a 'now playing'
+                output = { embeds: [this.makeAddedToQueueEmbed(interaction, firstIndex, results)], content: null };
+                if (liveEdit) await interaction.editReply(output);
+            }
+            return output;
         }
 
         // otherwise return the 'added to queue' embed
         else {
-            const addedToQueueEmbed = this.makeAddedToQueueEmbed(interaction, firstIndex, results);
-            if (liveEdit) {
-                await interaction.editReply({ embeds: [addedToQueueEmbed] });
-            } else return { embeds: [addedToQueueEmbed] };
+            const output = { content: null, embeds: [this.makeAddedToQueueEmbed(interaction, firstIndex, results)] };
+            if (liveEdit) await interaction.editReply(output);
+            return output;
         }
     }
 
-    public async getQueueEmbed(interaction: GuildedInteraction, pagination: true): Promise<void>;
-    public async getQueueEmbed(interaction: GuildedInteraction, pagination: false): Promise<InteractionReplyOptions>;
-    // eslint-disable-next-line require-await
-    public async getQueueEmbed(
-        interaction: GuildedInteraction,
-        pagination: boolean,
-    ): Promise<InteractionReplyOptions | void> {
+    public async getQueueEmbed(interaction?: GuildedInteraction): Promise<InteractionReplyOptions> {
         if (!this._inventory.length) {
-            return { content: 'The queue is empty', ephemeral: true };
+            const output = { content: 'The queue is empty' };
+            if (interaction) await interaction.editReply(output);
+            return output;
         }
+
+        const title = `${this._inventory.length} Song${this._inventory.length !== 1 ? 's' : ''} Queued`;
+        const colour = Jukebot.config.colourTheme;
 
         const description: string[] = [`Total Length: ${numericalToString(this.getTotalLength())}`, '\u200b'];
 
-        const embed = new MessageEmbed()
-            .setAuthor({
-                name: `${this._latestInteraction.guild.name} Music Queue`,
-                iconURL: this._latestInteraction.guild.iconURL() || DiscImages.Pigstep,
-            })
-            .setTitle(`${this._inventory.length} Song${this._inventory.length !== 1 ? 's' : ''} Queued`)
-            .setColor(Jukebot.config.colourTheme);
+        if (!interaction) {
+            const embed = new MessageEmbed().setTitle(title).setColor(colour);
 
-        if (!pagination) {
             if (this._inventory.length > 10) {
                 this._inventory.slice(0, 10).forEach((disc, index) => {
-                    embed.addField(
-                        `${index + 1}. ${disc.title} (${disc.durationString})`,
-                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
-                    );
+                    description.push(`${index + 1}. ${disc.title} (${disc.durationString})`);
                 });
-                embed.setFooter({ text: `${this._inventory.length - 10} more...`, iconURL: DiscImages.Pigstep });
+                description.push('\u200b', `${this._inventory.length - 10} more...`);
             } else {
                 this._inventory.forEach((disc, index) => {
-                    embed.addField(
-                        `${index + 1}. ${disc.title} (${disc.durationString})`,
-                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
-                    );
+                    description.push(`${index + 1}. ${disc.title} (${disc.durationString})`);
                 });
             }
+
             embed.setDescription(description.join('\n'));
 
             return { embeds: [embed] };
@@ -452,45 +389,82 @@ export class Jukebox {
 
         const nextPageId = interaction.id + '_next';
         const prevPageId = interaction.id + '_prev';
+        const lastPageId = interaction.id + '_last';
+        const firstPageId = interaction.id + '_first';
+
+        const validIds = [nextPageId, prevPageId, lastPageId, firstPageId];
 
         const prevPageButton = () =>
             new MessageButton()
                 .setCustomId(prevPageId)
-                .setLabel(`Page ${page - 1}`)
-                .setStyle('PRIMARY');
+                .setLabel('<')
+                .setStyle('PRIMARY')
+                .setDisabled(page === 1);
+
+        const currentPageButton = () =>
+            new MessageButton()
+                .setLabel(`Page ${page}`)
+                .setStyle('SECONDARY')
+                .setCustomId(interaction.id + '_current')
+                .setDisabled(true);
 
         const nextPageButton = () =>
             new MessageButton()
                 .setCustomId(nextPageId)
-                .setLabel(`Page ${page + 1}`)
-                .setStyle('PRIMARY');
+                .setLabel('>')
+                .setStyle('PRIMARY')
+                .setDisabled(page === numPages);
+
+        const lastPageButton = () =>
+            new MessageButton()
+                .setCustomId(lastPageId)
+                .setLabel('>>')
+                .setStyle('PRIMARY')
+                .setDisabled(page === numPages);
+
+        const firstPageButton = () =>
+            new MessageButton()
+                .setCustomId(firstPageId)
+                .setLabel('<<')
+                .setStyle('PRIMARY')
+                .setDisabled(page === 1);
 
         const getItems = (withoutButtons: boolean = false): InteractionReplyOptions => {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const newEmbed = new MessageEmbed().setAuthor(embed.author).setTitle(embed.title!).setColor(embed.color!);
+            const embed = new MessageEmbed().setTitle(title).setColor(colour).setDescription(description.join('\n'));
+
+            const songs: string[] = [];
 
             this._inventory
                 .slice(page - 1, page - 1 + perPage)
                 .forEach((disc, index) =>
-                    newEmbed.addField(
-                        `${(page - 1) * perPage + index + 1}. ${disc.title} (${disc.durationString})`,
-                        `Requested by ${memberNicknameMention(disc.addedBy.id)}`,
-                    ),
+                    songs.push(`${(page - 1) * perPage + index + 1}. ${disc.title} (${disc.durationString})`),
                 );
 
-            if (withoutButtons) return { embeds: [newEmbed] };
+            const combinedDescription: string[] = [description.join('\n'), songs.join('\n')];
+
+            embed.setDescription(combinedDescription.join('\n'));
+
+            if (withoutButtons) return { embeds: [embed] };
             const row = new MessageActionRow();
 
-            if (page !== 1) row.addComponents(prevPageButton());
-            if (page !== numPages) row.addComponents(nextPageButton());
+            if (numPages > 1) {
+                if (numPages > 3) {
+                    row.addComponents(firstPageButton());
+                }
+                row.addComponents(prevPageButton());
+                row.addComponents(currentPageButton());
+                row.addComponents(nextPageButton());
+                if (numPages > 3) {
+                    row.addComponents(lastPageButton());
+                }
+            }
 
-            return { embeds: [newEmbed], components: [row] };
+            return { embeds: [embed], components: [row] };
         };
 
-        const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) =>
-            i.customId === nextPageId || i.customId === prevPageId;
+        const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) => validIds.includes(i.customId);
 
-        await interaction.reply(getItems());
+        await interaction.editReply(getItems());
 
         const collector = interaction.channel.createMessageComponentCollector({
             filter,
@@ -500,16 +474,23 @@ export class Jukebox {
         collector.on('collect', async (i) => {
             if (i.customId === nextPageId) {
                 page++;
-                await i.update(getItems());
-            } else {
+            } else if (i.customId === prevPageId) {
                 page--;
-                await i.update(getItems());
+            } else if (i.customId === firstPageId) {
+                page = 1;
+            } else if (i.customId === lastPageId) {
+                page = numPages;
             }
+            await i.update(getItems());
         });
 
         collector.on('end', async () => {
             await interaction.editReply({ components: [] });
         });
+
+        const items = getItems();
+        await interaction.editReply(items);
+        return items;
     }
 
     public get nowPlaying(): InteractionReplyOptions {
@@ -521,77 +502,104 @@ export class Jukebox {
         return { embeds: [embed], files: [file] };
     }
 
-    public async skip(): Promise<void> {
-        const willStop = this._player.stop();
-        if (!willStop) throw new Error('Played refused to stop 💀');
-        try {
-            await entersState(this._player, AudioPlayerStatus.Idle, 3_000);
-        } catch (error) {
-            throw new Error('Unable to stop in reasonable time (3 seconds)');
+    /** Skips the currently playing song.
+     *
+     * @param {GuildedInteraction} [liveEdit] Whether to make and edit a reply over time.
+     *
+     * Will respond appropriately if:
+     * - The queue is empty.
+     * - Nothing is currently playing.
+     */
+    public async skip(liveEdit?: GuildedInteraction): Promise<InteractionReplyOptions> {
+        if (!this._status.active) {
+            const output = { content: "I'm not currently playing anything" };
+            if (liveEdit) await liveEdit.editReply(output);
+            return output;
         }
-        return await this.play(false);
+        const currentSong = this._status.musicDisc;
+        const { current, total } = this.getCurrentSongInfo();
+
+        const output = {
+            content: `Skipped **${currentSong.title}** (${numericalToString(current)} / ${numericalToString(total)})`,
+        };
+
+        if (!this._inventory.at(0)) {
+            await this.play();
+            // no item next in queue
+            output.content += '\nThe queue has now finished';
+            if (liveEdit) await liveEdit.editReply(output);
+            return output;
+        } else {
+            // an item next in queue
+            const res = await this.play();
+            res.content = `${output.content}${res.content ? `\n${res.content}` : ''}`;
+            if (liveEdit) await liveEdit.editReply(res);
+            return res;
+        }
     }
 
-    /** Attemts to play the next item in the queue.
-     * @param {booolean} silent - If false, will send the results to the
-     * {@link Jukebox._latestInteraction output channel}, otherwise will
-     * return the results.
+    /** Attempts to play the next item in the queue.
+     * @param {booolean} liveEdit - Whether to make and edit a reply over time.
      *
-     * @returns {Promise<InteractionReplyOptions|null>} A
-     * {@link InteractionReplyOptions} object containing an embed if silent, otherwise nothing.
+     * @returns {Promise<InteractionReplyOptions>} An
+     * {@link InteractionReplyOptions} object containing a reply.
      */
-    private async play(silent: true): Promise<InteractionReplyOptions>;
-    private async play(silent: false): Promise<void>;
-    private async play(silent: boolean): Promise<InteractionReplyOptions | void> {
+    private async play(options?: {
+        liveEdit?: GuildedInteraction;
+        editNowPlaying?: boolean;
+    }): Promise<InteractionReplyOptions> {
+        const liveEdit = options?.liveEdit ?? false;
+        const editNowPlaying = liveEdit && options?.editNowPlaying;
+
         this._playLock = true;
         const nextItem = this._inventory.shift();
         if (!nextItem) {
+            this._player.stop();
             this.makeIdle();
             this._playLock = false;
-            // TODO: make queue finished embed
-            const output: InteractionReplyOptions = { content: 'The queue has finished' };
-
-            if (!silent) return await this.sendOrUpdateMessage(output);
-            else return output;
+            const output = { content: 'The queue has finished' };
+            if (liveEdit) await liveEdit.editReply(output);
+            return output;
         }
 
         let resource = nextItem.resource;
-        if (resource) {
-            // eslint-disable-next-line max-len
-            // console.log(`${nextItem.title}${Colours.FgGreen} was already prepared${Colours.Reset}`);
-        } else {
+        if (!resource) {
+            if (liveEdit) await liveEdit.editReply({ content: 'Loading Resource...' });
             const race: Promise<AudioResource<MusicDisc> | void>[] = [nextItem.prepare()];
-            if (Jukebot.config.timeoutThresholds.generateResource) {
-                const timeout = wait(Jukebot.config.timeoutThresholds.generateResource * 1000);
+
+            const maxGenTime = Jukebot.config.timeoutThresholds.generateResource;
+            if (maxGenTime) {
+                const timeout = wait(maxGenTime * 1000);
                 race.push(timeout);
             }
 
-            // console.log(`${Colours.FgRed}preparing ${Colours.Reset}${nextItem.title}`);
             const nextResource = await Promise.race(race);
             resource = nextResource ?? undefined;
             if (!resource) {
                 // try play next song
-                this.play(false);
-                const output: InteractionReplyOptions = {
+                this.play();
+                const output = {
                     content: `Unable to generate audio resource in reasonable time (${Jukebot.config.timeoutThresholds.generateResource} seconds).\nSkipping to next song in queue.`,
                 };
-                if (!silent) return await this.sendOrUpdateMessage(output);
+                if (liveEdit) await liveEdit.editReply(output);
                 return output;
             }
         }
 
         if (!this._connection) {
+            if (liveEdit) await liveEdit.editReply({ content: 'Connecting...' });
             try {
                 await this.waitTillConnected();
             } catch (error) {
-                const output: InteractionReplyOptions = {
+                const output = {
                     content: `Unable to conect in reasonable time (${Jukebot.config.timeoutThresholds.connect} seconds)`,
                 };
-                if (!silent) return await this.sendOrUpdateMessage(output);
-                else return output;
+                if (liveEdit) await liveEdit.editReply(output);
+                return output;
             }
         }
 
+        if (liveEdit) await liveEdit.editReply({ content: 'Playing!' });
         this._player.play(resource);
 
         const maxTimeTillPlay = Jukebot.config.timeoutThresholds.play;
@@ -599,12 +607,12 @@ export class Jukebox {
             try {
                 await entersState(this._player, AudioPlayerStatus.Playing, maxTimeTillPlay * 1000);
             } catch (error) {
-                const output: InteractionReplyOptions = {
+                const output = {
                     content: `Unable to start playing in reasonable time (${maxTimeTillPlay} seconds).\nSkipping to next song in queue.`,
                 };
-                this.play(false);
-                if (!silent) return await this.sendOrUpdateMessage(output);
-                else return output;
+                this.play();
+                if (liveEdit) await liveEdit.editReply(output);
+                return output;
             }
         }
 
@@ -614,12 +622,12 @@ export class Jukebox {
 
         const nextNextItem = this._inventory.at(0);
         if (nextNextItem) {
-            nextNextItem.prepare(); // note lack of 'await'
+            nextNextItem.prepare();
         }
 
         const nowPlayingEmbed = this.makeNowPlayingEmbed(activeStatus);
-        if (!silent) return await this.sendOrUpdateMessage({ embeds: [nowPlayingEmbed] });
-        else return { embeds: [nowPlayingEmbed] };
+        if (editNowPlaying) await liveEdit.editReply({ embeds: [nowPlayingEmbed], content: null });
+        return { embeds: [nowPlayingEmbed], content: null };
     }
 
     /** Called once the bot has been idle for more than the
@@ -663,19 +671,6 @@ export class Jukebox {
         }
 
         return this._destroyCallback(this._startingInteraction.guildId);
-    }
-
-    private async sendOrUpdateMessage(options: SendOrEditOptions): Promise<void> {
-        if (this._latestNowPlaying) {
-            const isLatestMessage = this._latestNowPlaying.channel.lastMessage?.id === this._latestNowPlaying.id;
-            if (isLatestMessage && this._latestNowPlaying.editable) {
-                await this._latestNowPlaying.edit(options);
-                return;
-            }
-        }
-        const msg = await this._latestInteraction.channel.send(options);
-        this._latestNowPlaying = msg;
-        return;
     }
 
     /** Gets the total length of a subset of items in the queue.

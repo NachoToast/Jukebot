@@ -35,7 +35,7 @@ export class Play extends Command {
         const fullInteraction = interaction as FullInteraction;
 
         try {
-            const jukeBox = await jukebot.getOrMakeJukebox(fullInteraction);
+            const jukeBox = jukebot.getOrMakeJukebox(fullInteraction);
             await jukeBox.add(guildedInteraction, true);
         } catch (error) {
             await interaction.editReply({ content: `${error}` });
