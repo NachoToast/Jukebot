@@ -8,7 +8,7 @@
     "levenshteinThreshold": 0.1,
     "announcementSystem": {
         "dontAnnounceOlderThan": 5,
-        "enabledInDevelopment": false,
+        "enabledInDevelopment": true,
         "enabledInProduction": true
     },
     "timeoutThresholds": {
