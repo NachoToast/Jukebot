@@ -177,7 +177,6 @@ export class Jukebox {
      * @returns {CurrentStatus} The newly updated state.
      */
     private makeIdle(): IdleStatus {
-        console.log('making idle');
         let wasPlaying: IdleStatus['wasPlaying'];
 
         // optional chaining since this method is called on startup (status will be undefined),
@@ -187,7 +186,6 @@ export class Jukebox {
                 for: Math.floor((Date.now() - this._status.playingSince) / 1000),
             };
         } else if (this._status?.leaveTimeout) {
-            console.log('clearing duplicate timeout');
             clearTimeout(this._status.leaveTimeout);
         }
 
@@ -211,7 +209,6 @@ export class Jukebox {
      * @returns {ActiveStatus} The new playing status.
      */
     private makeActive(musicDisc: MusicDisc): ActiveStatus {
-        console.log('making active');
         let playingSince = Date.now();
 
         if (!this._status.active) {
@@ -641,7 +638,7 @@ export class Jukebox {
                 `[${this._latestInteraction.guild.name}] disconnect timeout got called despite being active, this should never happen`,
             );
             return;
-        } else console.log('disconnect timeout called');
+        }
 
         if (!Jukebot.config.timeoutThresholds.inactivity) return;
         return this.cleanup();
@@ -654,7 +651,6 @@ export class Jukebox {
      * All error logging should be done prior to this.
      */
     public cleanup(): void {
-        console.log('cleaning up');
         this._player.removeAllListeners();
         this._connection?.removeAllListeners();
 
