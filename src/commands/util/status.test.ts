@@ -1,9 +1,9 @@
 import { Interaction, InteractionReplyOptions } from 'discord.js';
 import { Jukebot } from '../../classes/Client';
 import { CommandParams } from '../../types/Command';
-import { Ping } from './ping';
+import { Status } from './status';
 
-describe('/ping', () => {
+describe('/status', () => {
     let output: InteractionReplyOptions = {};
 
     const reply = (newOutput: InteractionReplyOptions) => (output = newOutput);
@@ -13,15 +13,20 @@ describe('/ping', () => {
 
     const params = { jukebot, interaction } as CommandParams;
 
-    const ping = new Ping();
+    const status = new Status();
 
     it('should give accurate client latency', async () => {
-        await ping.execute(params);
+        await status.execute(params);
         expect(output?.content?.includes('123'));
     });
 
     it('should give API latency fairly accurately', async () => {
-        await ping.execute(params);
+        await status.execute(params);
         expect(output?.content?.match(/[0-9]{4}/g));
+    });
+
+    it('should include package version', async () => {
+        await status.execute(params);
+        expect(output?.content?.includes(process.env.npm_version ?? 'Unknown'));
     });
 });

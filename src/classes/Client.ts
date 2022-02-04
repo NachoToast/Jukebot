@@ -15,6 +15,7 @@ import Auth from '../types/Auth';
 export class Jukebot {
     public static config: Config;
     public static auth: Auth;
+    public static version: string;
 
     public readonly devMode: boolean;
     public readonly client: Client<true>;
@@ -26,6 +27,7 @@ export class Jukebot {
     public constructor() {
         Jukebot.config = getConfig();
         Jukebot.auth = getAuth();
+        Jukebot.version = process.env.npm_package_version ?? 'Unknown';
 
         this.devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({

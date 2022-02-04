@@ -1,4 +1,4 @@
-import ping from './ping';
+import status from './status';
 import source from './source';
 
-export default [ping, source];
+export default [status, source];
