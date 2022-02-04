@@ -21,6 +21,7 @@ import {
     MessageComponentInteraction,
     MessageEmbed,
     Snowflake,
+    VoiceBasedChannel,
 } from 'discord.js';
 import { MusicDisc } from './MusicDisc';
 import { promisify } from 'util';
@@ -79,8 +80,8 @@ type Status = IdleStatus | ActiveStatus;
 export class Jukebox {
     /** The interaction that created this instance. */
     private readonly _startingInteraction: FullInteraction;
-    /** The latest interaction that caused this instance to join (or move to) a voice channel. */
-    private _latestInteraction: FullInteraction;
+
+    private _voiceChannel: VoiceBasedChannel;
 
     /** A function to run after {@link Jukebox.cleanup cleanup}.
      *
@@ -103,21 +104,40 @@ export class Jukebox {
 
     public constructor(interaction: FullInteraction, destroyCallback: DestroyCallback) {
         this._startingInteraction = interaction;
-        this._latestInteraction = interaction;
+        this._voiceChannel = interaction.member.voice.channel;
+
         this._destroyCallback = destroyCallback;
 
         this._player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
 
         this._player.on('error', (error) => {
-            console.log(
-                `[${this._latestInteraction.guild.name}] (player) ${Colours.FgRed}error${Colours.Reset}`,
-                error,
-            );
+            console.log(`[${this._voiceChannel.guild.name}] (player) ${Colours.FgRed}error${Colours.Reset}`, error);
             this.cleanup();
         });
         this._player.on(AudioPlayerStatus.Idle, () => void this.play());
         this._player.on(AudioPlayerStatus.Paused, () => void this.makeIdle());
         this._player.on(AudioPlayerStatus.AutoPaused, () => void this.makeIdle());
+    }
+
+    /// voice channel event handlers
+    /** Called whenever the bot moves or leaves it's current channel.
+     *
+     * Can be due to a drag or using the `/leave` and `/join` commands. */
+    public handleVoiceChannelChange(newVoiceChannel: VoiceBasedChannel | null): void {
+        // leaving a voice channel
+        if (!newVoiceChannel) {
+            // already noted as inactive, nothing needs to be done
+            if (!this._status.active) return;
+            else this._player.stop();
+            return;
+        }
+
+        // joining a new voice channel
+        else {
+            this._voiceChannel = newVoiceChannel;
+            const peopleInVoice = newVoiceChannel.members;
+            console.log(peopleInVoice.map((e) => e.user.username).join(', '));
+        }
     }
 
     /** Resolves once the connection has successfully joined the voice channel.
@@ -126,14 +146,18 @@ export class Jukebox {
     private async waitTillConnected(): Promise<VoiceConnection> {
         if (this._connection?.state.status === VoiceConnectionStatus.Ready) return this._connection;
 
-        const connection: VoiceConnection =
-            this._connection ||
-            joinVoiceChannel({
-                channelId: this._latestInteraction.member.voice.channelId,
-                guildId: this._latestInteraction.guildId,
-                adapterCreator: this._latestInteraction.guild.voiceAdapterCreator,
+        let connection: VoiceConnection;
+        if (this._connection?.state.status === VoiceConnectionStatus.Disconnected) {
+            connection = this._connection;
+            this._connection.rejoin();
+        } else {
+            connection = joinVoiceChannel({
+                channelId: this._voiceChannel.id,
+                guildId: this._voiceChannel.guildId,
+                adapterCreator: this._voiceChannel.guild.voiceAdapterCreator,
                 selfDeaf: true,
             });
+        }
 
         const maxTimeTillConnect = Jukebot.config.timeoutThresholds.connect;
         if (maxTimeTillConnect) {
@@ -145,15 +169,13 @@ export class Jukebox {
         }
 
         connection.on('error', (error) => {
-            console.log(
-                `[${this._latestInteraction.guild.name}] (connection) ${Colours.FgRed}error${Colours.Reset}`,
-                error,
-            );
+            console.log(`[${this._voiceChannel.guild.name}] (connection) ${Colours.FgRed}error${Colours.Reset}`, error);
             this.cleanup();
         });
 
         connection.on('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
             if (oldStatus === newStatus) return;
+            console.log(`${oldStatus} => ${newStatus}`);
         });
 
         connection.subscribe(this._player);
@@ -164,10 +186,11 @@ export class Jukebox {
     }
 
     private get ready() {
-        const playerIdle = this._player.state.status === AudioPlayerStatus.Idle;
+        const playerIdle =
+            this._player.state.status === AudioPlayerStatus.Idle ||
+            this._player.state.status === AudioPlayerStatus.AutoPaused;
         const itemReady = !!this._inventory.at(0);
         const notLocked = !this._playLock;
-
         return playerIdle && itemReady && notLocked;
     }
 
@@ -324,6 +347,15 @@ export class Jukebox {
             if (results.items.length) this._inventory.push(...results.items);
         } else {
             this._inventory.push(results.items);
+        }
+
+        if (this._connection && this._connection.state.status !== VoiceConnectionStatus.Ready) {
+            if (!interaction.member.voice.channel) {
+                const output = { content: Messages.NotInVoice };
+                if (liveEdit) await interaction.editReply(output);
+                return output;
+            }
+            this._voiceChannel = interaction.member.voice.channel;
         }
 
         // if ready to play instantly, return the 'now playing' embed
@@ -583,13 +615,13 @@ export class Jukebox {
             }
         }
 
-        if (!this._connection) {
+        if (!this._connection || this._connection.state.status !== VoiceConnectionStatus.Ready) {
             if (liveEdit) await liveEdit.editReply({ content: 'Connecting...' });
             try {
                 await this.waitTillConnected();
             } catch (error) {
                 const output = {
-                    content: `Unable to conect in reasonable time (${Jukebot.config.timeoutThresholds.connect} seconds)`,
+                    content: `Unable to connect in reasonable time (${Jukebot.config.timeoutThresholds.connect} seconds)`,
                 };
                 if (liveEdit) await liveEdit.editReply(output);
                 return output;
@@ -635,7 +667,7 @@ export class Jukebox {
     private disconnectTimeout(): void {
         if (this._status.active) {
             console.log(
-                `[${this._latestInteraction.guild.name}] disconnect timeout got called despite being active, this should never happen`,
+                `[${this._voiceChannel.guild.name}] disconnect timeout got called despite being active, this should never happen`,
             );
             return;
         }

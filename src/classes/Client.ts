@@ -1,4 +1,4 @@
-import { Client, Collection, Intents, Interaction } from 'discord.js';
+import { Client, Collection, Intents, Interaction, VoiceState } from 'discord.js';
 import Colours, { colourCycle } from '../types/Colours';
 import commands from '../commands';
 import Command from '../types/Command';
@@ -77,6 +77,7 @@ export class Jukebot {
         this.client.once('ready', () => this.onReady(loginToken));
         this.client.on('error', (err) => console.log(err));
         this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
+        this.client.on('voiceStateUpdate', (oldState, newState) => this.onVoiceStateChange(oldState, newState));
 
         // logging in
         const timeout = Jukebot.config.timeoutThresholds.login
@@ -161,6 +162,18 @@ export class Jukebot {
         }
     }
 
+    private async onVoiceStateChange(oldState: VoiceState, newState: VoiceState): Promise<void> {
+        if (!oldState.member) return;
+
+        if (oldState.member.id === oldState.guild.me?.id) {
+            // Jukebot changed voice channel
+            const jukebox = this.getJukebox(oldState.guild.id);
+            if (jukebox) {
+                await jukebox.handleVoiceChannelChange(newState.channel);
+            }
+        }
+    }
+
     /** Deploys slash commands to all guilds individually. */
     private async guildDeploy(token: string, body: RawSlashCommand[]): Promise<void> {
         const allGuilds = await this.client.guilds.fetch();
@@ -203,7 +216,7 @@ export class Jukebot {
 
     /** Gets an existing Jukebox, or makes one if nonexistent. */
     public getOrMakeJukebox(interaction: FullInteraction): Jukebox {
-        const existingBlock = this.getJukebox(interaction);
+        const existingBlock = this.getJukebox(interaction.guildId);
         if (existingBlock) return existingBlock;
 
         const newBlock = new Jukebox(interaction, (guildId) => this._removeJukebox(guildId));
@@ -211,8 +224,8 @@ export class Jukebot {
         return newBlock;
     }
 
-    public getJukebox(interaction: GuildedInteraction): Jukebox | undefined {
-        return this._jukeboxes.get(interaction.guildId);
+    public getJukebox(guildId: Snowflake): Jukebox | undefined {
+        return this._jukeboxes.get(guildId);
     }
 
     /** Callback from Jukebox instances wanting to kill themselves. */
@@ -229,7 +242,7 @@ export class Jukebot {
      * @param {GuildedInteraction} interaction The interaction this request originated from.
      * @returns {boolean} Whether the deletion was successful.
      */
-    public removeJukebox(interaction: GuildedInteraction): void {
-        return this._jukeboxes.get(interaction.guildId)?.cleanup();
+    public removeJukebox(guildId: Snowflake): void {
+        return this._jukeboxes.get(guildId)?.cleanup();
     }
 }

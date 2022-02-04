@@ -18,7 +18,7 @@ export class Play extends Command {
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const guildedInteraction = interaction as GuildedInteraction;
 
-        const existingJukebox = jukebot.getJukebox(guildedInteraction);
+        const existingJukebox = jukebot.getJukebox(guildedInteraction.guildId);
 
         await interaction.deferReply({ ephemeral: false });
         // if already playing audio, skip voice channel checks

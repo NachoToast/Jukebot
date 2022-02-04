@@ -10,7 +10,7 @@ export class Queue extends Command {
     }
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
-        const jukebox = jukebot.getJukebox(interaction);
+        const jukebox = jukebot.getJukebox(interaction.guildId);
         if (!jukebox) {
             await interaction.reply({ content: Messages.NotPlaying, ephemeral: true });
             return;
