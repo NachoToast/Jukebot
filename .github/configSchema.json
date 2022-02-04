@@ -38,7 +38,7 @@
                 "dontAnnounceOlderThan": {
                     "type": "integer",
                     "description": "Don't announce releases older than this many minutes.",
-                    "default": 5
+                    "default": 10
                 },
                 "enabledInDevelopment": {
                     "type": "boolean",

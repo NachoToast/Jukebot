@@ -7,8 +7,8 @@
     "colourTheme": "#794c36",
     "levenshteinThreshold": 0.1,
     "announcementSystem": {
-        "dontAnnounceOlderThan": 5,
-        "enabledInDevelopment": true,
+        "dontAnnounceOlderThan": 10,
+        "enabledInDevelopment": false,
         "enabledInProduction": true
     },
     "timeoutThresholds": {
