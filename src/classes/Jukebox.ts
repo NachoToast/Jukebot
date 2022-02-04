@@ -1109,7 +1109,7 @@ export class Jukebox {
 
         const fractionFilled = current / total;
         const amountFilled = Math.floor(fractionFilled * length);
-        ctx.fillStyle = 'red';
+        ctx.fillStyle = Jukebot.config.colourTheme;
         ctx.fillRect(0, 0, amountFilled, height);
 
         ctx.font = "16px 'roboto'";
