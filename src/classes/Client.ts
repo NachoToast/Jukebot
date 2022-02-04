@@ -169,7 +169,7 @@ export class Jukebot {
             // Jukebot changed voice channel
             const jukebox = this.getJukebox(oldState.guild.id);
             if (jukebox) {
-                await jukebox.handleVoiceChannelChange(newState.channel);
+                await jukebox.handleVoiceChannelChange(oldState.channel, newState.channel);
             }
         }
     }

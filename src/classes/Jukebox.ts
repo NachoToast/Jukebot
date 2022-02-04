@@ -97,6 +97,8 @@ export class Jukebox {
     private _inventory: MusicDisc[] = [];
     private _status: Status = this.makeIdle();
 
+    private _lastActiveState?: ActiveStatus;
+
     /** Whether this is currently in the process of playing something
      * (e.g. waiting for a resource).
      */
@@ -117,13 +119,19 @@ export class Jukebox {
         this._player.on(AudioPlayerStatus.Idle, () => void this.play());
         this._player.on(AudioPlayerStatus.Paused, () => void this.makeIdle());
         this._player.on(AudioPlayerStatus.AutoPaused, () => void this.makeIdle());
+
+        // this._player.on('stateChange', (oldS, newS) =>
+        // console.log(`${oldS.status} => ${newS.status}`));
     }
 
     /// voice channel event handlers
     /** Called whenever the bot moves or leaves it's current channel.
      *
      * Can be due to a drag or using the `/leave` and `/join` commands. */
-    public handleVoiceChannelChange(newVoiceChannel: VoiceBasedChannel | null): void {
+    public handleVoiceChannelChange(
+        oldVoiceChannel: VoiceBasedChannel | null,
+        newVoiceChannel: VoiceBasedChannel | null,
+    ): void {
         // leaving a voice channel
         if (!newVoiceChannel) {
             // already noted as inactive, nothing needs to be done
@@ -134,9 +142,18 @@ export class Jukebox {
 
         // joining a new voice channel
         else {
-            this._voiceChannel = newVoiceChannel;
-            const peopleInVoice = newVoiceChannel.members;
-            console.log(peopleInVoice.map((e) => e.user.username).join(', '));
+            // from an old voice channel
+            if (oldVoiceChannel) {
+                this._voiceChannel = newVoiceChannel;
+                const peopleInVoice = newVoiceChannel.members.some((e) => !e.user.bot);
+                if (peopleInVoice) {
+                    this._player.once(AudioPlayerStatus.Playing, () => {
+                        if (this._lastActiveState) {
+                            this.makeActive(this._lastActiveState.musicDisc);
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -175,7 +192,7 @@ export class Jukebox {
 
         connection.on('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
             if (oldStatus === newStatus) return;
-            console.log(`${oldStatus} => ${newStatus}`);
+            // console.log(`${oldStatus} => ${newStatus}`);
         });
 
         connection.subscribe(this._player);
@@ -200,10 +217,13 @@ export class Jukebox {
      * @returns {CurrentStatus} The newly updated state.
      */
     private makeIdle(): IdleStatus {
+        console.log('making idle');
         let wasPlaying: IdleStatus['wasPlaying'];
 
         // optional chaining since this method is called on startup (status will be undefined),
         if (this._status?.active) {
+            this._lastActiveState = { ...this._status };
+
             wasPlaying = {
                 musicDisc: this._status.musicDisc,
                 for: Math.floor((Date.now() - this._status.playingSince) / 1000),
@@ -232,6 +252,7 @@ export class Jukebox {
      * @returns {ActiveStatus} The new playing status.
      */
     private makeActive(musicDisc: MusicDisc): ActiveStatus {
+        console.log('make active');
         let playingSince = Date.now();
 
         if (!this._status.active) {
@@ -673,6 +694,7 @@ export class Jukebox {
             );
             return;
         }
+        console.log('disconnect timeout');
 
         if (!Jukebot.config.timeoutThresholds.inactivity) return;
         return this.cleanup();
