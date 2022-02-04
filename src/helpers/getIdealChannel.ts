@@ -1,9 +1,6 @@
 import { Guild, TextChannel } from 'discord.js';
 
 const hasJukebot = new RegExp(/juke(-)?bot/gi);
-const hasCommands = new RegExp(/commands?/gi);
-const hasMusic = new RegExp(/music/gi);
-const hasGeneral = new RegExp(/general/gi);
 
 /** Gets the "best" channel to send a message in from a guild.
  *
@@ -29,17 +26,14 @@ export async function getIdealChannel(guild: Guild): Promise<TextChannel | null>
         }
 
         let localWeight = 0;
-        if (hasMusic.test(name)) localWeight = 4;
-        else {
-            // for some reason a regex like `/bot/gi` doesn't work :/
-            const bot = name.toLowerCase().includes('bot');
-
-            const commands = hasCommands.test(name);
-            if (bot && commands) localWeight = 3;
-            else if (commands) localWeight = 2;
-            else if (bot) localWeight = 2;
-            else if (hasGeneral.test(name)) localWeight = 1;
-        }
+        // for some reason a regex like `/bot/gi` doesn't work :/
+        const commands = name.toLowerCase().includes('commands');
+        const bot = name.toLowerCase().includes('bot');
+        if (bot && commands) localWeight = 5;
+        else if (commands) localWeight = 4;
+        else if (bot) localWeight = 3;
+        else if (name.toLowerCase().includes('music')) localWeight = 2;
+        else if (name.toLowerCase().includes('general')) localWeight = 1;
 
         if (localWeight > weight) {
             idealChannel = channel;

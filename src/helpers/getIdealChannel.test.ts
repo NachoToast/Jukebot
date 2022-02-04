@@ -68,11 +68,11 @@ describe('getIdealChannel', () => {
             expect(await getIdealChannel(fakeGuild)).toBe(jukebotChannel2);
         });
 
-        it('prefers music to bot-commands', async () => {
+        it('prefers bot-commands to music', async () => {
             channelCollection.set('fakeId1', botCommands);
             channelCollection.set('fakeId2', musicChannel);
 
-            expect(await getIdealChannel(fakeGuild)).toBe(musicChannel);
+            expect(await getIdealChannel(fakeGuild)).toBe(botCommands);
         });
 
         it('follows the preferred hierarchy', async () => {
@@ -82,6 +82,10 @@ describe('getIdealChannel', () => {
 
             // try with general
             expect(await getIdealChannel(fakeGuild)).toBe(general);
+
+            // try with music
+            channelCollection.set('fakeId5', musicChannel);
+            expect(await getIdealChannel(fakeGuild)).toBe(musicChannel);
 
             // try with bot
             channelCollection.set('fakeId3', bot);
@@ -94,10 +98,6 @@ describe('getIdealChannel', () => {
             // try with bot commands
             channelCollection.set('fakeId4', botCommands);
             expect(await getIdealChannel(fakeGuild)).toBe(botCommands);
-
-            // try with music
-            channelCollection.set('fakeId5', musicChannel);
-            expect(await getIdealChannel(fakeGuild)).toBe(musicChannel);
         });
     });
 });
