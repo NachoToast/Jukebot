@@ -614,6 +614,14 @@ export class Jukebox {
             return output;
         }
 
+        const peopleInVc = this._voiceChannel.members.some((e) => !e.user.bot);
+        if (!peopleInVc) {
+            this._player.pause();
+            const output = { content: 'Paused since nobody is in the voice channel' };
+            if (liveEdit) await liveEdit.editReply(output);
+            return output;
+        }
+
         let resource = nextItem.resource;
         if (!resource) {
             if (liveEdit) await liveEdit.editReply({ content: 'Loading Resource...' });
