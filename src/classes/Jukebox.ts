@@ -488,7 +488,9 @@ export class Jukebox {
                 }
             }
 
-            return { embeds: [embed], components: [row] };
+            if (row.components.length) {
+                return { embeds: [embed], components: [row] };
+            } else return { embeds: [embed] };
         };
 
         const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) => validIds.includes(i.customId);
