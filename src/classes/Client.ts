@@ -11,6 +11,8 @@ import { Jukebox } from './Jukebox';
 import { getAuth, getConfig } from '../helpers/getAuthConfig';
 import { Announcer } from './Announcer';
 import Auth from '../types/Auth';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 export class Jukebot {
     public static config: Config;
@@ -24,10 +26,18 @@ export class Jukebot {
 
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
 
+    private static getVersion(): string {
+        const easyVersion = process.env.npm_package_version;
+        if (easyVersion) return easyVersion;
+        const packageJson = JSON.parse(readFileSync(path.join(__dirname, '../', '../', 'package.json'), 'utf-8'));
+        const packageVersion = packageJson?.version;
+        return packageVersion ?? 'Unknown';
+    }
+
     public constructor() {
         Jukebot.config = getConfig();
         Jukebot.auth = getAuth();
-        Jukebot.version = process.env.npm_package_version ?? 'Unknown';
+        Jukebot.version = Jukebot.getVersion();
 
         this.devMode = process.argv.slice(2).includes('--devmode');
         this.client = new Client({

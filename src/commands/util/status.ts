@@ -27,7 +27,7 @@ export class Status extends Command {
         const uptime = moment(jukebot.client.readyAt).fromNow(true);
 
         await interaction.reply({
-            content: `Running Version: ${Jukebot.version} (uptime: ${uptime})\nLatency: ${ping}ms (${status})\nAPI Latency: ${apiLatency}ms`,
+            content: `Running Version: ${Jukebot.version}\nUptime: ${uptime}\nLatency: ${ping}ms (${status})\nAPI Latency: ${apiLatency}ms`,
             ephemeral: true,
         });
     }
