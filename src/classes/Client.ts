@@ -106,7 +106,17 @@ export class Jukebot {
             })`,
         );
 
-        this.client.user.setActivity(Jukebot.config.activityString, { type: 'LISTENING' });
+        const makeActivityString = (): string => {
+            return Jukebot.config.activityString.replace('GUILDS_SIZE', this.client.guilds.cache.size.toString());
+        };
+
+        this.client.user.setActivity(makeActivityString(), { type: 'LISTENING' });
+
+        if (Jukebot.config.timeoutThresholds.statusUpdate) {
+            setInterval(() => {
+                this.client.user.setActivity(makeActivityString(), { type: 'LISTENING' });
+            }, 1000 * Jukebot.config.timeoutThresholds.statusUpdate);
+        }
 
         // loading commands
         process.stdout.write(`Loading ${commands.length} Command${commands.length !== 1 ? 's' : ''}: `);

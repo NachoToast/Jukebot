@@ -58,6 +58,9 @@ export default interface Config {
         /** Start playing an audio resource. */
         play: number;
 
+        /** How frequently to update the bot's status. */
+        statusUpdate: number;
+
         /** Stop responding to page changes for queue embeds. Must be at least 3 seconds. */
         stopQueuePagination: number;
     };

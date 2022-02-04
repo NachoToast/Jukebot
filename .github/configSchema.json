@@ -84,6 +84,11 @@
                     "description": "Start playing an audio resource.",
                     "default": 3
                 },
+                "statusUpdate": {
+                    "type": "integer",
+                    "description": "How frequently to update the bot's status.",
+                    "default": 3600
+                },
                 "stopQueuePagination": {
                     "type": "integer",
                     "description": "Stop responding to page changes for queue embeds. Must be at least 3 seconds.",
