@@ -41,7 +41,7 @@ export abstract class Announcer {
                 return;
             }
 
-            const minsSinceRelease = 60 * Math.floor((Date.now() - new Date(releasedAt).getTime()) / 1000);
+            const minsSinceRelease = Math.floor((Date.now() - new Date(releasedAt).getTime()) / (1000 * 60));
             const timeAgoThreshold = Jukebot.config.announcementSystem.dontAnnounceOlderThan;
 
             if (timeAgoThreshold && minsSinceRelease > timeAgoThreshold) {
