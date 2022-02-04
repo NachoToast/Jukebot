@@ -217,7 +217,7 @@ export class Jukebox {
      * @returns {CurrentStatus} The newly updated state.
      */
     private makeIdle(): IdleStatus {
-        console.log('making idle');
+        // console.log('making idle');
         let wasPlaying: IdleStatus['wasPlaying'];
 
         // optional chaining since this method is called on startup (status will be undefined),
@@ -252,7 +252,7 @@ export class Jukebox {
      * @returns {ActiveStatus} The new playing status.
      */
     private makeActive(musicDisc: MusicDisc): ActiveStatus {
-        console.log('make active');
+        // console.log('make active');
         let playingSince = Date.now();
 
         if (!this._status.active) {
