@@ -1102,7 +1102,7 @@ export class Jukebox {
     private makeProgressBar(length: number = 300, height: number = 20): MessageAttachment {
         const { current, total } = this.getCurrentSongInfo();
 
-        registerFont(path.join(__dirname, '../', 'helpers', 'Roboto-Regular.ttf'), { family: 'roboto' });
+        registerFont(path.join(__dirname, '../', '../', 'assets', 'Roboto-Regular.ttf'), { family: 'roboto' });
 
         const canvas = createCanvas(length, height);
         const ctx = canvas.getContext('2d');
