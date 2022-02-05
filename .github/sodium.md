@@ -57,7 +57,7 @@ Here are some guides on fixing these errors, from personal experience.
     -   Install it ¯\\\_(ツ)\_/¯
 
     ```sh
-    $ sudo apt-get install libtool
+    $ sudo apt install libtool
     ```
 
 -   Sodium's [Linux install guide](https://github.com/paixaop/node-sodium#install).
