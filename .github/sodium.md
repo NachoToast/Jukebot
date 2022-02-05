@@ -60,4 +60,9 @@ Here are some guides on fixing these errors, from personal experience.
     $ sudo apt install libtool
     ```
 
+-   If you are getting errors in install, you likely need:
+
+    -   make (`sudo apt install make`)
+    -   build-essential (`sudo apt install build-essential`)
+
 -   Sodium's [Linux install guide](https://github.com/paixaop/node-sodium#install).
