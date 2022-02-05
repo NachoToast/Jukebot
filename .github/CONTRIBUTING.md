@@ -5,6 +5,7 @@ The following are rules for writing code in this repository that aren't enforced
 -   [Logging](#logging)
     -   [Error Logging](#error-logging)
 -   [Error Handling](#error-handling)
+-   [Message Sending](#message-sending)
 
 ### Logging
 
@@ -47,7 +48,7 @@ The following are rules for writing code in this repository that aren't enforced
 -   When sending Discord messages, capitalize the first word but don't end in a full-stop.
     ```ts
     ❌ channel.send({ content: 'Added to the queue.' });
-    ✅ channel.send({ content: 'Added to the queue'});
+    ✅ channel.send({ content: 'Added to the queue' });
     ```
 -   Messages should be sent as `MessageOptions`, not `string`. This makes mocking easier.
 
