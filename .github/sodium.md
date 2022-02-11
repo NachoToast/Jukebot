@@ -10,34 +10,14 @@ Here are some guides on fixing these errors, from personal experience.
 
 -   "msvsVersion is not defined"
 
-    -   Make sure your have [Visual Studio 2015](https://my.visualstudio.com/Downloads?q=visual%20studio%202015&wt.mc_id=o~msft~vscom~older-downloads) installed, as (per the guide) it's the latest version Sodium supports.
+    -   Make sure your have [Visual Studio 2015](https://my.visualstudio.com/Downloads?q=visual%20studio%202015&wt.mc_id=o~msft~vscom~older-downloads) installed, as (per [the guide](https://github.com/paixaop/node-sodium#windows-install)) it's the latest version Sodium supports.
         -   I used the **Visual Studio 2015 with Update 3** DVD ISO.
-    -   Check your `msvsVersion` points to a valid install of Visual Studio (this one doesn't have to be 2015).
+    -   Check your `msvs_version` points to Visual Studio 2015 (using `npm`, not `yarn`).
 
-        -   <details>
-            <summary>To check your config</summary>
-            <br />
-
+        -   Get and set using
             ```sh
-            # yarn
-            yarn config get msvsVersion
-            # npm
-            npm config get msvsVersion
-
-            ```
-
-            </details>
-
-        -   <details>
-            <summary>Set Your Config</summary>
-            <br />
-
-            ```sh
-            # yarn
-            yarn config get msvsVersion
-
-            # npm
-            npm config get msvsVersion
+            npm config set msvs_version 2015
+            npm config get msvs_version
             ```
 
 -   "Failed to locate 'CL.exe'"
