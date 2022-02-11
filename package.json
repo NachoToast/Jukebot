@@ -1,6 +1,6 @@
 {
     "name": "jukebot",
-    "version": "0.4.0",
+    "version": "1.0.1",
     "main": "./dist/index.js",
     "license": "CC-BY-SA-4.0",
     "private": true,
