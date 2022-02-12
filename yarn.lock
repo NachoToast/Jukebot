@@ -3313,10 +3313,10 @@ play-audio@^0.5.2:
   resolved "https://registry.yarnpkg.com/play-audio/-/play-audio-0.5.2.tgz#191dd45b95ff64ae20bbd718671da4e987d4edd1"
   integrity sha512-ZAqHUKkQLix2Iga7pPbsf1LpUoBjcpwU93F1l3qBIfxYddQLhxS6GKmS0d3jV8kSVaUbr6NnOEcEMFvuX93SWQ==
 
-play-dl@^1.8.2:
-  version "1.8.7"
-  resolved "https://registry.yarnpkg.com/play-dl/-/play-dl-1.8.7.tgz#2458fbfa73bbdf8b19ca67741dcb99f24760a0c3"
-  integrity sha512-hGjK3LR85fCWmpLqTKhNh0uBqHA17E71G0ln0kvijQcHQffpeDmYH6lCaoCiHH8t72TohAPuJu4apUYmv5r2fw==
+play-dl@^1.8.8:
+  version "1.8.8"
+  resolved "https://registry.yarnpkg.com/play-dl/-/play-dl-1.8.8.tgz#ac39a0b30c8728ec7915e3f4e9c349ebd56cfabf"
+  integrity sha512-MK1njgYgHHTq9g4pkRd1Siz/LE7pbmgivkXycC1Zpl4psEsPtxq44Atl3fv2MeuISdx/hE7S0H8Oz4l0ZgwhHw==
   dependencies:
     play-audio "^0.5.2"
 
