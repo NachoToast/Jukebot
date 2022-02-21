@@ -8,7 +8,7 @@ describe('/status', () => {
 
     const reply = (newOutput: InteractionReplyOptions) => (output = newOutput);
 
-    const jukebot = { client: { ws: { ping: 123 } } } as Jukebot;
+    const jukebot = { client: { ws: { ping: 123 } }, getJukebox: () => undefined } as unknown as Jukebot;
     const interaction = { createdTimestamp: Date.now() - 1000, reply } as unknown as Interaction;
 
     const params = { jukebot, interaction } as CommandParams;
