@@ -1,7 +1,6 @@
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
-    AudioPlayerState,
     AudioPlayerStatus,
     AudioResource,
     createAudioPlayer,
