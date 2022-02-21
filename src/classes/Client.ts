@@ -249,8 +249,7 @@ export class Jukebot {
     }
 
     /** Attempts to delete a Jukebox from the tracked collection.
-     * @param {GuildedInteraction} interaction The interaction this request originated from.
-     * @returns {boolean} Whether the deletion was successful.
+     * @param {Snowflake} guildId The guild ID of the known Jukebox instance.
      */
     public removeJukebox(guildId: Snowflake): void {
         return this._jukeboxes.get(guildId)?.cleanup();
