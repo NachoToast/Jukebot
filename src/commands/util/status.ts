@@ -6,7 +6,6 @@ import Command, { CommandParams } from '../../types/Command';
 export class Status extends Command {
     public name = 'status';
     public description = 'Check my status';
-    public allowNoGuild = true;
     public build(): SlashCommandBuilder {
         return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
     }
@@ -48,7 +47,6 @@ export class Status extends Command {
 
         await interaction.reply({
             content: initialContent.join('\n'),
-            ephemeral: true,
         });
     }
 }
