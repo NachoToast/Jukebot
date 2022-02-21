@@ -568,6 +568,15 @@ export class Jukebox {
         return { embeds: [embed], files: [file] };
     }
 
+    /** Clears the queue.
+     * @returns {number} The number of songs removed.
+     */
+    public clear(): number {
+        const numCleared = this._inventory.length;
+        this._inventory = [];
+        return numCleared;
+    }
+
     /** Skips the currently playing song.
      *
      * @param {GuildedInteraction} [liveEdit] Whether to make and edit a reply over time.
@@ -716,7 +725,11 @@ export class Jukebox {
             );
             return;
         }
-        console.log('disconnect timeout');
+        try {
+            this._startingInteraction.channel.send({ content: 'Left voice channel due to inactivity' });
+        } catch (error) {
+            //
+        }
 
         if (!Jukebot.config.timeoutThresholds.inactivity) return;
         return this.cleanup();
