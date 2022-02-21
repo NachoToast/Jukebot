@@ -1,6 +1,6 @@
 {
     "$schema": ".github/configSchema.json",
-    "sourceCode":"https://github.com/NachoToast/Jukebot",
+    "sourceCode": "https://github.com/NachoToast/Jukebot",
     "activityString": "GUILDS_SIZE sus remixes",
     "maxQueueSize": 1000,
     "volumeModifier": 0.5,
@@ -13,7 +13,7 @@
     },
     "timeoutThresholds": {
         "login": 5,
-        "connect": 3,
+        "connect": 5,
         "generateResource": 3,
         "getSearchResult": 5,
         "inactivity": 60,
