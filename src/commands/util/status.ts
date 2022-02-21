@@ -26,8 +26,28 @@ export class Status extends Command {
         const status = Status.pingHint(ping);
         const uptime = moment(jukebot.client.readyAt).fromNow(true);
 
+        const jukebox = jukebot.getJukebox(interaction.guildId);
+
+        const initialContent: string[] = [
+            `Running Version: ${Jukebot.version}`,
+            `Uptime: ${uptime}`,
+            `Latency: ${ping}ms (${status})`,
+            `API Latency: ${apiLatency}ms`,
+        ];
+
+        if (!jukebox) {
+            initialContent.push('Not currently playing anything in the server');
+        } else {
+            const { player, status, connection } = jukebox.state;
+            initialContent.push(
+                `Player: **${player}**, connection: **${connection}**, status: **${
+                    status.active ? 'active' : 'inactive'
+                }**`,
+            );
+        }
+
         await interaction.reply({
-            content: `Running Version: ${Jukebot.version}\nUptime: ${uptime}\nLatency: ${ping}ms (${status})\nAPI Latency: ${apiLatency}ms`,
+            content: initialContent.join('\n'),
             ephemeral: true,
         });
     }

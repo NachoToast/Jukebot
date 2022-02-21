@@ -1,6 +1,7 @@
 import { FullInteraction, GuildedInteraction } from '../types/Interactions';
 import {
     AudioPlayer,
+    AudioPlayerState,
     AudioPlayerStatus,
     AudioResource,
     createAudioPlayer,
@@ -75,6 +76,12 @@ interface IdleStatus {
 }
 
 type Status = IdleStatus | ActiveStatus;
+
+interface JukeboxState {
+    player: AudioPlayerStatus;
+    connection: VoiceConnectionStatus | undefined;
+    status: Status;
+}
 
 /** Each Jukebox instance handles audio playback for a single guild. */
 export class Jukebox {
@@ -209,6 +216,14 @@ export class Jukebox {
         const itemReady = !!this._inventory.at(0);
         const notLocked = !this._playLock;
         return playerIdle && itemReady && notLocked;
+    }
+
+    public get state(): JukeboxState {
+        return {
+            player: this._player.state.status,
+            connection: this._connection?.state.status,
+            status: this._status,
+        };
     }
 
     /** Updates the
