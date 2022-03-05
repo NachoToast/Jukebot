@@ -225,6 +225,18 @@ export class Jukebox {
         };
     }
 
+    public get queueLength(): number {
+        return this._inventory.length;
+    }
+
+    /** Yoinked from {@link https://stackoverflow.com/a/12646864/15257167 Stack Overflow}. */
+    public shuffle(): void {
+        for (let i = this._inventory.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this._inventory[i], this._inventory[j]] = [this._inventory[j], this._inventory[i]];
+        }
+    }
+
     /** Updates the
      * {@link Jukebox._status status} property to idle.
      * Scheduling {@link Jukebox.disconnectTimeout inactivity events} to run.
