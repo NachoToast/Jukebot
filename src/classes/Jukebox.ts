@@ -511,7 +511,7 @@ export class Jukebox {
             const songs: string[] = [];
 
             this._inventory
-                .slice(page - 1, page - 1 + perPage)
+                .slice(perPage * (page - 1), perPage * page)
                 .forEach((disc, index) =>
                     songs.push(`${(page - 1) * perPage + index + 1}. ${disc.title} (${disc.durationString})`),
                 );
