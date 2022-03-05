@@ -230,10 +230,10 @@ export class Jukebox {
     }
 
     /** Yoinked from {@link https://stackoverflow.com/a/12646864/15257167 Stack Overflow}. */
-    public shuffle(): void {
-        for (let i = this._inventory.length - 1; i > 0; i--) {
+    public shuffle(arr: Array<unknown> = this._inventory): void {
+        for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [this._inventory[i], this._inventory[j]] = [this._inventory[j], this._inventory[i]];
+            [arr[i], arr[j]] = [arr[j], arr[i]];
         }
     }
 
