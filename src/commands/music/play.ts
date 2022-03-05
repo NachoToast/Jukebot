@@ -5,11 +5,15 @@ import { FullInteraction, GuildedInteraction } from '../../types/Interactions';
 
 export class Play extends Command {
     public name = 'play';
-    public description = 'Add a song to the queue';
+    public description = 'Add a song to the queue.';
     public build(): SlashCommandBuilder {
         const cmd = new SlashCommandBuilder().setName(this.name).setDescription(this.description);
 
-        cmd.addStringOption((option) => option.setName('song').setDescription('the song to add').setRequired(true));
+        cmd.addStringOption((option) => option.setName('song').setDescription('The song to add').setRequired(true));
+
+        cmd.addBooleanOption((option) =>
+            option.setName('shuffle').setDescription('Shuffle before adding (if playlist)'),
+        );
 
         return cmd;
     }

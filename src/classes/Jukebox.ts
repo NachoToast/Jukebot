@@ -311,7 +311,7 @@ export class Jukebox {
         }
 
         // search term validation
-        const searchTerm = interaction.options.get('song', false)?.value;
+        const searchTerm = interaction.options.get('song', true).value;
         if (typeof searchTerm !== 'string') {
             const output = { content: 'Please specify something to search for' };
             if (liveEdit) await interaction.editReply(output);
@@ -390,6 +390,9 @@ export class Jukebox {
                 const maxNumberToAdd = maxQueueSize - results.items.length;
                 results.items = results.items.slice(0, maxNumberToAdd);
             }
+
+            const shouldShuffle = !!interaction.options.get('shuffle', false)?.value;
+            if (shouldShuffle) this.shuffle(results.items);
 
             if (results.items.length) this._inventory.push(...results.items);
         } else {
