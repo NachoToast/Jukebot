@@ -196,7 +196,7 @@ export class Jukebox {
             this.cleanup();
         });
 
-        connection.on('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
+        connection.on<'stateChange'>('stateChange', ({ status: oldStatus }, { status: newStatus }) => {
             if (oldStatus === newStatus) return;
             // console.log(`${oldStatus} => ${newStatus}`);
         });
