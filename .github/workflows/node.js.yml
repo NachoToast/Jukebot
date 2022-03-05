@@ -6,8 +6,7 @@ name: Node.js CI
 on: [push, pull_request]
 
 jobs:
-    build_yarn:
-        name: Yarn
+    build:
         runs-on: ubuntu-latest
 
         strategy:
@@ -24,27 +23,4 @@ jobs:
                   cache: 'yarn'
             - run: yarn install --frozen-lockfile
             - run: yarn build
-            - run: yarn lint
-            - run: yarn typecheck
-            - run: yarn test
-
-    build_npm:
-        name: NPM
-        runs-on: ubuntu-latest
-
-        strategy:
-            matrix:
-                node-version: [16, 17]
-        
-        steps:
-            - uses: actions/checkout@v2
-            - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v2
-              with:
-                  node-version: ${{ matrix.node-version }}
-                  cache: 'npm'
-            - run: npm install
-            - run: npm run build
-            - run: npm run lint
-            - run: npm run typecheck
-            - run: npm run test
+            - run: yarn check-all
