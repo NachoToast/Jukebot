@@ -23,7 +23,7 @@ cp auth.example.json auth.json
 1. Make a [Discord developer application](https://discord.com/developers/applications)
 
     - Scopes: `bot`, `applications.commands`
-    - Permissions `Send Messages`, `Connect`, `Speak`
+    - Permissions `Send Messages`, `Embed Links`, `Connect`, `Speak`
     - Gateway Intents: None
 
 2. Put your Discord bot token in [auth.json](./auth.json)
