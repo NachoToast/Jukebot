@@ -11,7 +11,7 @@ To set up your own version of JukeBot, follow these steps
         - Copy the token that it generates, you'll need it later
     3. Go to the OAuth2 > URL Generator section and select
         - Scopes: `bot`, `applications.commands`
-        - Bot Permissions: `Send Messages`, `Connect`, `Speak`
+        - Bot Permissions: `Send Messages`, `Embed Links`, `Connect`, `Speak`
     4. Copy the generated URL and paste it into a new tab to invite your bot to a server
 
 2. Clone this Repository
