@@ -1,18 +1,19 @@
 {
     "name": "jukebot",
     "version": "1.0.4",
-    "main": "./dist/index.js",
-    "license": "CC-BY-SA-4.0",
+    "main": "build/index.js",
+    "license": "MIT",
+    "repository": "https://github.com/NachoToast/Jukebot.git",
     "private": true,
     "scripts": {
-        "dev": "nodemon ./src/index.ts --devmode",
+        "dev": "nodemon src/index.ts --devmode",
         "start": "node .",
         "lint": "eslint --ext .ts src --max-warnings=0",
-        "build": "tsc",
+        "build": "tsc -p tsconfig.build.json",
         "test": "jest",
         "typecheck": "tsc --noEmit",
         "check-all": "yarn test && yarn lint && yarn typecheck",
-        "auth": "node ./scripts/login.js"
+        "auth": "ts-node scripts/login.ts"
     },
     "devDependencies": {
         "@types/jest": "^27.4.0",
