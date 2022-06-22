@@ -79,3 +79,7 @@ function myFunction() {
     //
 }
 ```
+
+### Exporting
+
+Don't use export default.
