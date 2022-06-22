@@ -1,13 +1,11 @@
 import { HexColorString } from 'discord.js';
 
 export default interface Config {
-    /** Link to to the bot's source code. */
-    sourceCode: string;
-
     /** What Discord shows the bot is listening to. */
     activityString: string;
 
-    /** Maximum number of items in the queue at any given time.
+    /**
+     * Maximum number of items in the queue at any given time.
      *
      * Set to `0` to have no maximum size.
      */
@@ -19,7 +17,8 @@ export default interface Config {
     /** The colour that embeds will have. Must be a hexadecimal colour string. */
     colourTheme: HexColorString;
 
-    /** Minimum string similarity of search result and queried search.
+    /**
+     * Minimum string similarity of search result and queried search.
      *
      * Results below this number won't be queued.
      *
@@ -31,7 +30,11 @@ export default interface Config {
 
     /** Detect and announce new releases on startup. */
     announcementSystem: {
-        /** Don't announce releases older than this many minutes. */
+        /**
+         * Don't announce releases older than this many minutes.
+         *
+         * Setting to 0 will always announce the latest release.
+         */
         dontAnnounceOlderThan: number;
 
         enabledInDevelopment: boolean;
