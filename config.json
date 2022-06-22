@@ -13,7 +13,7 @@
     "timeoutThresholds": {
         "login": 5,
         "connect": 5,
-        "generateResource": 3,
+        "generateResource": 5,
         "getSearchResult": 5,
         "inactivity": 60,
         "play": 3,
