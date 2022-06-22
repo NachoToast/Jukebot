@@ -6,21 +6,19 @@ import { getIdealChannel } from '../helpers/getIdealChannel';
 import Colours from '../types/Colours';
 import { Release } from '../types/Release';
 
-/** The announcer handles dispatching global announcements. */
+/** Handles dispatching global announcements. */
 export abstract class Announcer {
-    /** Dispatches an announcement with information about the latest GitHub release.
+    /**
+     * Dispatches an announcement with information about the latest GitHub release.
      *
      * Will only send an announcement if:
      *
-     * - The configured {@link Jukebot.config.sourceCode sourceCode}
-     *  is unmodified.
      * - The release was published within the configured
      * {@link Jukebot.config.announcementSystem.dontAnnounceOlderThan recency} threshold.
+     *
      * - The release is not a pre-release.
      */
     public static async init(client: Client<true>): Promise<void> {
-        if (Jukebot.config.sourceCode !== 'https://github.com/NachoToast/Jukebot') return;
-
         let release: Release;
 
         // get latest release
@@ -80,12 +78,22 @@ export abstract class Announcer {
 
         let successes = 0;
         let errors = 0;
+        let noLinks = 0;
         const total = guilds.size;
 
         for (const [, authGuild] of guilds) {
             const guild = await authGuild.fetch();
+            if (guild.me === null) continue; // bot (somehow) not in this guild
             const idealChannel = await getIdealChannel(guild);
-            if (!idealChannel) continue;
+            if (!idealChannel) continue; // no text channel found to send embed in
+            if (idealChannel.permissionsFor(guild.me).has('EMBED_LINKS') || !false) {
+                // embed links perm wasn't required on earlier versions of Jukebot
+                noLinks++;
+                await idealChannel.send({
+                    content: `Tried to send a message embed about my latest update (${release.tag_name}), but I don't have the \`Embed Links\` permission. Please give my role this permission, or reinvite me to the server using the button on my profile.`,
+                });
+                continue;
+            }
             try {
                 await idealChannel.send({ embeds: [embed] });
                 successes++;
@@ -104,11 +112,14 @@ export abstract class Announcer {
                 Colours.FgGreen
             }${successes}${Colours.Reset} out of ${Colours.FgMagenta}${total}${Colours.Reset} guilds (${
                 Colours.FgRed
-            }${errors}${Colours.Reset} error${errors !== 1 ? 's' : ''})`,
+            }${errors}${Colours.Reset} error${errors !== 1 ? 's' : ''}, ${Colours.FgBlue}${noLinks}${
+                Colours.Reset
+            } missing embed links perms)`,
         );
     }
 
-    /** Sends a GET request to Jukebot's GitHub repository.
+    /**
+     * Sends a GET request to Jukebot's GitHub repository.
      *
      * @returns {Promise<Release[]>} An array of release objects.
      *
