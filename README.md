@@ -30,8 +30,6 @@ cp auth.example.json auth.json
 
 2. Put your Discord bot token in [auth.json](./auth.json)
 
-    - Running the bot in development mode uses `devToken`, otherwise `token` is used.
-
 3. Install dependencies
 
     ```sh
