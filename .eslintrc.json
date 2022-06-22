@@ -1,13 +1,9 @@
 {
     "env": {
-        "es2021": true,
+        "es2022": true,
         "node": true
     },
-    "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "prettier"
-    ],
+    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": "latest",
@@ -15,7 +11,8 @@
     },
     "plugins": ["@typescript-eslint"],
     "rules": {
-        "linebreak-style": ["error", "unix"],
+        "no-unused-vars": "error",
+        "linebreak-style": "off",
         "quotes": ["error", "single", { "avoidEscape": true }],
         "semi": "off",
         "no-var": "error",
@@ -33,49 +30,35 @@
         "camelcase": "off",
         "require-await": "error",
         "@typescript-eslint/no-dupe-class-members": ["error"],
-        "@typescript-eslint/explicit-member-accessibility": [
-            "error",
-            { "accessibility": "explicit" }
-        ],
-        "@typescript-eslint/explicit-module-boundary-types": ["error"],
-        "@typescript-eslint/no-inferrable-types": [
-            "error",
-            { "ignoreParameters": true }
-        ],
+        "@typescript-eslint/explicit-member-accessibility": ["error", { "accessibility": "explicit" }],
+        "@typescript-eslint/no-inferrable-types": ["error", { "ignoreParameters": true }],
         "@typescript-eslint/naming-convention": [
-          "error",
-          {
-            "selector": "default",
-            "format": ["camelCase"]
-          },
-          {
-            "selector": "variable",
-            "format": ["strictCamelCase"]
-          },
-          {
-            "selector": "parameter",
-            "format": ["strictCamelCase"],
-            "leadingUnderscore": "allow"
-          },
-          {
-            "selector": "classProperty",
-            "modifiers": ["private"],
-            "format": ["strictCamelCase"],
-            "leadingUnderscore": "require"
-          },
-          {
-            "selector": "classMethod",
-            "modifiers": ["private"],
-            "format": null
-          },
-          {
-            "selector": "typeLike",
-            "format": ["PascalCase"]
-          },
-          {
-              "selector": "enumMember",
-              "format": ["PascalCase"]
-          }
-        ]
+            "error",
+            {
+                "selector": "parameter",
+                "format": ["strictCamelCase"],
+                "leadingUnderscore": "allow"
+            },
+            {
+                "selector": "classProperty",
+                "modifiers": ["private"],
+                "format": ["strictCamelCase"],
+                "leadingUnderscore": "require"
+            },
+            {
+                "selector": "classMethod",
+                "modifiers": ["private"],
+                "format": null
+            },
+            {
+                "selector": "typeLike",
+                "format": ["PascalCase"]
+            },
+            {
+                "selector": "enumMember",
+                "format": ["PascalCase"]
+            }
+        ],
+        "@typescript-eslint/no-non-null-assertion": "off"
     }
 }
