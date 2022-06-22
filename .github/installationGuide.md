@@ -1,3 +1,7 @@
+# Installation Guide
+
+Make sure you have [Node.js](https://nodejs.org/en/) v16.30.0 or later installed on your computer.
+
 To set up your own version of JukeBot, follow these steps
 
 1. Make a Discord Application
@@ -12,17 +16,17 @@ To set up your own version of JukeBot, follow these steps
 
 2. Clone this Repository
 
-    1. In VSCode, open the command palette (`CTRL + SHIFT + P`)
-    2. Type `git clone` and press enter
-    3. Paste the [link](https://github.com/NachoToast/Jukebot) to this repository and press enter again
-    4. Select where to put the repository, then open it
+    1. Open a terminal (`` CTRL + ` `` in VSCode) and copy/paste (or type) the following:
+
+        ```sh
+        git clone https://github.com/NachoToast/Jukebot.git
+        cd Jukebot
+        cp auth.example.json auth.json
+        ```
+
+    2. Fill out the `devToken` field in [auth.json](../auth.json) with your Discord bot token from step 1(ii)
 
 3. Set up Authorization
-
-    1. Copy the [`auth.example.json`](../auth.example.json) file
-
-        1. Rename the copy to [`auth.json`](../auth.json)
-        2. Fill out the `devToken` field with the token from step 1
 
     2. For all remaining steps, [yarn](https://yarnpkg.com/) is recommended over `npm`, you can install it using the following command:
 
@@ -41,14 +45,14 @@ To set up your own version of JukeBot, follow these steps
         1. Run the authorization script using `yarn auth` or `npm run auth`
         1. Type "Yes" when prompted to save to file
         1. Type "sp" for Spotify
-        1. Make a Spotify application from [here](https://developer.spotify.com/dashboard/applications), be sure to make a redirect URI for it in the `overview > edit settings` menu
-        1. Fill in your Spotify client ID and secret, the redirect URL doesn't matter so just make it any valid URL (you'll need to specify a valid URL from Spotify's side as well, )
+        1. Make a Spotify application from [here](https://developer.spotify.com/dashboard/applications), be sure to make a redirect URI for it in the `overview > edit settings` menu (this can be any valid URL).
+        1. Fill in your Spotify client ID, secret, and redirect URI when prompted
         1. Enter "NZ" or your preferred country code
-        1. Follow the remaining instructions.
+        1. Follow the remaining instructions
 
     4. YouTube Authorization
 
-        - Jukebot uses YouTube to the queueing of age-restricted videos. You don't need to do this step, but you might get a few errors occurring if people try to queue age-restricted content
+        - Jukebot uses YouTube to allow the queueing of age-restricted videos. You don't need to do this step, but you might get a few errors occurring if people try to queue age-restricted content
 
         <br />
 
@@ -59,7 +63,7 @@ To set up your own version of JukeBot, follow these steps
 
 4. Install Dependencies
 
-    - Open a terminal (`` CTRL + ` `` in VSCode) and install dependencies
+    - Open a terminal (`` CTRL + ` `` in VSCode) and install dependencies:
 
         ```sh
         # with yarn
@@ -69,21 +73,17 @@ To set up your own version of JukeBot, follow these steps
         npm install
         ```
 
-    - You can install yarn using:
-
-        ```sh
-        npm i -g yarn
-        ```
-
-    - You can install production-only dependencies using:
+    - If needed, you can instead install production-only dependencies using:
 
         ```sh
         # with yarn
-        yarn install --prod=true
+        yarn install --production
 
         # with npm
-        npm install --only=true
+        npm install --production
         ```
+
+    - If you're getting errors during install, it might be [sodium](./sodium.md).
 
 5. Start the Bot
 

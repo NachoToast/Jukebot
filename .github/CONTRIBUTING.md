@@ -50,9 +50,32 @@ The following are rules for writing code in this repository that aren't enforced
     ❌ channel.send({ content: 'Added to the queue.' });
     ✅ channel.send({ content: 'Added to the queue' });
     ```
--   Messages should be sent as `MessageOptions`, not `string`. This makes mocking easier.
+-   Messages should be sent as `MessageOptions`, not `string`. This makes testing easier.
 
     ```ts
     ❌ channel.send('There are 5 items in the queue');
     ✅ channel.send({ content: 'There are 5 items in the queue'});
     ```
+
+### JSDoc Commenting
+
+-   Multiline comments should start on the second line.
+
+```ts
+/**
+ * comment line 1
+ * comment line 2
+ */
+function myFunction() {
+    //
+}
+```
+
+-   Single line comments look like this:
+
+```ts
+/** comment line 1 */
+function myFunction() {
+    //
+}
+```

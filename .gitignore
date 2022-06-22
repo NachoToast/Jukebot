@@ -1,9 +1,19 @@
+# Dependencies
 node_modules/
-dist/
+
+# NPM Lockfile
+package-lock.json
+
+# Compiled JavaScript files
+build/
+
+# Tokens and sensitive data
+.data/
+auth.json
+
+# Logs
+*.log
+
+# Other folders
 data/
 media/
-
-auth.json
-package-lock.json
-*.log
-.data

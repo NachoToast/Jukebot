@@ -2,7 +2,7 @@
 
 [Sodium](https://github.com/paixaop/node-sodium) is an encryption package used to improve audio playback stability and performance. It's a dependency of Jukebot and recommended by the [Discord JS guide](https://discordjs.guide/voice/#extra-dependencies).
 
-If you're getting errors on install they're likely due to Sodium, as it has some pre-requisites to build.
+If you're getting errors on install they're likely due to Sodium, as it has some prerequisites to build.
 
 Here are some guides on fixing these errors, from personal experience.
 
@@ -28,7 +28,7 @@ Here are some guides on fixing these errors, from personal experience.
 
     -   Install the missing SDK from [here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/).
 
--   Sodium's [Windows install guide](https://github.com/paixaop/node-sodium#windows-install)
+-   For more information see Sodium's [Windows install guide](https://github.com/paixaop/node-sodium#windows-install).
 
 ## Linux
 
@@ -40,9 +40,9 @@ Here are some guides on fixing these errors, from personal experience.
     $ sudo apt install libtool
     ```
 
--   If you are getting errors in install, you likely need:
+-   If you are getting errors in install, you likely also need:
 
     -   make (`sudo apt install make`)
     -   build-essential (`sudo apt install build-essential`)
 
--   Sodium's [Linux install guide](https://github.com/paixaop/node-sodium#install).
+-   For more information see Sodium's [Linux install guide](https://github.com/paixaop/node-sodium#install).

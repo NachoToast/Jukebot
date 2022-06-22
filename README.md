@@ -1,51 +1,69 @@
 # JukeBot
 
-A music streaming Discord bot by NachoToast.
+A Minecraft-themed music streaming Discord bot
 
-<!-- To add Jukebot to your server, [click here](). -->
+To add Jukebot to your server, [click here](https://discord.com/oauth2/authorize?client_id=909645967081476147&permissions=3147776&scope=bot+applications.commands).
 
 ## Installation
 
 See the [installation guide](./.github/installationGuide.md) for a more beginner-friendly walkthrough.
 
-<details open>
+Dependencies:
 
-<summary>Installing Jukebot</summary>
-<br >
-
--   Node v16.13.0 or greater
--   If you're getting install errors, it might be [sodium](./.github/sodium.md).
--   Scopes
-    -   bot
-    -   applications.commands
--   Permissions
-    -   Send Messages
-    -   Connect
-    -   Speak
--   Gateway Intents
-    -   None
--   Put your bot token in [`auth.json`](./auth.json)
-    -   See [auth.example.json](./auth.example.json) for syntax.
-    -   `yarn dev` uses `devToken`, otherwise `token` is used.
--   Run `yarn auth` to set up Spotify and YouTube authorization.
-    -   You will need to run it twice, once for YouTube and once for spotify (save to file both times).
-    -   Spotify:
-        -   Your redirect URL can be anything, as long as its listed in your Spotify application's `Redirect URIs`.
-    -   YouTube:
-        -   Use cookies from the request headers of any YouTube video (via chrome Network tab)
-    -   For more information on what to fill out, see [the instructions](https://github.com/play-dl/play-dl/tree/5d4485a54e01665ef2126d043f30498d8596c27a/instructions).
+-   [Node.js](https://nodejs.org/en/) v16.30.0 or later.
 
 ```sh
-# development
-yarn install
-yarn dev
+git clone https://github.com/NachoToast/Jukebot.git
+cd Jukebot
+cp auth.example.json auth.json
 ```
 
-```sh
-# production
-yarn install --prod=true
-yarn build
-node . # or 'yarn start'
-```
+1. Make a [Discord developer application](https://discord.com/developers/applications)
 
-</details>
+    - Scopes: `bot`, `applications.commands`
+    - Permissions `Send Messages`, `Connect`, `Speak`
+    - Gateway Intents: None
+
+2. Put your Discord bot token in [auth.json](./auth.json)
+
+    - Running the bot in development mode uses `devToken`, otherwise `token` is used.
+
+3. Install dependencies
+
+    ```sh
+    yarn install
+    ```
+
+    - If you're getting install errors, it might be [sodium](./.github/sodium.md).
+
+4. Setup Spotify and YouTube auth
+
+    ```sh
+    yarn auth # Spotify run
+    yarn auth # YouTube run
+    ```
+
+    - Save to file both times.
+    - Spotify:
+        - Your redirect URL can be anything, as long as its listed in your Spotify application's `Redirect URIs`.
+    - YouTube:
+        - Use cookies from the request headers of any YouTube video (via chrome Network tab).
+    - For more information on what to fill out, see [the instructions](https://github.com/play-dl/play-dl/tree/5d4485a54e01665ef2126d043f30498d8596c27a/instructions).
+
+5. Start the bot
+    ```sh
+    yarn dev
+    ```
+
+### Script Reference
+
+Usage: `yarn <scriptname>` or `npm run <scriptname>`
+
+-   `dev` - Start bot with hot-reloading enabled
+-   `start` - Start bot in production mode, equivalent to `node .`
+-   `lint` - Lint files using ESLint.
+-   `build` - Compile production-ready version of bot using TSC.
+-   `test` - Run test files using Jest.
+-   `typecheck` - Typecheck files using TSC.
+-   `check-all` - Run tests, linting, and typechecking.
+-   `auth` - "Login" to Spotify and YouTube.
