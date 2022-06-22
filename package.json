@@ -1,6 +1,6 @@
 {
     "name": "jukebot",
-    "version": "1.0.4",
+    "version": "1.0.6",
     "main": "build/index.js",
     "license": "MIT",
     "repository": "https://github.com/NachoToast/Jukebot.git",
