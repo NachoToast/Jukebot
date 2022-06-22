@@ -86,16 +86,14 @@ export abstract class Announcer {
             if (guild.me === null) continue; // bot (somehow) not in this guild
             const idealChannel = await getIdealChannel(guild);
             if (!idealChannel) continue; // no text channel found to send embed in
-            if (idealChannel.permissionsFor(guild.me).has('EMBED_LINKS') || !false) {
-                // embed links perm wasn't required on earlier versions of Jukebot
-                noLinks++;
-                await idealChannel.send({
-                    content: `Tried to send a message embed about my latest update (${release.tag_name}), but I don't have the \`Embed Links\` permission. Please give my role this permission, or reinvite me to the server using the button on my profile.`,
-                });
-                continue;
-            }
             try {
-                await idealChannel.send({ embeds: [embed] });
+                if (idealChannel.permissionsFor(guild.me).has('EMBED_LINKS') || !false) {
+                    // embed links perm wasn't required on earlier versions of Jukebot
+                    noLinks++;
+                    await idealChannel.send({
+                        content: `Tried to send a message embed about my latest update (${release.tag_name}), but I don't have the \`Embed Links\` permission. Please give my role this permission, or reinvite me to the server using the button on my profile.`,
+                    });
+                } else await idealChannel.send({ embeds: [embed] });
                 successes++;
             } catch (error) {
                 console.log(
