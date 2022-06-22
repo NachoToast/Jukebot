@@ -1,9 +1,6 @@
 import { HexColorString } from 'discord.js';
 
-export default interface Config {
-    /** What Discord shows the bot is listening to. */
-    activityString: string;
-
+export interface Config {
     /**
      * Maximum number of items in the queue at any given time.
      *
@@ -38,6 +35,7 @@ export default interface Config {
         dontAnnounceOlderThan: number;
 
         enabledInDevelopment: boolean;
+
         enabledInProduction: boolean;
     };
 
@@ -68,3 +66,5 @@ export default interface Config {
         stopQueuePagination: number;
     };
 }
+
+export default Config;

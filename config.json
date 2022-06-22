@@ -1,6 +1,5 @@
 {
     "$schema": ".github/configSchema.json",
-    "activityString": "GUILDS_SIZE sus remixes",
     "maxQueueSize": 1000,
     "volumeModifier": 0.5,
     "colourTheme": "#794c36",

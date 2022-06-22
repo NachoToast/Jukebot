@@ -13,6 +13,7 @@ import { Announcer } from './Announcer';
 import Auth from '../types/Auth';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { chooseRandomArtist } from '../helpers/chooseRandomSong';
 
 export class Jukebot {
     public static config: Config;
@@ -106,15 +107,11 @@ export class Jukebot {
             })`,
         );
 
-        const makeActivityString = (): string => {
-            return Jukebot.config.activityString.replace('GUILDS_SIZE', this.client.guilds.cache.size.toString());
-        };
-
-        this.client.user.setActivity(makeActivityString(), { type: 'LISTENING' });
+        this.client.user.setActivity(chooseRandomArtist(), { type: 'LISTENING' });
 
         if (Jukebot.config.timeoutThresholds.statusUpdate) {
             setInterval(() => {
-                this.client.user.setActivity(makeActivityString(), { type: 'LISTENING' });
+                this.client.user.setActivity(chooseRandomArtist(), { type: 'LISTENING' });
             }, 1000 * Jukebot.config.timeoutThresholds.statusUpdate);
         }
 

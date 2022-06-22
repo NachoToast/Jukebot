@@ -1,11 +1,6 @@
 {
     "$schema": "http://json-schema.org/schema",
     "properties": {
-        "activityString": {
-            "type": "string",
-            "description": "What Discord shows the bot is listening to.",
-            "default": "sus remixes"
-        },
         "maxQueueSize": {
             "type": "integer",
             "description": "Maximum number of items in the queue at any given time.\nSet to 0 to have no maximum size.",
