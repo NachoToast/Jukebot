@@ -1,6 +1,6 @@
 # Installation Guide
 
-Make sure you have [Node.js](https://nodejs.org/en/) v16.30.0 or later installed on your computer.
+Make sure you have [Node.js](https://nodejs.org/en/) installed on your computer. It should be version 16 or 17.
 
 To set up your own version of JukeBot, follow these steps
 
