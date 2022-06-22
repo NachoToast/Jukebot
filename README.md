@@ -4,6 +4,8 @@ A Minecraft-themed music streaming Discord bot
 
 To add Jukebot to your server, [click here](https://discord.com/oauth2/authorize?client_id=909645967081476147&permissions=3147776&scope=bot+applications.commands).
 
+[![CodeQL](https://github.com/NachoToast/Jukebot/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/NachoToast/Jukebot/actions/workflows/codeql-analysis.yml)[![Deploy](https://github.com/NachoToast/Jukebot/actions/workflows/deploy.yml/badge.svg)](https://github.com/NachoToast/Jukebot/actions/workflows/deploy.yml)[![Node.js CI](https://github.com/NachoToast/Jukebot/actions/workflows/node.js.yml/badge.svg)](https://github.com/NachoToast/Jukebot/actions/workflows/node.js.yml)
+
 ## Installation
 
 See the [installation guide](./.github/installationGuide.md) for a more beginner-friendly walkthrough.
