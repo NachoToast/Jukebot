@@ -16,7 +16,7 @@ export const randomArtists: string[] = [
     'BABYMETAL',
     'Derivakat',
     'Katy Perry',
-    'YUI - again',
+    'YUI',
     'KASAI HARDCORES',
     'The Living Tombstone',
 ];

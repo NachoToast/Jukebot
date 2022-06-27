@@ -1,5 +1,5 @@
 import Auth from '../types/Auth';
-import Colours from '../types/Colours';
+import { Colours } from '../types/Colours';
 import Config from '../types/Config';
 
 export function getConfig(): Config {

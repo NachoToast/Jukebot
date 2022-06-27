@@ -24,7 +24,7 @@ To set up your own version of JukeBot, follow these steps
         cp auth.example.json auth.json
         ```
 
-    2. Fill out the `devToken` field in [auth.json](../auth.json) with your Discord bot token from step 1(ii)
+    2. Fill out the `token` field in [auth.json](../auth.json) with your Discord bot token from step 1(ii)
 
 3. Set up Authorization
 

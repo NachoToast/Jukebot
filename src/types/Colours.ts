@@ -1,4 +1,5 @@
-enum Colours {
+/** Console colours. */
+export enum Colours {
     Reset = '\x1b[0m',
     Bright = '\x1b[1m',
     Dim = '\x1b[2m',
@@ -26,24 +27,4 @@ enum Colours {
     BgMagenta = '\x1b[45m',
     BgCyan = '\x1b[46m',
     BgWhite = '\x1b[47m',
-}
-
-export default Colours;
-
-const defaultColourArray: Colours[] = [
-    Colours.FgRed,
-    Colours.FgGreen,
-    Colours.FgYellow,
-    Colours.FgBlue,
-    Colours.FgMagenta,
-    Colours.FgCyan,
-];
-
-export function* colourCycle(colourArray: Colours[] = defaultColourArray): Generator<Colours> {
-    let index = 0;
-
-    while (true) {
-        yield colourArray[index];
-        index = (index + 1) % colourArray.length;
-    }
 }

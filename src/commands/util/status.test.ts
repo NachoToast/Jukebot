@@ -1,6 +1,6 @@
 import { Interaction, InteractionReplyOptions } from 'discord.js';
-import { Jukebot } from '../../classes/Client';
-import { CommandParams } from '../../types/Command';
+import { Jukebot } from '../../classes/Jukebot';
+import { CommandParams } from '../../classes/template/Command';
 import { Status } from './status';
 
 describe('/status', () => {

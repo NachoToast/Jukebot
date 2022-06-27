@@ -1,4 +1,4 @@
-import status from './status';
-import source from './source';
+import { Status } from './status';
+import { Source } from './source';
 
-export default [status, source];
+export const UtilCommands = [Status, Source];

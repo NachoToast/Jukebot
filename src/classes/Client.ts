@@ -53,29 +53,10 @@ export class Jukebot {
     /** Attempts to log the client in, exiting the process if unable to do so. */
     private async start(): Promise<void> {
         // not done in the constructor, since logging in is an asynchronous process
-        let loginToken: string;
-
-        const { token, devToken } = Jukebot.auth;
-        if (this.devMode) {
-            if (!devToken) {
-                console.log(
-                    `running in devmode with no auth token, add a ${Colours.FgCyan}devToken${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
-                );
-                process.exit(1);
-            }
-            loginToken = devToken;
-        } else {
-            if (!token) {
-                console.log(
-                    `running with no auth token, add a ${Colours.FgCyan}token${Colours.Reset} field to the ${Colours.FgMagenta}auth.json${Colours.Reset} file`,
-                );
-                process.exit(1);
-            }
-            loginToken = token;
-        }
+        const { token } = Jukebot.auth;
 
         // add event listeners
-        this.client.once('ready', () => this.onReady(loginToken));
+        this.client.once('ready', () => this.onReady(token));
         this.client.on('error', (err) => console.log(err));
         this.client.on('interactionCreate', (int) => this.onInteractionCreate(int));
         this.client.on('voiceStateUpdate', (oldState, newState) => this.onVoiceStateChange(oldState, newState));
@@ -88,7 +69,7 @@ export class Jukebot {
               }, Jukebot.config.timeoutThresholds.login * 1000)
             : null;
         try {
-            await this.client.login(loginToken);
+            await this.client.login(token);
             if (timeout) clearTimeout(timeout);
         } catch (error) {
             if (error instanceof Error && error.message === 'TOKEN_INVALID') {
