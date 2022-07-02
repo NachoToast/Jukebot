@@ -1,4 +1,5 @@
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { dirname, extname } from 'path';
 
 export enum DuplicateLogBehaviour {
     /** Will add new logs onto existing file. */
@@ -15,7 +16,7 @@ export class Logger {
     public readonly fileName: string;
 
     /**
-     * @param {String} fileName Name of this log file, including any nested folders but **not** the extension.
+     * @param {String} fileName Name of this log file, including any nested folders **and** the extension.
      * @param {DirectionSetting} behaviour How to handle duplicate files with this name.
      */
     public constructor(fileName: string, behaviour: DuplicateLogBehaviour) {
@@ -23,9 +24,9 @@ export class Logger {
         Logger.makeParentFolders(fileName);
 
         if (behaviour === DuplicateLogBehaviour.MakeNew) {
-            this.fileName = Logger.nameLogFile(fileName);
+            this.fileName = Logger.nameLogFile(dirname(fileName));
         } else {
-            this.fileName = `${Logger.GLOBAL_LOG_FOLDER}/${fileName}.log`;
+            this.fileName = `${Logger.GLOBAL_LOG_FOLDER}/${fileName}`;
         }
 
         if (!existsSync(this.fileName) || behaviour === DuplicateLogBehaviour.Replace) {
@@ -91,11 +92,14 @@ export class Logger {
      * Only applicable if duplicate log behaviour is set to make new.
      */
     private static nameLogFile(fullPath: string): string {
-        let currentName = `${Logger.GLOBAL_LOG_FOLDER}/${fullPath}.log`;
+        const dir = dirname(fullPath);
+        const ext = extname(fullPath);
+
+        let currentName = `${Logger.GLOBAL_LOG_FOLDER}/${dir}${ext}`;
         let fileCount = 0;
 
         while (existsSync(currentName)) {
-            currentName = `${Logger.GLOBAL_LOG_FOLDER}/${fullPath}-${fileCount++}.log`;
+            currentName = `${Logger.GLOBAL_LOG_FOLDER}/${dir}-${fileCount++}${ext}`;
         }
         return currentName;
     }

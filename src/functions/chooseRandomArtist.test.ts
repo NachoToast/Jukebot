@@ -1,7 +1,7 @@
 import { chooseRandomArtist, randomArtists } from './chooseRandomArtist';
 
 describe('chooseRandomSong', () => {
-    it('should choose a random song', () => {
+    it('Chooses a random song', () => {
         jest.spyOn(global.Math, 'random').mockReturnValue(0);
         expect(chooseRandomArtist()).toBe(randomArtists[0]);
 
@@ -9,7 +9,7 @@ describe('chooseRandomSong', () => {
         expect(chooseRandomArtist()).toBe(randomArtists[randomArtists.length - 1]);
     });
 
-    it('should never return the same song back-to-back', () => {
+    it('Never returns the same song back-to-back', () => {
         jest.spyOn(global.Math, 'random').mockReturnValue(0);
 
         const first = chooseRandomArtist();

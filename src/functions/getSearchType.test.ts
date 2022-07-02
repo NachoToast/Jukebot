@@ -1,17 +1,19 @@
-import { getSearchType, SearchType, SpotifyURLSubtypes, YouTubeURLSubtypes } from './searchType';
+import { InvalidSearch, SearchSources, SpotifySubtypes, ValidSearch, YouTubeSubtypes } from '../types/SearchTypes';
+import { getSearchType } from './getSearchType';
 
-describe('searchType', () => {
+describe('getSearchType', () => {
     // lots of tests for this one :)
 
-    it('validates YouTube video URLs', () => {
-        const valid: SearchType = {
+    it('Validates YouTube video URLs', () => {
+        const valid: ValidSearch = {
             valid: true,
-            type: 'youtube',
-            subtype: YouTubeURLSubtypes.Video,
+            source: SearchSources.YouTube,
+            type: YouTubeSubtypes.Video,
         };
-        const invalid: SearchType = {
+
+        const invalid: InvalidSearch = {
             valid: false,
-            type: 'youtube',
+            source: SearchSources.YouTube,
         };
 
         expect(getSearchType('https://www.youtube.com/watch?v=uAy9iHsj0HU')).toEqual(valid);
@@ -21,15 +23,16 @@ describe('searchType', () => {
         expect(getSearchType('https://www.youtube.com/')).toEqual(invalid);
     });
 
-    it('validates YouTube playlist URLs', () => {
-        const valid: SearchType = {
+    it('Validates YouTube playlist URLs', () => {
+        const valid: ValidSearch = {
             valid: true,
-            type: 'youtube',
-            subtype: YouTubeURLSubtypes.Playlist,
+            source: SearchSources.YouTube,
+            type: YouTubeSubtypes.Playlist,
         };
-        const invalid: SearchType = {
+
+        const invalid: InvalidSearch = {
             valid: false,
-            type: 'youtube',
+            source: SearchSources.YouTube,
         };
 
         expect(getSearchType('https://www.youtube.com/playlist?list=PLA61KdzeZtK54MJ7V6XjPCUe6aCyKU3dp')).toEqual(
@@ -46,65 +49,70 @@ describe('searchType', () => {
         expect(getSearchType('https://youtube.com/playlist')).toEqual(invalid);
     });
 
-    it('validates Spotify track URLs', () => {
-        const valid: SearchType = {
+    it('Validates Spotify track URLs', () => {
+        const valid: ValidSearch = {
             valid: true,
-            type: 'spotify',
-            subtype: SpotifyURLSubtypes.Track,
-        };
-        const invalid: SearchType = {
-            valid: false,
-            type: 'spotify',
+            source: SearchSources.Spotify,
+            type: SpotifySubtypes.Track,
         };
 
-        expect(getSearchType('https://open.spotify.com/track/20OjFkqDnJKYnZe2HTh4oK?si=049354e561f74833')).toEqual(
-            valid,
-        );
-        expect(getSearchType('https://open.spotify.com/track/2OfQvGrr83FGpdLA1nAR01?si=f01271d95063462d')).toEqual(
-            valid,
-        );
+        const invalid: InvalidSearch = {
+            valid: false,
+            source: SearchSources.Spotify,
+        };
+
+        expect(getSearchType('https://open.spotify.com/track/20OjFkqDnJKYnZe2HTh4oK')).toEqual(valid);
+        expect(getSearchType('https://open.spotify.com/track/2OfQvGrr83FGpdLA1nAR01?si=fake')).toEqual(valid);
         expect(getSearchType('https://open.spotify.com/')).toEqual(invalid);
     });
 
-    it('validates Spotify playlist URLs', () => {
-        const valid: SearchType = {
+    it('Validates Spotify playlist URLs', () => {
+        const valid: ValidSearch = {
             valid: true,
-            type: 'spotify',
-            subtype: SpotifyURLSubtypes.Playlist,
-        };
-        const invalid: SearchType = {
-            valid: false,
-            type: 'spotify',
+            source: SearchSources.Spotify,
+            type: SpotifySubtypes.Playlist,
         };
 
-        expect(getSearchType('https://open.spotify.com/playlist/1BaaQnVeKIJfazUPsw4O70?si=780cbe3821cb4a27')).toEqual(
-            valid,
-        );
+        const invalid: InvalidSearch = {
+            valid: false,
+            source: SearchSources.Spotify,
+        };
+
+        expect(getSearchType('https://open.spotify.com/playlist/1BaaQnVeKIJfazUPsw4O70?si=abc123')).toEqual(valid);
         expect(getSearchType('https://open.spotify.com/playlist/1hTGymCQls1Dd5DL2fYPGP')).toEqual(valid);
         expect(getSearchType('https://open.spotify.com/play/')).toEqual(invalid);
     });
 
-    it('invalidates other URLs', () => {
-        const invalid: SearchType = {
+    it('Invalidates unknown URLs', () => {
+        const invalid: InvalidSearch = {
             valid: false,
-            type: 'otherURL',
+            source: SearchSources.Unknown,
         };
 
         expect(getSearchType('https://google.com/track/eieio')).toEqual(invalid);
         expect(getSearchType('https://youtubee.com/NachoToast')).toEqual(invalid);
         expect(getSearchType('https://spootify.com')).toEqual(invalid);
-        expect(getSearchType('nachotoast.com')).toEqual(invalid);
         expect(getSearchType('http://youtub.com')).toEqual(invalid);
     });
 
-    it('identifies a valid text search', () => {
-        const valid: SearchType = {
-            valid: true,
-            type: 'textSearch',
-        };
-        const invalid: SearchType = {
+    it('Invalidates bad URLs', () => {
+        const invalid: InvalidSearch = {
             valid: false,
-            type: 'textSearch',
+            source: SearchSources.Invalid,
+        };
+
+        expect(getSearchType('nachotoast.com')).toEqual(invalid);
+    });
+
+    it('Validates text searches', () => {
+        const valid: ValidSearch = {
+            valid: true,
+            source: SearchSources.Text,
+        };
+
+        const invalid: InvalidSearch = {
+            valid: false,
+            source: SearchSources.Text,
         };
 
         expect(getSearchType('alan walker - faded')).toEqual(valid);

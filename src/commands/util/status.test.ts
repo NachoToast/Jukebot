@@ -1,6 +1,6 @@
-import { Interaction, InteractionReplyOptions } from 'discord.js';
+import { InteractionReplyOptions } from 'discord.js';
 import { Jukebot } from '../../classes/Jukebot';
-import { CommandParams } from '../../classes/template/Command';
+import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { Status } from './status';
 
 describe('/status', () => {
@@ -9,9 +9,9 @@ describe('/status', () => {
     const reply = (newOutput: InteractionReplyOptions) => (output = newOutput);
 
     const jukebot = { client: { ws: { ping: 123 } }, getJukebox: () => undefined } as unknown as Jukebot;
-    const interaction = { createdTimestamp: Date.now() - 1000, reply } as unknown as Interaction;
+    const interaction = { createdTimestamp: Date.now() - 1000, reply } as unknown as JukebotInteraction;
 
-    const params = { jukebot, interaction } as CommandParams;
+    const params = { jukebot, interaction };
 
     const status = new Status();
 
@@ -22,7 +22,7 @@ describe('/status', () => {
 
     it('should give API latency fairly accurately', async () => {
         await status.execute(params);
-        expect(output?.content?.match(/[0-9]{4}/g));
+        expect(output?.content?.match(/10[0-9]{2}/g));
     });
 
     it('should include package version', async () => {

@@ -1,21 +1,21 @@
-import { DiscImages } from '../types/MusicDisc';
+import { DiscImages } from '../types/DiscImages';
 
 export const defaultDiscArray: DiscImages[] = [
-    DiscImages.Blocks,
+    DiscImages.Thirteen,
     DiscImages.Cat,
-    DiscImages.Chip,
-    DiscImages.Eleven,
-    DiscImages.Eleven2,
+    DiscImages.Blocks,
+    DiscImages.Chirp,
     DiscImages.Far,
     DiscImages.Mall,
     DiscImages.Mellohi,
-    DiscImages.Otherwise,
-    DiscImages.Pigstep,
     DiscImages.Stal,
     DiscImages.Strad,
-    DiscImages.Thirteen,
-    DiscImages.Wait,
     DiscImages.Ward,
+    DiscImages.Eleven,
+    DiscImages.Wait,
+    DiscImages.Otherside,
+    DiscImages.Five,
+    DiscImages.Pigstep,
 ];
 
 export function chooseRandomDisc(): DiscImages {

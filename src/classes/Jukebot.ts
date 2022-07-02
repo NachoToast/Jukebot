@@ -1,12 +1,12 @@
 import { Client, Collection, Intents, Interaction } from 'discord.js';
-import { chooseRandomArtist } from '../helpers/chooseRandomArtist';
-import { getVersion } from '../helpers/getVersion';
+import { chooseRandomArtist } from '../functions/chooseRandomArtist';
+import { getVersion } from '../functions/getVersion';
 import { Colours } from '../types/Colours';
 import { Logger, DuplicateLogBehaviour } from './template/Logger';
 import { RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand, Routes } from 'discord-api-types/v9';
 
-import { UtilCommands } from '../commands/util';
-import { colourCycler } from '../helpers/colourCycler';
+import { utilCommands } from '../commands/util';
+import { colourCycler } from '../functions/colourCycler';
 import { REST } from '@discordjs/rest';
 import { Command } from './template/Command';
 
@@ -29,18 +29,39 @@ export class Jukebot {
 
     public readonly commands: Collection<string, Command> = new Collection();
 
-    public readonly mainLogger: Logger;
+    /**
+     * Logger for info events, such as:
+     *
+     * - Unable to login (took to long, invalid token).
+     * - Unable to deploy commands (fetching guilds, undeploy).
+     */
+    public readonly infoLogger: Logger;
+
+    /**
+     * Logger for all error events, such as:
+     *
+     * - Unrecognized interaction.
+     * - Command execution error.
+     */
     public readonly errorLogger: Logger;
+
+    /**
+     * Logger for all warning events, such as:
+     *
+     * - Missing permissions (deprecation).
+     */
+    public readonly warnLogger: Logger;
 
     public constructor(token: string, devmode: boolean) {
         this.devmode = devmode;
 
         const logBehaviour = devmode ? DuplicateLogBehaviour.Replace : DuplicateLogBehaviour.Append;
 
-        this.mainLogger = new Logger('main', logBehaviour);
-        this.errorLogger = new Logger('error', logBehaviour);
+        this.infoLogger = new Logger('info.log', logBehaviour);
+        this.errorLogger = new Logger('errors.log', logBehaviour);
+        this.warnLogger = new Logger('warnings.log', logBehaviour);
 
-        this.mainLogger.log(`Jukebot ${getVersion()} started`);
+        this.infoLogger.log(`Jukebot ${getVersion()} started`);
 
         this.client = new Client({
             intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES],
@@ -55,7 +76,7 @@ export class Jukebot {
 
         const loginTimeout = Jukebot.maxLoginTime
             ? setTimeout(() => {
-                  this.mainLogger.logWithConsole(`Took too long to login (max ${Jukebot.maxLoginTime}s)`);
+                  this.errorLogger.logWithConsole(`Took too long to login (max ${Jukebot.maxLoginTime}s)`);
                   process.exit(1);
               }, Jukebot.maxLoginTime * 1000)
             : null;
@@ -65,16 +86,16 @@ export class Jukebot {
             if (loginTimeout) clearTimeout(loginTimeout);
         } catch (error) {
             if (error instanceof Error && error.name === 'Error [TOKEN_INVALID]') {
-                this.mainLogger.logWithConsole(`Invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
+                this.errorLogger.logWithConsole(`Invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
             } else {
-                this.mainLogger.logWithConsole(error);
+                this.errorLogger.logWithConsole(error);
             }
             process.exit(1);
         }
     }
 
     private async onReady(token: string): Promise<void> {
-        this.mainLogger.logWithConsole(
+        this.infoLogger.logWithConsole(
             `${this.client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - this.startTime}ms${Colours.Reset})`,
         );
 
@@ -88,16 +109,16 @@ export class Jukebot {
         }
 
         // loading commands
-        const toDeploy: RawSlashCommand[] = new Array(UtilCommands.length);
+        const toDeploy: RawSlashCommand[] = new Array(utilCommands.length);
         const cycler = colourCycler();
-        const output: string[] = [`Loading ${UtilCommands.length} Commands: `];
+        const output: string[] = [`Loading ${utilCommands.length} Commands: `];
 
-        for (let i = 0, len = UtilCommands.length; i < len; i++) {
-            const instance = new UtilCommands[i]();
+        for (let i = 0, len = utilCommands.length; i < len; i++) {
+            const instance = new utilCommands[i]();
             this.commands.set(instance.name, instance);
             toDeploy[i] = instance.build().toJSON();
 
-            output.push(`${cycler.next().value}${UtilCommands[i].name}${Colours.Reset}, `);
+            output.push(`${cycler.next().value}${utilCommands[i].name}${Colours.Reset}, `);
         }
 
         if (this.devmode) await this.guildDeploy(token, toDeploy);
@@ -113,24 +134,24 @@ export class Jukebot {
         for (const [guildId] of allGuilds) {
             const guild = await allGuilds.get(guildId)?.fetch();
             if (!guild) {
-                this.mainLogger.logWithConsole(`Unable to fetch guild ${Colours.FgMagenta}${guildId}${Colours.Reset}`);
+                this.errorLogger.logWithConsole(`Unable to fetch guild ${Colours.FgMagenta}${guildId}${Colours.Reset}`);
                 continue;
             }
 
             try {
                 await rest.put(Routes.applicationGuildCommands(this.client.user.id, guildId), { body });
-                this.mainLogger.logWithConsole(
+                this.infoLogger.logWithConsole(
                     `Deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`,
                 );
             } catch (error) {
-                this.mainLogger.logWithConsole(error);
+                this.errorLogger.logWithConsole(error);
             }
         }
 
         try {
             await rest.put(Routes.applicationCommands(this.client.user.id), { body: [] });
         } catch (error) {
-            this.mainLogger.logWithConsole(error);
+            this.errorLogger.logWithConsole(error);
             process.exit(1);
         }
     }
@@ -141,8 +162,11 @@ export class Jukebot {
 
         try {
             await rest.put(Routes.applicationCommands(this.client.user.id), { body });
+            this.infoLogger.logWithConsole(
+                `Deployed slash commands to ${Colours.FgMagenta}${this.client.guilds.cache.size}${Colours.Reset} guilds`,
+            );
         } catch (error) {
-            this.mainLogger.logWithConsole(error);
+            this.errorLogger.logWithConsole(error);
             process.exit(1);
         }
     }

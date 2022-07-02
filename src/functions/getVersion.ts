@@ -3,7 +3,6 @@ let rememberedVersion: string | undefined = undefined;
 /**
  * Gets the current version of Jukebot from `process.env.npm_package_version`,
  * or the `package.json` file if unavailable.
- *
  * @example '1.0.6'
  */
 export function getVersion(): string {

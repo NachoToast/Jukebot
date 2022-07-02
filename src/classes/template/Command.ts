@@ -1,9 +1,9 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction } from 'discord.js';
+import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { Jukebot } from '../Jukebot';
 
 export interface CommandParams {
-    interaction: CommandInteraction<'cached' | 'raw'>;
+    interaction: JukebotInteraction;
     jukebot: Jukebot;
 }
 
