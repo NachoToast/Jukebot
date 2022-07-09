@@ -9,6 +9,6 @@ export function getVersion(): string {
     if (rememberedVersion !== undefined) return rememberedVersion;
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    rememberedVersion = (process.env.npm_package_version || require('../../package.json').version) as string;
+    rememberedVersion = (process.env.npm_package_version || require(`../../package.json`).version) as string;
     return rememberedVersion;
 }

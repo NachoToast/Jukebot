@@ -11,7 +11,7 @@ export enum DuplicateLogBehaviour {
 }
 
 export class Logger {
-    public static readonly GLOBAL_LOG_FOLDER = 'logs';
+    public static readonly GLOBAL_LOG_FOLDER = `logs`;
 
     public readonly fileName: string;
 
@@ -30,29 +30,29 @@ export class Logger {
         }
 
         if (!existsSync(this.fileName) || behaviour === DuplicateLogBehaviour.Replace) {
-            writeFileSync(this.fileName, '', 'utf-8');
+            writeFileSync(this.fileName, ``, `utf-8`);
         }
     }
 
     private parseToString(data: unknown): string {
         switch (typeof data) {
-            case 'string':
+            case `string`:
                 return data;
-            case 'boolean':
-                return data ? 'true' : 'false';
-            case 'undefined':
-                return 'undefined';
-            case 'bigint':
-            case 'function':
-            case 'number':
-            case 'symbol':
+            case `boolean`:
+                return data ? `true` : `false`;
+            case `undefined`:
+                return `undefined`;
+            case `bigint`:
+            case `function`:
+            case `number`:
+            case `symbol`:
                 return data.toString();
-            case 'object':
+            case `object`:
                 break;
         }
 
-        if (data === null) return 'null';
-        if (Array.isArray(data)) return data.map((e) => this.parseToString(e)).join('\n');
+        if (data === null) return `null`;
+        if (Array.isArray(data)) return data.map((e) => this.parseToString(e)).join(`\n`);
 
         try {
             return JSON.stringify(data, undefined, 2);
@@ -71,18 +71,18 @@ export class Logger {
     public log(...messages: unknown[]): void {
         if (!messages.length) throw new Error(`Cannot log nothing to ${this.fileName}`);
 
-        const timestamp = `[${new Date().toLocaleString('en-NZ')}] `;
-        const output: string[] = messages.map((e) => this.parseToString(e).replaceAll(/.\[[0-9]{1,2}m/g, ''));
+        const timestamp = `[${new Date().toLocaleString(`en-NZ`)}] `;
+        const output: string[] = messages.map((e) => this.parseToString(e).replaceAll(/.\[[0-9]{1,2}m/g, ``));
         output[0] = timestamp + output[0];
 
         for (let i = 1, len = output.length; i < len; i++) {
             output[i] = output[i]
-                .split('\n')
-                .map((e) => '  ' + e)
-                .join('\n');
+                .split(`\n`)
+                .map((e) => `  ` + e)
+                .join(`\n`);
         }
 
-        appendFileSync(this.fileName, output.join('\n') + '\n', 'utf-8');
+        appendFileSync(this.fileName, output.join(`\n`) + `\n`, `utf-8`);
     }
 
     /**
@@ -131,7 +131,7 @@ export class Logger {
         try {
             mkdirSync(name);
         } catch (error) {
-            if ((error as { code?: string })?.code !== 'EEXIST') {
+            if ((error as { code?: string })?.code !== `EEXIST`) {
                 throw error;
             }
         }

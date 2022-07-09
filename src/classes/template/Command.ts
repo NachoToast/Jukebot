@@ -12,7 +12,7 @@ export abstract class Command {
     public abstract readonly description: string;
 
     public async execute(params: CommandParams): Promise<void> {
-        await params.interaction.reply({ content: 'Not yet implemented', ephemeral: true });
+        await params.interaction.reply({ content: `Not yet implemented`, ephemeral: true });
     }
 
     public build(): SlashCommandBuilder {

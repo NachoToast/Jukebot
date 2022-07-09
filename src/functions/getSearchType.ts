@@ -6,30 +6,30 @@ export function getSearchType(s: string): AnySearch {
         const url = new URL(s);
 
         if (url.host.match(/^(www\.)?youtube\.com$/g)) {
-            if (url.searchParams.has('list')) {
+            if (url.searchParams.has(`list`)) {
                 // youtube playlist
                 return { valid: true, source: SearchSources.YouTube, type: YouTubeSubtypes.Playlist };
             }
-            if (url.searchParams.has('v')) {
+            if (url.searchParams.has(`v`)) {
                 // youtube video
                 return { valid: true, source: SearchSources.YouTube, type: YouTubeSubtypes.Video };
             }
             return { valid: false, source: SearchSources.YouTube };
         }
 
-        if (url.host === 'youtu.be') {
+        if (url.host === `youtu.be`) {
             // url shortened youtube video
             return { valid: true, source: SearchSources.YouTube, type: YouTubeSubtypes.Video };
         }
 
-        if (url.host === 'open.spotify.com') {
-            if (url.pathname.startsWith('/track/')) {
+        if (url.host === `open.spotify.com`) {
+            if (url.pathname.startsWith(`/track/`)) {
                 return { valid: true, source: SearchSources.Spotify, type: SpotifySubtypes.Track };
             }
-            if (url.pathname.startsWith('/playlist/')) {
+            if (url.pathname.startsWith(`/playlist/`)) {
                 return { valid: true, source: SearchSources.Spotify, type: SpotifySubtypes.Playlist };
             }
-            if (url.pathname.startsWith('/album/')) {
+            if (url.pathname.startsWith(`/album/`)) {
                 return { valid: true, source: SearchSources.Spotify, type: SpotifySubtypes.Album };
             }
             return { valid: false, source: SearchSources.Spotify };
@@ -39,7 +39,7 @@ export function getSearchType(s: string): AnySearch {
     } catch (error) {
         // url creation error, so might not be a url
 
-        if (s.startsWith('http') || s.endsWith('.com')) {
+        if (s.startsWith(`http`) || s.endsWith(`.com`)) {
             // most likely a url, which means it must be invalid since we had an error earlier
             return { valid: false, source: SearchSources.Invalid };
         }

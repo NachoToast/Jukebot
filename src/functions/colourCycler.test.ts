@@ -1,8 +1,8 @@
 import { Colours } from '../types/Colours';
 import { colourCycler, defaultColourArray } from './colourCycler';
 
-describe('colourCycler', () => {
-    it('Cycles through the default colours', () => {
+describe(`colourCycler`, () => {
+    it(`Cycles through the default colours`, () => {
         const expected: Colours[] = new Array<Colours>(defaultColourArray.length);
 
         const colours = colourCycler();
@@ -15,7 +15,7 @@ describe('colourCycler', () => {
         }
     });
 
-    it('Cycles through custom colours', () => {
+    it(`Cycles through custom colours`, () => {
         const customColourArray: Colours[] = [Colours.FgBlack, Colours.FgBlue, Colours.BgBlack];
 
         const expected: Colours[] = new Array<Colours>(customColourArray.length);

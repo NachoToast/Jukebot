@@ -3,7 +3,7 @@ import { Jukebot } from '../../classes/Jukebot';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { Status } from './status';
 
-describe('/status', () => {
+describe(`/status`, () => {
     let output: InteractionReplyOptions = {};
 
     const reply = (newOutput: InteractionReplyOptions) => (output = newOutput);
@@ -15,18 +15,18 @@ describe('/status', () => {
 
     const status = new Status();
 
-    it('should give accurate client latency', async () => {
+    it(`should give accurate client latency`, async () => {
         await status.execute(params);
-        expect(output?.content?.includes('123'));
+        expect(output?.content?.includes(`123`));
     });
 
-    it('should give API latency fairly accurately', async () => {
+    it(`should give API latency fairly accurately`, async () => {
         await status.execute(params);
         expect(output?.content?.match(/10[0-9]{2}/g));
     });
 
-    it('should include package version', async () => {
+    it(`should include package version`, async () => {
         await status.execute(params);
-        expect(output?.content?.includes(process.env.npm_version ?? 'Unknown'));
+        expect(output?.content?.includes(process.env.npm_version ?? `Unknown`));
     });
 });

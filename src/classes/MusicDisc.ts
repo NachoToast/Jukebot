@@ -28,22 +28,19 @@ export class MusicDisc {
 
     public constructor(interaction: JukebotInteraction, video: YouTubeVideo) {
         this.origin = interaction;
-
-        if (interaction.member instanceof GuildMember) {
-            this.addedBy = interaction.member;
-        } else throw new Error('Non-GuildMember tried to create a MusicDisc');
+        this.addedBy = interaction.member;
 
         this.url = video.url;
-        this.title = video.title || 'Unknown Song';
+        this.title = video.title || `Unknown Song`;
         this.thumbnail = video.thumbnails.shift()?.url || chooseRandomDisc();
         this.views = video.views;
-        this.channel = video.channel?.name || 'Unknown Artist';
+        this.channel = video.channel?.name || `Unknown Artist`;
 
         this.durationSeconds = video.durationInSec;
         this.durationString = video.durationRaw;
     }
 
-    /**Generates and stores an audio resource for future playback. */
+    /** Generates and stores an audio resource for future playback. */
     public async prepare(): Promise<AudioResource<MusicDisc>> {
         if (this._resource) return this._resource;
 

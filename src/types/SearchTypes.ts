@@ -26,6 +26,14 @@ export enum SpotifySubtypes {
     Album,
 }
 
+export type IsPlaylist<T extends YouTubeSubtypes | SpotifySubtypes | unknown> = T extends YouTubeSubtypes.Playlist
+    ? true
+    : T extends SpotifySubtypes.Playlist
+    ? true
+    : T extends SpotifySubtypes.Album
+    ? true
+    : false;
+
 interface BaseSearchType {
     valid: boolean;
     source: SearchSources;
@@ -34,7 +42,6 @@ interface BaseSearchType {
 
 interface BaseInvalidSearchType extends BaseSearchType {
     valid: false;
-    type?: undefined;
 }
 
 interface BaseValidSearchType extends BaseSearchType {
@@ -45,38 +52,37 @@ interface BaseValidSearchType extends BaseSearchType {
 // invalid searches
 export interface InvalidSpotifySearch extends BaseInvalidSearchType {
     source: SearchSources.Spotify;
-    // type?: SpotifySubtypes;
+    type?: SpotifySubtypes;
 }
 
 export interface InvalidYouTubeSearch extends BaseInvalidSearchType {
     source: SearchSources.YouTube;
-    // type?: YouTubeSubtypes;
+    type?: YouTubeSubtypes;
 }
 
 export interface InvalidTextSearch extends BaseInvalidSearchType {
     source: SearchSources.Text;
-    // type?: undefined;
 }
 
+/** Search had a valid link, but wasn't recognized as a YouTube or Spotify one. */
 export interface InvalidUnknownSearch extends BaseInvalidSearchType {
     source: SearchSources.Unknown;
-    // type?: undefined;
 }
 
+/** Search had a bad link. */
 export interface InvalidInvalidSearch extends BaseInvalidSearchType {
     source: SearchSources.Invalid;
-    // type?: undefined;
 }
 
 // valid searches
-export interface ValidSpotifySearch extends BaseValidSearchType {
+export interface ValidSpotifySearch<T extends SpotifySubtypes = SpotifySubtypes> extends BaseValidSearchType {
     source: SearchSources.Spotify;
-    type: SpotifySubtypes;
+    type: T;
 }
 
-export interface ValidYouTubeSearch extends BaseValidSearchType {
+export interface ValidYouTubeSearch<T extends YouTubeSubtypes = YouTubeSubtypes> extends BaseValidSearchType {
     source: SearchSources.YouTube;
-    type: YouTubeSubtypes;
+    type: T;
 }
 
 export interface ValidTextSearch extends BaseValidSearchType {
@@ -85,10 +91,12 @@ export interface ValidTextSearch extends BaseValidSearchType {
 }
 
 export type ValidSearch = ValidSpotifySearch | ValidYouTubeSearch | ValidTextSearch;
+
 export type InvalidSearch =
     | InvalidSpotifySearch
     | InvalidYouTubeSearch
     | InvalidUnknownSearch
     | InvalidTextSearch
     | InvalidInvalidSearch;
+
 export type AnySearch = ValidSearch | InvalidSearch;

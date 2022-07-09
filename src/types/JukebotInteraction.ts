@@ -1,3 +1,5 @@
-import { CommandInteraction } from 'discord.js';
+import { CommandInteraction, GuildMember } from 'discord.js';
 
-export type JukebotInteraction = CommandInteraction<'cached' | 'raw'>;
+export interface JukebotInteraction extends CommandInteraction<`cached` | `raw`> {
+    member: GuildMember;
+}
