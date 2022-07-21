@@ -38,7 +38,11 @@ export class Hopper<T extends ValidSearch> {
     public readonly interaction: JukebotInteraction;
     public readonly search: T;
     public readonly searchTerm: string;
+
+    /** May be 0, in which case there is no maximum. */
     public readonly maxItems: number;
+
+    /** Logger for errors. */
     public readonly logger?: Logger;
 
     public constructor(
@@ -174,7 +178,7 @@ export class Hopper<T extends ValidSearch> {
     ): Promise<HopperResult<ValidYouTubeSearch<YouTubeSubtypes.Playlist>>> {
         try {
             const playlist = await playlist_info(url, { incomplete: true });
-            const videos = await playlist.next(this.maxItems);
+            const videos = await playlist.next(this.maxItems || undefined);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.YouTube> | VideoHopperError<BrokenReasons>)[] = [];
@@ -244,7 +248,7 @@ export class Hopper<T extends ValidSearch> {
     ): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Playlist>>> {
         try {
             const playlist = (await spotify(url)) as SpotifyPlaylist;
-            const tracks = (await playlist.all_tracks()).slice(0, this.maxItems);
+            const tracks = (await playlist.all_tracks()).slice(0, this.maxItems || undefined);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
@@ -287,7 +291,7 @@ export class Hopper<T extends ValidSearch> {
     private async handleSpotifyAlbumURL(url: string): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Album>>> {
         try {
             const album = (await spotify(url)) as SpotifyAlbum;
-            const tracks = (await album.all_tracks()).slice(0, this.maxItems);
+            const tracks = (await album.all_tracks()).slice(0, this.maxItems || undefined);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
