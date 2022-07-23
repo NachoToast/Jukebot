@@ -1,4 +1,4 @@
-import Auth from '../types/Auth';
+import { Auth } from '../types/Auth';
 import { Colours } from '../types/Colours';
 
 let rememberedAuth: Auth | undefined = undefined;

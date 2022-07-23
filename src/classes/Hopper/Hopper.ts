@@ -1,67 +1,89 @@
 import {
     is_expired,
-    playlist_info,
     refreshToken,
-    search,
-    spotify,
-    SpotifyAlbum,
-    SpotifyPlaylist,
-    SpotifyTrack,
-    video_basic_info,
     YouTubeVideo,
+    video_basic_info,
+    playlist_info,
+    spotify,
+    SpotifyTrack,
+    SpotifyPlaylist,
+    SpotifyAlbum,
+    search,
 } from 'play-dl';
-import { Config } from '../../Config';
+import { Config } from '../../global/Config';
 import { chooseRandomDisc } from '../../functions/chooseRandomDisc';
 import { levenshteinDistance } from '../../functions/levenshtein';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import {
-    SearchSources,
-    SpotifySubtypes,
     ValidSearch,
-    ValidSpotifySearch,
-    ValidYouTubeSearch,
+    SearchSources,
     YouTubeSubtypes,
+    SpotifySubtypes,
+    ValidYouTubeSearch,
+    ValidSpotifySearch,
 } from '../../types/SearchTypes';
 import { MusicDisc } from '../MusicDisc';
-import { Logger } from '../template/Logger';
-import {
-    BrokenReasons,
-    ConversionHopperError,
-    HopperError,
-    NoResultsHopperError,
-    VideoHopperError,
-} from './HopperError';
-import { HandleTextSearchResponse, HopperResult } from './HopperTypes';
+import { HopperError, VideoHopperError, ConversionHopperError, NoResultsHopperError } from './Errors';
+import { HopperProps, HopperResult, BrokenReasons, HandleTextSearchResponse } from './types';
+import { Loggers } from '../../global/Loggers';
+import { promisify } from 'util';
+import { Messages } from '../../global/Messages';
+
+const wait = promisify(setTimeout);
 
 /** Handles fetching of results from a query string. */
 export class Hopper<T extends ValidSearch> {
+    /** Interaction to note as origin for any generated MusicDiscs. */
     public readonly interaction: JukebotInteraction;
+
+    /**
+     * Metadata about the search, such as its source (YouTube, Spotify, Text)
+     * and subtype (Video, Track, Album, etc...).
+     */
     public readonly search: T;
+
+    /** The original search term. */
     public readonly searchTerm: string;
 
-    /** May be 0, in which case there is no maximum. */
-    public readonly maxItems: number;
+    /** Maximum number of items to return, undefined means no limit. */
+    public readonly maxItems: number | undefined;
 
-    /** Logger for errors. */
-    public readonly logger?: Logger;
-
-    public constructor(
-        interaction: JukebotInteraction,
-        search: T,
-        searchTerm: string,
-        maxItems: number,
-        logger?: Logger,
-    ) {
-        this.interaction = interaction;
-        this.search = search;
-        this.searchTerm = searchTerm;
-        this.maxItems = maxItems;
-        this.logger = logger;
+    public constructor(props: HopperProps<T>) {
+        this.interaction = props.interaction;
+        this.search = props.search;
+        this.searchTerm = props.searchTerm;
+        this.maxItems = props.maxItems;
     }
 
+    /**
+     * Fetches results from a valid search.
+     *
+     * @throws Throws an error if Spotify reauthentication fails, or if unable to fetch results
+     * in the {@link Config.timeoutThresholds.fetchResults configured} amount of time.
+     */
     public async fetchResults(): Promise<HopperResult<T>> {
-        if (is_expired()) await refreshToken();
+        try {
+            if (is_expired()) await refreshToken();
+        } catch (error) {
+            throw new Error(`Spotify authentication failed`);
+        }
 
+        const fetchRace: Promise<HopperResult<T> | void>[] = [this._internalFetch()];
+
+        if (Config.timeoutThresholds.fetchResults) {
+            fetchRace.push(wait(Config.timeoutThresholds.generateResource * 1000));
+        }
+
+        const result = (await Promise.race(fetchRace)) ?? undefined;
+
+        if (result === undefined) {
+            throw new Error(Messages.timeout(Config.timeoutThresholds.fetchResults, `fetch results`));
+        }
+
+        return result;
+    }
+
+    private async _internalFetch(): Promise<HopperResult<T>> {
         let output: HopperResult<ValidSearch>;
         let logOutput = false;
 
@@ -121,9 +143,9 @@ export class Hopper<T extends ValidSearch> {
         }
 
         if (logOutput) {
-            this.logger?.log(`Got call to log output`, {
+            Loggers.error.log(`[${this.interaction.guild.name}] [Hopper] Got call to log output`, {
                 output,
-                interaction: this.interaction,
+                member: { id: this.interaction.member.id, name: this.interaction.member.displayName },
                 searchTerm: this.searchTerm,
                 search: this.search,
             });
@@ -144,7 +166,7 @@ export class Hopper<T extends ValidSearch> {
             if (error instanceof Error) {
                 return new VideoHopperError(video, BrokenReasons.Other, `[${error.name}] ${error.message}`);
             } else {
-                this.logger?.log(error);
+                Loggers.error.log(error);
                 return new VideoHopperError(video, BrokenReasons.Other, `Unknown error occurred`);
             }
         }
@@ -178,7 +200,7 @@ export class Hopper<T extends ValidSearch> {
     ): Promise<HopperResult<ValidYouTubeSearch<YouTubeSubtypes.Playlist>>> {
         try {
             const playlist = await playlist_info(url, { incomplete: true });
-            const videos = await playlist.next(this.maxItems || undefined);
+            const videos = await playlist.next(this.maxItems);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.YouTube> | VideoHopperError<BrokenReasons>)[] = [];
@@ -226,7 +248,7 @@ export class Hopper<T extends ValidSearch> {
             if (disc instanceof VideoHopperError) {
                 // this should never happen, since the `handleTextSearch()` method
                 // should always return a valid video
-                this.logger?.log(`Impossible event: 2x VideoHopperErrors`, {
+                Loggers.error.log(`Impossible event: 2x VideoHopperErrors`, {
                     interaction: this.interaction,
                     disc,
                     video,
@@ -248,7 +270,7 @@ export class Hopper<T extends ValidSearch> {
     ): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Playlist>>> {
         try {
             const playlist = (await spotify(url)) as SpotifyPlaylist;
-            const tracks = (await playlist.all_tracks()).slice(0, this.maxItems || undefined);
+            const tracks = (await playlist.all_tracks()).slice(0, this.maxItems);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
@@ -291,7 +313,7 @@ export class Hopper<T extends ValidSearch> {
     private async handleSpotifyAlbumURL(url: string): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Album>>> {
         try {
             const album = (await spotify(url)) as SpotifyAlbum;
-            const tracks = (await album.all_tracks()).slice(0, this.maxItems || undefined);
+            const tracks = (await album.all_tracks()).slice(0, this.maxItems);
 
             const items: MusicDisc[] = [];
             const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
@@ -361,7 +383,6 @@ export class Hopper<T extends ValidSearch> {
         track: SpotifyTrack | null,
         limit: number = 3,
     ): Promise<HandleTextSearchResponse> {
-        console.log(`Searching for ${text}`);
         const results = await search(text, { source: { youtube: `video` }, fuzzy: true, limit });
         if (!results.length)
             if (track === null) {

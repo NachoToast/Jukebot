@@ -1,5 +1,4 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { Hopper } from '../../classes/Hopper/Hopper';
 import { Command, CommandParams } from '../../classes/template/Command';
 import { getSearchType } from '../../functions/getSearchType';
 import { InvalidSearch, SearchSources, SpotifySubtypes, YouTubeSubtypes } from '../../types/SearchTypes';
@@ -21,37 +20,50 @@ export class Play extends Command {
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const searchTerm = interaction.options.get(`song`, true).value;
         if (typeof searchTerm !== `string`) {
-            return await interaction.reply({ content: `Please specify a song name or URL`, ephemeral: true });
+            await interaction.reply({ content: `Please specify a song name or URL`, ephemeral: true });
+            return;
         }
 
         const search = getSearchType(searchTerm);
         if (!search.valid) {
             search.source;
-            return await interaction.reply({ content: this.invalidSearchMessage(search), ephemeral: true });
-        }
-
-        await interaction.reply({ content: `Searching for results...` });
-
-        const startTime = Date.now();
-        const hopper = await new Hopper(interaction, search, searchTerm, 100, jukebot.errorLogger).fetchResults();
-        const timeTaken = Date.now() - startTime;
-        if (!hopper.success) {
-            jukebot.errorLogger.log(hopper.error, { interaction });
-            await interaction.editReply({ content: `An unknown error occurred while getting results` });
-            return;
-        }
-        if (!hopper.items.length) {
-            await interaction.editReply({ content: `No results found` });
+            await interaction.reply({ content: this.invalidSearchMessage(search), ephemeral: true });
             return;
         }
 
-        await interaction.editReply({
-            content: `Added ${hopper.items.length} items to the queue (took ${timeTaken}ms)`,
+        if (interaction.member.voice.channel === null) {
+            await interaction.reply({ content: `You must be in voice to use this command`, ephemeral: true });
+            return;
+        }
+
+        if (interaction.member.voice.channel.joinable === false) {
+            await interaction.reply({
+                content: `I cannot join <#${interaction.member.voice.channelId}> `,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const jukebox = jukebot.getOrMakeJukebox({
+            interaction,
+            voiceChannel: interaction.member.voice.channel,
+            search,
+            searchTerm,
         });
-        console.log(`${hopper.errors.length} errors, ${hopper.items.length} items`);
-        for (const e of hopper.errors) {
-            console.log(e.toString(false));
-        }
+
+        const res = await jukebox.playSearchFromInactive(
+            {
+                interaction,
+                maxItems: jukebox.freeSpace,
+                search,
+                searchTerm,
+            },
+            interaction,
+        );
+
+        if (interaction.deferred) {
+            await interaction.editReply(res);
+        } else await interaction.reply(res);
     }
 
     private invalidSearchMessage(search: InvalidSearch): string {

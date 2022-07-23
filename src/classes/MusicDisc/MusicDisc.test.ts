@@ -1,8 +1,8 @@
 import { GuildMember } from 'discord.js';
 import { YouTubeVideo } from 'play-dl';
-import { defaultDiscArray } from '../functions/chooseRandomDisc';
-import { JukebotInteraction } from '../types/JukebotInteraction';
-import { MusicDisc } from './MusicDisc';
+import { defaultDiscArray } from '../../functions/chooseRandomDisc';
+import { JukebotInteraction } from '../../types/JukebotInteraction';
+import { MusicDisc } from '.';
 
 describe(`MusicDisc`, () => {
     const fakeMember: GuildMember = Object.create(GuildMember.prototype);

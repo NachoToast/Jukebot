@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder } from 'discord.js';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { Jukebot } from '../Jukebot';
 

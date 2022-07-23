@@ -1,13 +1,7 @@
-import { YouTubeVideo } from 'play-dl';
-import { IsPlaylist, SearchSources, ValidSearch } from '../../types/SearchTypes';
-import { MusicDisc } from '../MusicDisc';
-import {
-    BrokenReasons,
-    ConversionHopperError,
-    HopperError,
-    NoResultsHopperError,
-    VideoHopperError,
-} from './HopperError';
+import { ValidSearch, IsPlaylist } from '../../../types/SearchTypes';
+import { MusicDisc } from '../../MusicDisc';
+import { HopperError, VideoHopperError } from '../Errors';
+import { BrokenReasons } from './BrokenReasons';
 
 interface BaseHopperResult {
     success: boolean;
@@ -35,7 +29,3 @@ export interface PlaylistMetadata {
     playlistURL: string;
     createdBy: string;
 }
-
-export type HandleTextSearchResponse<
-    T extends SearchSources.Text | SearchSources.Spotify = SearchSources.Text | SearchSources.Spotify,
-> = YouTubeVideo | ConversionHopperError<T> | NoResultsHopperError<T> | VideoHopperError<BrokenReasons>;

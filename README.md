@@ -12,7 +12,7 @@ See the [installation guide](./.github/installationGuide.md) for a more beginner
 
 Dependencies:
 
--   [Node.js](https://nodejs.org/en/) v16.x - v18.x (exclusive).
+-   [Node.js](https://nodejs.org/en/) v16.9 - v18.x (exclusive).
     -   Lower versions may work, but have not been tested and may stop working in future updates.
     -   Later versions currently don't work due to [issues](https://github.com/Automattic/node-canvas/issues/2025) with the [node-canvas](https://www.npmjs.com/package/canvas) dependency.
 

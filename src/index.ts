@@ -1,5 +1,5 @@
 import { Jukebot } from './classes/Jukebot';
-import { getAuth } from './functions/getAuthConfig';
+import { getAuth } from './functions/getAuth';
 
 const { token } = getAuth();
 const devmode = process.argv.slice(2).includes(`--devmode`);

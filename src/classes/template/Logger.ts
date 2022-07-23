@@ -15,11 +15,16 @@ export class Logger {
 
     public readonly fileName: string;
 
+    public alsoLogToConsole: boolean;
+
     /**
      * @param {String} fileName Name of this log file, including any nested folders **and** the extension.
-     * @param {DirectionSetting} behaviour How to handle duplicate files with this name.
+     * @param {DirectionSetting} behaviour How to handle files with the same name.
+     * @param {boolean} [alsoLogToConsole=false] Whether to also log messages to the console, default is false.
      */
-    public constructor(fileName: string, behaviour: DuplicateLogBehaviour) {
+    public constructor(fileName: string, behaviour: DuplicateLogBehaviour, alsoLogToConsole: boolean = false) {
+        this.alsoLogToConsole = alsoLogToConsole;
+
         Logger.makeFolder(Logger.GLOBAL_LOG_FOLDER);
         Logger.makeParentFolders(fileName);
 
@@ -62,14 +67,10 @@ export class Logger {
         }
     }
 
-    public logWithConsole(...messages: unknown[]): void {
-        console.log(...messages);
-
-        this.log(...messages);
-    }
-
     public log(...messages: unknown[]): void {
         if (!messages.length) throw new Error(`Cannot log nothing to ${this.fileName}`);
+
+        if (this.alsoLogToConsole) console.log(...messages);
 
         const timestamp = `[${new Date().toLocaleString(`en-NZ`)}] `;
         const output: string[] = messages.map((e) => this.parseToString(e).replaceAll(/.\[[0-9]{1,2}m/g, ``));
@@ -89,7 +90,7 @@ export class Logger {
      * Appends numbers to duplicate log files, e.g.
      * `myLogFile.log`, `myLogFile-1.log`, `myLogFile-2.log`.
      *
-     * Only applicable if duplicate log behaviour is set to make new.
+     * Only applicable if duplicate log behaviour is set to {@link DuplicateLogBehaviour.MakeNew make new}.
      */
     private static nameLogFile(fullPath: string): string {
         const dir = dirname(fullPath);
@@ -125,7 +126,7 @@ export class Logger {
     /**
      * Attempts to create a single, non-nested folder.
      *
-     * @throws An error if creation failed, unless the failure reason was that the folder already existed.
+     * @throws Throws an error if creation failed, unless the failure reason was that the folder already existed.
      */
     private static makeFolder(name: string): void {
         try {
