@@ -65,8 +65,9 @@ export class Hopper<T extends ValidSearch> {
         try {
             if (is_expired()) await refreshToken();
         } catch (error) {
+            Loggers.warn.log(`Authentication failed`, error);
             if (this.search.source === SearchSources.Spotify) {
-                throw new Error(`Spotify authentication failed`);
+                throw new Error(`Authentication failed`);
             }
         }
 
