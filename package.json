@@ -38,7 +38,7 @@
         "discord-api-types": "^0.26.1",
         "discord.js": "^13.6.0",
         "ffmpeg-static": "^4.4.1",
-        "moment": "^2.29.2",
+        "moment": "^2.29.4",
         "play-dl": "^1.8.2",
         "sodium": "^3.0.2",
         "tiny-typed-emitter": "^2.1.0"
