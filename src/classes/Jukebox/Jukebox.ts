@@ -43,7 +43,7 @@ export class Jukebox {
     private _status: JukeboxStatus;
 
     /** Queue of MusicDiscs. */
-    private _inventory: MusicDisc[] = [];
+    public inventory: MusicDisc[] = [];
 
     /**
      * Whether this is currently in the process of beginning to play something,
@@ -70,10 +70,6 @@ export class Jukebox {
                 ? setTimeout(() => this.destroy(), Config.timeoutThresholds.clearQueue * 1000)
                 : null,
         };
-    }
-
-    public get status(): JukeboxStatus {
-        return this._status;
     }
 
     private destroyPlayer(player: AudioPlayer): void {
@@ -224,10 +220,6 @@ export class Jukebox {
             this.logError(`Connection error`, { error });
             this.destroy();
         });
-
-        // connection.once(VoiceConnectionStatus.Destroyed, () => {
-        //     this._status = this.makeInactiveStatus();
-        // });
 
         connection.on(VoiceConnectionStatus.Disconnected, () => {
             this._status = this.makeInactiveStatus();
@@ -425,7 +417,7 @@ export class Jukebox {
         const cleanup = () => {
             if (player) this.destroyPlayer(player);
             if (connection) this.destroyConnection(connection);
-            if (this._inventory.at(0)?.resource !== undefined) this._inventory[0].unprepare();
+            if (this.inventory.at(0)?.resource !== undefined) this.inventory[0].unprepare();
         };
 
         // 1. make a connection to the target voice channel and get search results (in parallel)
@@ -467,11 +459,11 @@ export class Jukebox {
             return { content: `No results found` };
         }
 
-        this._inventory.push(...results.items);
+        this.inventory.push(...results.items);
 
         // 4. now we can prepare the resource
         try {
-            const resourcePromise = this._inventory[0].prepare();
+            const resourcePromise = this.inventory[0].prepare();
 
             const editPromise = interaction
                 ?.editReply({
@@ -488,7 +480,7 @@ export class Jukebox {
 
             this.logError(`Unknown error occurred on playSearchFromInactive step 4 (prepare resource)`, {
                 error,
-                disc: this._inventory[0].toJSON(),
+                disc: this.inventory[0].toJSON(),
                 search: jsonSearch,
             });
             return { content: `Unknown error occurred while preparing resource` };
@@ -513,36 +505,37 @@ export class Jukebox {
 
             this.logError(`Unknown error occurred on playSearchFromInactive step 5 (play resource)`, {
                 error,
-                disc: this._inventory[0].toJSON(),
+                disc: this.inventory[0].toJSON(),
                 search: jsonSearch,
             });
             return { content: `Unknown error occurred while playing` };
         }
 
         // 6. finally we can update the status of the Jukebox to active
-        this.makeActiveStatus(this._inventory[0], connection, player);
+        this.makeActiveStatus(this.inventory[0], connection, player);
 
         return {
-            content: `Now playing **${this._inventory[0].title}** [${this._inventory[0].durationString}] (*requested by ${this._inventory[0].addedBy.displayName}*)`,
+            content: `Now playing **${this.inventory[0].title}** [${this.inventory[0].durationString}] (*requested by ${this.inventory[0].addedBy.displayName}*)`,
         };
     }
-
-    /** Plays the next song */
-    // public async playSearchFromActive() {}
 
     /** Maximum number of {@link MusicDisc}'s that can be added to the queue, undefined being no limit. */
     public get freeSpace(): number | undefined {
         if (Config.maxQueueSize) {
-            return Config.maxQueueSize - this._inventory.length;
+            return Config.maxQueueSize - this.inventory.length;
         }
         return undefined;
     }
 
     public get isFull(): boolean {
         if (Config.maxQueueSize) {
-            return this._inventory.length === Config.maxQueueSize;
+            return this.inventory.length === Config.maxQueueSize;
         }
         return false;
+    }
+
+    public get status(): JukeboxStatus {
+        return this._status;
     }
 
     private logError(message: string, props?: { error?: unknown; [k: string]: unknown }) {
