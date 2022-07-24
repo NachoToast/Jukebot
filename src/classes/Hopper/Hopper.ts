@@ -65,7 +65,9 @@ export class Hopper<T extends ValidSearch> {
         try {
             if (is_expired()) await refreshToken();
         } catch (error) {
-            throw new Error(`Spotify authentication failed`);
+            if (this.search.source === SearchSources.Spotify) {
+                throw new Error(`Spotify authentication failed`);
+            }
         }
 
         const fetchRace: Promise<HopperResult<T> | void>[] = [this._internalFetch()];
