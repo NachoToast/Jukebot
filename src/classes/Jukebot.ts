@@ -164,6 +164,10 @@ export class Jukebot {
         }
     }
 
+    public getJukebox(guildId: Snowflake): Jukebox | undefined {
+        return this._jukeboxes.get(guildId);
+    }
+
     public getOrMakeJukebox(props: JukeboxProps): Jukebox {
         const existing = this._jukeboxes.get(props.interaction.guildId);
         if (existing !== undefined) return existing;
