@@ -1,4 +1,5 @@
 import moment from 'moment';
+import { StatusTiers } from '../../classes/Jukebox/types';
 import { Command, CommandParams } from '../../classes/template/Command';
 import { getVersion } from '../../functions/getVersion';
 import { Colours } from '../../types/Colours';
@@ -25,6 +26,20 @@ export class Status extends Command {
             }${apiLatency}ms${Colours.Reset}`,
             `Memory: ${Colours.FgCyan}${Math.ceil(utilizedMemory)}${Colours.Reset} MB`,
         ];
+
+        const jukebox = jukebot.getJukebox(interaction.guildId);
+
+        if (jukebox) {
+            output.push(
+                `Status: ${Colours.FgMagenta}${
+                    jukebox[`_status`].tier === StatusTiers.Active
+                        ? `Active`
+                        : jukebox[`_status`].tier === StatusTiers.Idle
+                        ? `Idle`
+                        : `Inactive`
+                }${Colours.Reset}`,
+            );
+        }
 
         await interaction.reply({
             content: `> \`\`\`ansi\n> ` + output.join(`\n> `) + `\n> \`\`\``,
