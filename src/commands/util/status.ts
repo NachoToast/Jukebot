@@ -32,9 +32,9 @@ export class Status extends Command {
         if (jukebox) {
             output.push(
                 `Status: ${Colours.FgMagenta}${
-                    jukebox[`_status`].tier === StatusTiers.Active
+                    jukebox.status.tier === StatusTiers.Active
                         ? `Active`
-                        : jukebox[`_status`].tier === StatusTiers.Idle
+                        : jukebox.status.tier === StatusTiers.Idle
                         ? `Idle`
                         : `Inactive`
                 }${Colours.Reset}`,
