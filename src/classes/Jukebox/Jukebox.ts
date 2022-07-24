@@ -72,6 +72,10 @@ export class Jukebox {
         };
     }
 
+    public get status(): JukeboxStatus {
+        return this._status;
+    }
+
     private destroyPlayer(player: AudioPlayer): void {
         try {
             player.off(`error`, (error) => {
@@ -522,6 +526,9 @@ export class Jukebox {
             content: `Now playing **${this._inventory[0].title}** [${this._inventory[0].durationString}] (*requested by ${this._inventory[0].addedBy.displayName}*)`,
         };
     }
+
+    /** Plays the next song */
+    // public async playSearchFromActive() {}
 
     /** Maximum number of {@link MusicDisc}'s that can be added to the queue, undefined being no limit. */
     public get freeSpace(): number | undefined {
