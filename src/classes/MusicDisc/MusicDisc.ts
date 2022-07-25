@@ -6,6 +6,8 @@ import { Config } from '../../global/Config';
 import { chooseRandomDisc } from '../../functions/chooseRandomDisc';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { JsonMusicDisc } from './types';
+import { DiscTimeoutError } from './DiscError';
+import { Loggers } from '../../global/Loggers';
 
 const wait = promisify(setTimeout);
 
@@ -48,25 +50,37 @@ export class MusicDisc {
         return this._resource;
     }
 
-    private async _internalPrepare(): Promise<AudioResource<MusicDisc>> {
+    private async internalPrepare(): Promise<AudioResource<MusicDisc>> {
         const { stream: youtubeStream, type: inputType } = (await stream(this.url)) as YouTubeStream;
 
-        return createAudioResource<MusicDisc>(youtubeStream, {
+        const res = createAudioResource<MusicDisc>(youtubeStream, {
             inputType,
             metadata: this,
             inlineVolume: true,
         });
+
+        if (res.volume === undefined) {
+            Loggers.warn.log(`Unable to create volume transformer`, this.toJSON());
+        } else {
+            res.volume.setVolume(0.1);
+        }
+
+        return res;
     }
 
     /**
      * Generates and stores an audio resource for future playback.
-     * @throws Throws an error if the resource cannot be generated in the
-     * {@link Config.timeoutThresholds.generateResource configured} amount of time.
+     *
+     * Note that after doing this once, all subsequent calls to `.prepare()` will be instant
+     * unless `.unprepare()` is called.
+     *
+     * @throws Throws a {@link DiscTimeoutError} if the resource cannot be generated in the
+     * {@link Config.timeoutThresholds.generateResource configured amount of time}.
      */
     public async prepare(): Promise<AudioResource<MusicDisc>> {
         if (this._resource) return this._resource;
 
-        const prepareRace: Promise<AudioResource<MusicDisc> | void>[] = [this._internalPrepare()];
+        const prepareRace: Promise<AudioResource<MusicDisc> | void>[] = [this.internalPrepare()];
 
         if (Config.timeoutThresholds.generateResource) {
             prepareRace.push(wait(Config.timeoutThresholds.generateResource * 1000));
@@ -75,9 +89,7 @@ export class MusicDisc {
         const resource = (await Promise.race(prepareRace)) ?? undefined;
 
         if (resource === undefined) {
-            throw new Error(
-                `Unable to generate audio resource in reasonable time (${Config.timeoutThresholds.generateResource} seconds)`,
-            );
+            throw new DiscTimeoutError(this);
         }
 
         this._resource = resource;
