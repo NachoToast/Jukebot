@@ -1,6 +1,7 @@
 import { AudioPlayer, VoiceConnection } from '@discordjs/voice';
 import { VoiceBasedChannel } from 'discord.js';
 import { MusicDisc } from '../../MusicDisc';
+import { Jukebox } from '../Jukebox';
 
 export enum StatusTiers {
     /** The bot is not in a VC, but a Jukebox instance still exists for the guild. */
@@ -67,3 +68,7 @@ export interface InactiveJukeboxStatus extends BaseJukeboxStatus {
 }
 
 export type JukeboxStatus = IdleJukeboxStatus | ActiveJukeboxStatus | InactiveJukeboxStatus;
+
+export type ActiveJukebox = Jukebox & { status: ActiveJukeboxStatus };
+export type InactiveJukebox = Jukebox & { status: InactiveJukeboxStatus };
+export type IdleJukebox = Jukebox & { status: IdleJukeboxStatus };
