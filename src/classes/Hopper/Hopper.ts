@@ -268,6 +268,40 @@ export class Hopper<T extends ValidSearch> {
         }
     }
 
+    /** Handles YouTube searching Spotify tracks, categorising any errors which occur */
+    private async processTracks(tracks: SpotifyTrack[]): Promise<{
+        items: MusicDisc[];
+        errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[];
+    }> {
+        const rawItems: (MusicDisc | null)[] = new Array(tracks.length).fill(null);
+        const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
+
+        await Promise.all(
+            tracks.map(async (track, index) => {
+                const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
+                if (video instanceof HopperError) {
+                    errors.push(video);
+                } else {
+                    const disc = this.handleYouTubeVideo(video);
+                    if (disc instanceof VideoHopperError) {
+                        // this should never happen, since the `handleTextSearch()` method
+                        // does the same checks as `handleYouTubeVideo`, so it should be
+                        // impossible for `video` to be valid while `disc` isn't.
+                        errors.push(disc);
+                        Loggers.warn.log(
+                            `Impossibility: VideoHopperError after "handleYouTubeVideo" but not after "handleTextSearch"`,
+                            { disc: disc.toString(false), video: video.toJSON() },
+                        );
+                    } else {
+                        rawItems[index] = disc;
+                    }
+                }
+            }),
+        );
+
+        return { items: rawItems.filter((e) => e !== null) as MusicDisc[], errors };
+    }
+
     private async handleSpotifyPlaylistURL(
         url: string,
     ): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Playlist>>> {
@@ -275,30 +309,11 @@ export class Hopper<T extends ValidSearch> {
             const playlist = (await spotify(url)) as SpotifyPlaylist;
             const tracks = (await playlist.all_tracks()).slice(0, this.maxItems);
 
-            const rawItems: MusicDisc[] | null = new Array(tracks.length).fill(null);
-            const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
-
-            await Promise.all(
-                tracks.map(async (track, index) => {
-                    const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
-                    if (video instanceof HopperError) {
-                        errors.push(video);
-                    } else {
-                        const disc = this.handleYouTubeVideo(video);
-                        if (disc instanceof VideoHopperError) {
-                            // this should never happen, since the `handleTextSearch()` method
-                            // should always return a valid video
-                            errors.push(disc);
-                        } else {
-                            rawItems[index] = disc;
-                        }
-                    }
-                }),
-            );
+            const { items, errors } = await this.processTracks(tracks);
 
             return {
                 success: true,
-                items: rawItems.filter((e) => e !== null),
+                items,
                 errors,
                 playlistMetadata: {
                     playlistName: playlist.name,
@@ -318,26 +333,7 @@ export class Hopper<T extends ValidSearch> {
             const album = (await spotify(url)) as SpotifyAlbum;
             const tracks = (await album.all_tracks()).slice(0, this.maxItems);
 
-            const items: MusicDisc[] = [];
-            const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
-
-            await Promise.all(
-                tracks.map(async (track) => {
-                    const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
-                    if (video instanceof HopperError) {
-                        errors.push(video);
-                    } else {
-                        const disc = this.handleYouTubeVideo(video);
-                        if (disc instanceof VideoHopperError) {
-                            // this should never happen, since the `handleTextSearch()` method
-                            // should always return a valid video
-                            errors.push(disc);
-                        } else {
-                            items.push(disc);
-                        }
-                    }
-                }),
-            );
+            const { items, errors } = await this.processTracks(tracks);
 
             return {
                 success: true,
