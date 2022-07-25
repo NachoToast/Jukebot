@@ -275,11 +275,11 @@ export class Hopper<T extends ValidSearch> {
             const playlist = (await spotify(url)) as SpotifyPlaylist;
             const tracks = (await playlist.all_tracks()).slice(0, this.maxItems);
 
-            const items: MusicDisc[] = [];
+            const rawItems: MusicDisc[] | null = new Array(tracks.length).fill(null);
             const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
 
             await Promise.all(
-                tracks.map(async (track) => {
+                tracks.map(async (track, index) => {
                     const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
                     if (video instanceof HopperError) {
                         errors.push(video);
@@ -290,7 +290,7 @@ export class Hopper<T extends ValidSearch> {
                             // should always return a valid video
                             errors.push(disc);
                         } else {
-                            items.push(disc);
+                            rawItems[index] = disc;
                         }
                     }
                 }),
@@ -298,7 +298,7 @@ export class Hopper<T extends ValidSearch> {
 
             return {
                 success: true,
-                items,
+                items: rawItems.filter((e) => e !== null),
                 errors,
                 playlistMetadata: {
                     playlistName: playlist.name,
