@@ -22,19 +22,17 @@ import { JukebotInteraction } from '../types/JukebotInteraction';
 import { Loggers } from '../global/Loggers';
 import { Jukebox } from './Jukebox';
 import { JukeboxProps, JukeboxStatus } from './Jukebox/types';
+import { Devmode } from '../global/Devmode';
 
 export class Jukebot {
     public readonly client: Client<true>;
     public readonly startTime: number = Date.now();
-    public readonly devmode: boolean;
 
     public readonly commands: Collection<string, Command> = new Collection();
 
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
 
-    public constructor(token: string, devmode: boolean) {
-        this.devmode = devmode;
-
+    public constructor(token: string) {
         Loggers.info.log(`Jukebot ${getVersion()} started`);
 
         this.client = new Client({
@@ -98,7 +96,7 @@ export class Jukebot {
 
         Loggers.info.log(output.join(``));
 
-        if (this.devmode) await this.guildDeploy(token, toDeploy);
+        if (Devmode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
     }
 
