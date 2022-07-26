@@ -3,36 +3,45 @@ import {
     refreshToken,
     YouTubeVideo,
     video_basic_info,
+    YouTubePlayList,
     playlist_info,
     spotify,
     SpotifyTrack,
-    SpotifyPlaylist,
     SpotifyAlbum,
     search,
 } from 'play-dl';
-import { Config } from '../../global/Config';
+import { promisify } from 'util';
 import { chooseRandomDisc } from '../../functions/chooseRandomDisc';
 import { levenshteinDistance } from '../../functions/levenshtein';
+import { Config } from '../../global/Config';
+import { Loggers } from '../../global/Loggers';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import {
+    MapSearchSourceToFinalTypes,
+    MapSearchSourceToTypes,
+    SpotifySearchReturnValue,
+    SpotifySearchTypes,
+    TextSearchTypes,
     ValidSearch,
-    SearchSources,
-    YouTubeSubtypes,
-    SpotifySubtypes,
-    ValidYouTubeSearch,
-    ValidSpotifySearch,
-} from '../../types/SearchTypes';
+    ValidSearchSources,
+    YouTubeSearchTypes,
+} from '../../types/Searches';
 import { MusicDisc } from '../MusicDisc';
-import { HopperError, VideoHopperError, ConversionHopperError, NoResultsHopperError } from './Errors';
-import { HopperProps, HopperResult, BrokenReasons, HandleTextSearchResponse } from './types';
-import { Loggers } from '../../global/Loggers';
-import { promisify } from 'util';
-import { Messages } from '../../global/Messages';
+import {
+    HopperAuthorizationError,
+    HopperTimeoutError,
+    HopperItemError,
+    HopperItemVideoError,
+    HopperUnknownError,
+    HopperItemNoResultsError,
+    HopperItemConversionError,
+} from './Errors';
+import { HopperProps, HopperResult, BrokenReasons, HopperSingleErrorResponse } from './types';
 
 const wait = promisify(setTimeout);
 
 /** Handles fetching of results from a query string. */
-export class Hopper<T extends ValidSearch> {
+export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTypes<T>> {
     /** Interaction to note as origin for any generated MusicDiscs. */
     public readonly interaction: JukebotInteraction;
 
@@ -40,15 +49,15 @@ export class Hopper<T extends ValidSearch> {
      * Metadata about the search, such as its source (YouTube, Spotify, Text)
      * and subtype (Video, Track, Album, etc...).
      */
-    public readonly search: T;
+    public readonly search: ValidSearch<T, K>;
 
     /** The original search term. */
     public readonly searchTerm: string;
 
-    /** Maximum number of items to return, undefined means no limit. */
+    /** Maximum number of items to return, `undefined` means no limit. */
     public readonly maxItems: number | undefined;
 
-    public constructor(props: HopperProps<T>) {
+    public constructor(props: HopperProps<T, K>) {
         this.interaction = props.interaction;
         this.search = props.search;
         this.searchTerm = props.searchTerm;
@@ -56,241 +65,229 @@ export class Hopper<T extends ValidSearch> {
     }
 
     /**
-     * Fetches results from a valid search.
+     * Fetches results from a valid search in the
+     * {@link Config.timeoutThresholds.fetchResults configured time}.
      *
-     * @throws Throws an error if Spotify reauthentication fails, or if unable to fetch results
-     * in the {@link Config.timeoutThresholds.fetchResults configured} amount of time.
+     * @throws Throws a `HopperError` if:
+     * - Unable to fetch in time.
+     * - Spotify authorization failed (for Spotify searches).
+     * - Another unknown error occurs.
      */
-    public async fetchResults(): Promise<HopperResult<T>> {
+    public async fetchResults(): Promise<HopperResult<T, K>> {
         try {
-            if (is_expired()) await refreshToken();
+            if (is_expired()) {
+                if (this.search.source === ValidSearchSources.Spotify) {
+                    // we need to wait for a token refresh to use Spotify's API
+                    if (!(await refreshToken())) {
+                        throw new HopperAuthorizationError();
+                    }
+                } else {
+                    // otherwise we can just do it in the background, asynchronously :)
+                    refreshToken().catch((e) => Loggers.warn.log(`Spotify background authentication failed`, e));
+                }
+            }
         } catch (error) {
-            Loggers.warn.log(`Authentication failed`, error);
-            if (this.search.source === SearchSources.Spotify) {
-                throw new Error(`Authentication failed`);
+            if (error instanceof HopperAuthorizationError) throw error;
+            else {
+                Loggers.warn.log(`Spotify authentication failed`, error);
+                throw new HopperAuthorizationError();
             }
         }
 
-        const fetchRace: Promise<HopperResult<T> | void>[] = [this._internalFetch()];
+        const fetchRace: Promise<HopperResult<T, K> | void>[] = [this.internalFetch()];
 
         if (Config.timeoutThresholds.fetchResults) {
-            fetchRace.push(wait(Config.timeoutThresholds.generateResource * 1000));
+            fetchRace.push(wait(Config.timeoutThresholds.fetchResults * 1000));
         }
 
         const result = (await Promise.race(fetchRace)) ?? undefined;
 
         if (result === undefined) {
-            throw new Error(Messages.timeout(Config.timeoutThresholds.fetchResults, `fetch results`));
+            throw new HopperTimeoutError(this.searchTerm);
         }
 
         return result;
     }
 
-    private async _internalFetch(): Promise<HopperResult<T>> {
-        let output: HopperResult<ValidSearch>;
-        let logOutput = false;
-
+    private async internalFetch(): Promise<
+        HopperResult<ValidSearchSources, TextSearchTypes | SpotifySearchTypes | YouTubeSearchTypes>
+    > {
         switch (this.search.source) {
-            case SearchSources.YouTube:
+            case ValidSearchSources.YouTube:
                 switch (this.search.type) {
-                    case YouTubeSubtypes.Playlist:
-                        output = await this.handleYouTubePlaylistURL(this.searchTerm);
-                        break;
-                    case YouTubeSubtypes.Video:
-                        output = await this.handleYouTubeVideoURL(this.searchTerm);
-                        break;
+                    case YouTubeSearchTypes.Playlist:
+                        return await this.handleYouTubePlaylistURL(this.searchTerm);
+                    case YouTubeSearchTypes.Video:
+                        return await this.handleYouTubeVideoURL(this.searchTerm);
                     default:
-                        output = { success: false, error: `Unrecognized YouTube search type - \`${this.searchTerm}\`` };
-                        logOutput = true;
-                        break;
+                        throw new HopperUnknownError(this.searchTerm, `Unrecognized YouTube search type`);
                 }
-                break;
-            case SearchSources.Spotify:
+            case ValidSearchSources.Spotify:
                 switch (this.search.type) {
-                    case SpotifySubtypes.Album:
-                        output = await this.handleSpotifyAlbumURL(this.searchTerm);
-                        break;
-                    case SpotifySubtypes.Playlist:
-                        output = await this.handleSpotifyPlaylistURL(this.searchTerm);
-                        break;
-                    case SpotifySubtypes.Track:
-                        output = await this.handleSpotifyTrackURL(this.searchTerm);
-                        break;
+                    case SpotifySearchTypes.Album:
+                        return await this.handleSpotifyAlbumURL(this.searchTerm);
+
+                    case SpotifySearchTypes.Playlist:
+                        return await this.handleSpotifyPlaylistURL(this.searchTerm);
+
+                    case SpotifySearchTypes.Track:
+                        return await this.handleSpotifyTrackURL(this.searchTerm);
                     default:
-                        output = { success: false, error: `Unrecognized Spotify search type - \`${this.searchTerm}\`` };
-                        logOutput = true;
-                        break;
+                        throw new HopperUnknownError(this.searchTerm, `Unrecognized Spotify search type`);
                 }
-                break;
-            case SearchSources.Text: {
-                const video = await this.handleTextSearch(this.searchTerm, null);
-                if (video instanceof HopperError) {
-                    output = { success: true, items: [], errors: [video], playlistMetadata: undefined };
-                } else {
-                    const disc = this.handleYouTubeVideo(video);
-                    if (disc instanceof MusicDisc) {
-                        output = { success: true, items: [disc], errors: [], playlistMetadata: undefined };
-                    } else {
-                        output = { success: true, items: [], errors: [disc], playlistMetadata: undefined };
+            case ValidSearchSources.Text: {
+                switch (this.search.type) {
+                    case TextSearchTypes.Text: {
+                        const res = await this.handleTextSearch(this.searchTerm);
+                        if (res instanceof YouTubeVideo) {
+                            const disc = this.handleYouTubeVideo(res);
+                            if (disc instanceof MusicDisc) {
+                                return {
+                                    items: [disc],
+                                    errors: [],
+                                    playlistMetadata: undefined,
+                                };
+                            } else {
+                                return {
+                                    items: [],
+                                    errors: [disc],
+                                    playlistMetadata: undefined,
+                                };
+                            }
+                        } else {
+                            return {
+                                items: [],
+                                errors: [res],
+                                playlistMetadata: undefined,
+                            };
+                        }
                     }
+                    default:
+                        throw new HopperUnknownError(this.searchTerm, `Unrecognized text search type`);
                 }
-                break;
             }
             default:
-                output = {
-                    success: false,
-                    error: `Unrecognized search query - \`${this.searchTerm}\``,
-                };
-                logOutput = true;
-                break;
+                throw new HopperUnknownError(this.searchTerm, `Unrecognized search source`);
         }
-
-        if (logOutput) {
-            Loggers.error.log(`[${this.interaction.guild.name}] [Hopper] Got call to log output`, {
-                output,
-                member: { id: this.interaction.member.id, name: this.interaction.member.displayName },
-                searchTerm: this.searchTerm,
-                search: this.search,
-            });
-        }
-
-        return output;
     }
 
     /** Tries to convert a YouTube video to a MusicDisc. */
-    private handleYouTubeVideo(video: YouTubeVideo): MusicDisc | VideoHopperError<BrokenReasons> {
-        if (video.private) return new VideoHopperError(video, BrokenReasons.Private, undefined);
-        if (video.upcoming) return new VideoHopperError(video, BrokenReasons.Upcoming, undefined);
-        if (video.live) return new VideoHopperError(video, BrokenReasons.Live, undefined);
-        if (video.type !== `video`) return new VideoHopperError(video, BrokenReasons.NotAVideo, undefined);
-        try {
-            return new MusicDisc(this.interaction, video);
-        } catch (error) {
-            if (error instanceof Error) {
-                return new VideoHopperError(video, BrokenReasons.Other, `[${error.name}] ${error.message}`);
-            } else {
-                Loggers.error.log(error);
-                return new VideoHopperError(video, BrokenReasons.Other, `Unknown error occurred`);
-            }
-        }
+    private handleYouTubeVideo(video: YouTubeVideo): MusicDisc | HopperItemError<ValidSearchSources.YouTube> {
+        if (video.private) return new HopperItemVideoError(video, BrokenReasons.Private, undefined);
+        if (video.upcoming) return new HopperItemVideoError(video, BrokenReasons.Upcoming, undefined);
+        if (video.live) return new HopperItemVideoError(video, BrokenReasons.Live, undefined);
+        if (video.type !== `video`) return new HopperItemVideoError(video, BrokenReasons.NotAVideo, undefined);
+        return new MusicDisc(this.interaction, video);
     }
 
-    private async handleYouTubeVideoURL(url: string): Promise<HopperResult<ValidYouTubeSearch<YouTubeSubtypes.Video>>> {
+    /** Handles a YouTube video URL, throwing a {@link HopperUnknownError} if anything fails. */
+    private async handleYouTubeVideoURL(
+        url: string,
+    ): Promise<HopperResult<ValidSearchSources.YouTube, YouTubeSearchTypes.Video>> {
+        let video: YouTubeVideo;
         try {
-            const { video_details } = await video_basic_info(url);
-            const video = this.handleYouTubeVideo(video_details);
+            video = (await video_basic_info(url)).video_details;
+        } catch (error) {
+            throw new HopperUnknownError(this.searchTerm, { error, url });
+        }
 
-            const response: HopperResult<ValidYouTubeSearch<YouTubeSubtypes.Video>> = {
-                success: true,
-                items: [],
+        const disc = this.handleYouTubeVideo(video);
+
+        if (disc instanceof MusicDisc) {
+            return {
+                items: [disc],
                 errors: [],
                 playlistMetadata: undefined,
             };
-            if (video instanceof MusicDisc) {
-                response.items = [video];
-            } else {
-                response.errors = [video];
-            }
-
-            return response;
-        } catch (error) {
-            return { success: false, error };
+        } else {
+            return {
+                items: [],
+                errors: [disc],
+                playlistMetadata: undefined,
+            };
         }
     }
 
+    /** Handles a YouTube playlist URL, throwing a {@link HopperUnknownError} if anything fails. */
     private async handleYouTubePlaylistURL(
         url: string,
-    ): Promise<HopperResult<ValidYouTubeSearch<YouTubeSubtypes.Playlist>>> {
+    ): Promise<HopperResult<ValidSearchSources.YouTube, YouTubeSearchTypes.Playlist>> {
+        let playlist: YouTubePlayList;
+        let videos: YouTubeVideo[];
+
         try {
-            const playlist = await playlist_info(url, { incomplete: true });
-            const videos = await playlist.next(this.maxItems);
-
-            const items: MusicDisc[] = [];
-            const errors: (HopperError<SearchSources.YouTube> | VideoHopperError<BrokenReasons>)[] = [];
-
-            videos.forEach((video) => {
-                const disc = this.handleYouTubeVideo(video);
-                if (disc instanceof MusicDisc) {
-                    items.push(disc);
-                } else {
-                    errors.push(disc);
-                }
-            });
-
-            return {
-                success: true,
-                items,
-                errors,
-                playlistMetadata: {
-                    playlistName: playlist.title ?? `Unknown Playlist`,
-                    playlistImageURL: playlist.thumbnail?.url || chooseRandomDisc(),
-                    playlistSize: playlist.videoCount ?? 0,
-                    playlistURL: playlist.url || url,
-                    createdBy: playlist.channel?.name ?? `Unknown Channel`,
-                },
-            };
+            playlist = await playlist_info(url, { incomplete: true });
+            videos = await playlist.next(this.maxItems);
         } catch (error) {
-            return {
-                success: false,
-                error,
-            };
+            throw new HopperUnknownError(this.searchTerm, { error, url });
         }
-    }
 
-    private async handleSpotifyTrackURL(url: string): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Track>>> {
-        try {
-            const track = (await spotify(url)) as SpotifyTrack;
-            const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
+        const items: MusicDisc[] = [];
+        const errors: HopperItemError<ValidSearchSources.YouTube>[] = [];
 
-            if (video instanceof HopperError) {
-                return { success: true, items: [], errors: [video], playlistMetadata: undefined };
-            }
-
+        videos.forEach((video) => {
             const disc = this.handleYouTubeVideo(video);
+            if (disc instanceof MusicDisc) items.push(disc);
+            else errors.push(disc);
+        });
 
-            if (disc instanceof VideoHopperError) {
-                // this should never happen, since the `handleTextSearch()` method
-                // should always return a valid video
-                Loggers.error.log(`Impossible event: 2x VideoHopperErrors`, {
-                    interaction: this.interaction,
-                    disc,
-                    video,
-                    track,
-                    url,
-                    search: this.search,
-                });
-                return { success: true, items: [], errors: [disc], playlistMetadata: undefined };
-            }
-
-            return { success: true, items: [disc], errors: [], playlistMetadata: undefined };
-        } catch (error) {
-            return { success: false, error };
-        }
+        return {
+            items,
+            errors,
+            playlistMetadata: {
+                playlistName: playlist.title ?? `Unknown Playlist`,
+                playlistImageURL: playlist.thumbnail?.url || chooseRandomDisc(),
+                playlistSize: playlist.videoCount ?? 0,
+                playlistURL: playlist.url || url,
+                createdBy: playlist.channel?.name ?? `Unknown Channel`,
+            },
+        };
     }
 
-    /** Handles YouTube searching Spotify tracks, categorising any errors which occur */
+    /** Handles a Spotify track URL, throwing a {@link HopperUnknownError} if anything fails. */
+    private async handleSpotifyTrackURL(
+        url: string,
+    ): Promise<HopperResult<ValidSearchSources.Spotify, SpotifySearchTypes.Track>> {
+        let track: SpotifyTrack;
+
+        try {
+            track = (await spotify(url)) as SpotifyTrack;
+        } catch (error) {
+            throw new HopperUnknownError(this.searchTerm, { error, url });
+        }
+
+        const { items, errors } = await this.processTracks([track]);
+
+        return {
+            items,
+            errors,
+            playlistMetadata: undefined,
+        };
+    }
+
+    /** Handles YouTube searching Spotify tracks, categorising (but not throwing) any errors which occur. */
     private async processTracks(tracks: SpotifyTrack[]): Promise<{
         items: MusicDisc[];
-        errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[];
+        errors: HopperSingleErrorResponse<ValidSearchSources.Spotify>[];
     }> {
         const rawItems: (MusicDisc | null)[] = new Array(tracks.length).fill(null);
-        const errors: (HopperError<SearchSources.Spotify> | VideoHopperError<BrokenReasons>)[] = [];
+        const errors: HopperSingleErrorResponse<ValidSearchSources.Spotify>[] = [];
 
         await Promise.all(
             tracks.map(async (track, index) => {
-                const video = await this.handleTextSearch(Hopper.youtubeSearchEquivalent(track), track);
-                if (video instanceof HopperError) {
+                const video = await this.handleTextSearch(track);
+                if (video instanceof HopperItemError || video instanceof HopperUnknownError) {
                     errors.push(video);
                 } else {
                     const disc = this.handleYouTubeVideo(video);
-                    if (disc instanceof VideoHopperError) {
+                    if (disc instanceof HopperItemError) {
                         // this should never happen, since the `handleTextSearch()` method
                         // does the same checks as `handleYouTubeVideo`, so it should be
                         // impossible for `video` to be valid while `disc` isn't.
-                        errors.push(disc);
+                        errors.push(new HopperUnknownError(track.name, disc.toString()));
                         Loggers.warn.log(
                             `Impossibility: VideoHopperError after "handleYouTubeVideo" but not after "handleTextSearch"`,
-                            { disc: disc.toString(false), video: video.toJSON() },
+                            { disc: disc.toString(), video: video.toJSON() },
                         );
                     } else {
                         rawItems[index] = disc;
@@ -302,119 +299,122 @@ export class Hopper<T extends ValidSearch> {
         return { items: rawItems.filter((e) => e !== null) as MusicDisc[], errors };
     }
 
-    private async handleSpotifyPlaylistURL(
+    /**
+     * Handles and processes results from a Spotify album or track URL.
+     *
+     * @throws Throws a {@link HopperUnknownError} if getting tracks fails.
+     */
+    private async internalSpotifyHandler<T extends SpotifySearchTypes.Playlist | SpotifySearchTypes.Album>(
         url: string,
-    ): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Playlist>>> {
+    ): Promise<
+        HopperResult<
+            ValidSearchSources.Spotify,
+            T extends SpotifySearchTypes.Playlist ? SpotifySearchTypes.Playlist : SpotifySearchTypes.Album
+        >
+    > {
+        type Container = SpotifySearchReturnValue<T>;
+
+        let container: Container | undefined = undefined;
+        let tracks: SpotifyTrack[];
+
         try {
-            const playlist = (await spotify(url)) as SpotifyPlaylist;
-            const tracks = (await playlist.all_tracks()).slice(0, this.maxItems);
-
-            const { items, errors } = await this.processTracks(tracks);
-
-            return {
-                success: true,
-                items,
-                errors,
-                playlistMetadata: {
-                    playlistName: playlist.name,
-                    playlistImageURL: playlist.thumbnail.url,
-                    playlistSize: playlist.tracksCount,
-                    playlistURL: playlist.url,
-                    createdBy: playlist.collaborative ? `${playlist.owner.name} + others` : playlist.owner.name,
-                },
-            };
+            container = (await spotify(url)) as Container;
         } catch (error) {
-            return { success: false, error };
+            throw new HopperUnknownError(container?.name || url, {
+                error,
+                url,
+                receivedType: container?.type,
+                step: `FetchContainer`,
+            });
         }
+
+        try {
+            tracks = (await container.all_tracks()).slice(0, this.maxItems);
+        } catch (error) {
+            throw new HopperUnknownError(container.name, {
+                error,
+                url,
+                container: container.toJSON(),
+                step: `FetchTracks`,
+            });
+        }
+
+        const { items, errors } = await this.processTracks(tracks);
+
+        return {
+            items,
+            errors,
+            playlistMetadata: {
+                playlistName: container.name,
+                playlistImageURL: container.thumbnail.url,
+                playlistSize: container.tracksCount,
+                playlistURL: container.url,
+                createdBy:
+                    container instanceof SpotifyAlbum
+                        ? container.artists.map((e) => e.name).join(`, `)
+                        : container.collaborative
+                        ? `${container.owner.name} + others`
+                        : container.owner.name,
+            },
+        };
     }
 
-    private async handleSpotifyAlbumURL(url: string): Promise<HopperResult<ValidSpotifySearch<SpotifySubtypes.Album>>> {
-        try {
-            const album = (await spotify(url)) as SpotifyAlbum;
-            const tracks = (await album.all_tracks()).slice(0, this.maxItems);
+    /** Handles a Spotify playlist URL, throwing a {@link HopperUnknownError} if anything fails. */
+    private async handleSpotifyPlaylistURL(
+        url: string,
+    ): Promise<HopperResult<ValidSearchSources.Spotify, SpotifySearchTypes.Playlist>> {
+        return await this.internalSpotifyHandler<SpotifySearchTypes.Playlist>(url);
+    }
 
-            const { items, errors } = await this.processTracks(tracks);
-
-            return {
-                success: true,
-                items,
-                errors,
-                playlistMetadata: {
-                    playlistName: album.name,
-                    playlistImageURL: album.thumbnail.url,
-                    playlistSize: album.tracksCount,
-                    playlistURL: album.url,
-                    createdBy: album.artists.map((e) => e.name).join(`, `),
-                },
-            };
-        } catch (error) {
-            return { success: false, error };
-        }
+    /** Handles a Spotify album URL, throwing a {@link HopperUnknownError} if anything fails. */
+    private async handleSpotifyAlbumURL(
+        url: string,
+    ): Promise<HopperResult<ValidSearchSources.Spotify, SpotifySearchTypes.Album>> {
+        return await this.internalSpotifyHandler<SpotifySearchTypes.Album>(url);
     }
 
     /**
-     * Attempts to get a YouTube video by searching with the given text query.
+     * Attempts to get a YouTube video by searching with the given text or Spotify track query.
      *
-     * @param {string} text The final search query to use.
-     * @param {SpotifyTrack|null} [track=null] Whether the search text is derived from a Spotify track.
+     * Will convert Spotify track names to their more searchable equivalents using
+     * the {@link Hopper.youtubeSearchEquivalent} method.
+     *
+     * @param {SpotifyTrack|string} searchItem The item to search for on YouTube.
      * @param {number} [limit=3] The number of results to pick the 'best' out of, default 3.
-     *
      */
-    private async handleTextSearch(
-        text: string,
-        track: null,
-        limit?: number,
-    ): Promise<
-        | YouTubeVideo
-        | ConversionHopperError<SearchSources.Text>
-        | NoResultsHopperError<SearchSources.Text>
-        | VideoHopperError<BrokenReasons>
-    >;
-
-    private async handleTextSearch(
-        text: string,
-        track: SpotifyTrack,
-        limit?: number,
-    ): Promise<HandleTextSearchResponse<SearchSources.Spotify>>;
-
-    private async handleTextSearch(
-        text: string,
-        track: SpotifyTrack | null,
+    private async handleTextSearch<T extends ValidSearchSources.Spotify | ValidSearchSources.Text>(
+        searchItem: MapSearchSourceToFinalTypes<T>,
         limit: number = 3,
-    ): Promise<HandleTextSearchResponse> {
-        const results = await search(text, { source: { youtube: `video` }, fuzzy: true, limit });
-        if (!results.length)
-            if (track === null) {
-                // non spotify version of no results error
-                return new NoResultsHopperError<SearchSources.Text>(text, text);
-            } else {
-                // spotify version of no results error
-                return new NoResultsHopperError<SearchSources.Spotify>(track, text);
-            }
+    ): Promise<YouTubeVideo | HopperSingleErrorResponse<T>> {
+        const searchTerm = typeof searchItem === `string` ? searchItem : Hopper.youtubeSearchEquivalent(searchItem);
+        let results: YouTubeVideo[];
+
+        try {
+            results = await search(searchTerm, { source: { youtube: `video` }, fuzzy: true, limit });
+        } catch (error) {
+            return new HopperUnknownError(searchTerm, error);
+        }
+
+        if (!results.length) {
+            return new HopperItemNoResultsError<T>(searchItem);
+        }
 
         const levenshteinData = results.map((e) => {
             if (e.title === undefined) return 0;
-            return levenshteinDistance(e.title, text);
-        });
 
-        // console.log(
-        //     `Searched for "${text}" and got 3 results:\n${results
-        //         .map((e, i) => `${i + 1}. ${e.title ?? `Unknown Video`} [${levenshteinData[i]}]`)
-        //         .join(`\n`)}`,
-        // );
+            // some videos are formatted `authorName - songName` and some are `songName - authorName`,
+            // this attempts to account for these differences by getting the greatest levenshtein
+            // distance out of both the reversed and non-reversed title
+            const reversedTitle = e.title.split(` `).reverse().join(` `);
+            return Math.max(levenshteinDistance(e.title, searchTerm), levenshteinDistance(reversedTitle, searchTerm));
+        });
 
         const highestSimilarity = Math.max(...levenshteinData);
         const bestIndex = levenshteinData.indexOf(highestSimilarity);
         const bestResult = results[bestIndex];
 
         if (highestSimilarity < Config.levenshteinThreshold) {
-            if (track === null) {
-                // non spotify version of no results error
-                return new ConversionHopperError<SearchSources.Text>(text, highestSimilarity, bestResult, text);
-            } else {
-                // spotify version of no results error
-                return new ConversionHopperError<SearchSources.Spotify>(track, highestSimilarity, bestResult, text);
-            }
+            return new HopperItemConversionError<T>(searchItem, highestSimilarity, bestResult);
         }
 
         return bestResult;
