@@ -48,6 +48,9 @@ export class Jukebox {
 
     private _status: JukeboxStatus;
 
+    /** Time of last status change. */
+    private _lastStatusChange: number = Date.now();
+
     /** Queue of songs, this will **not** include the currently playing song. */
     public inventory: MusicDisc[] = [];
 
@@ -62,6 +65,10 @@ export class Jukebox {
                 ? setTimeout(() => this.destroy(), Config.timeoutThresholds.clearQueue * 1000)
                 : null,
         };
+    }
+
+    public get lastStatusChange(): number {
+        return this._lastStatusChange;
     }
 
     private makeInactive(): void {
@@ -122,6 +129,7 @@ export class Jukebox {
         };
 
         this.events.emit(`stateChange`, this._status, newStatus);
+        this._lastStatusChange = Date.now();
 
         this._status = newStatus;
     }
@@ -161,6 +169,7 @@ export class Jukebox {
         }
 
         this.events.emit(`stateChange`, this._status, newStatus);
+        this._lastStatusChange = Date.now();
 
         this._status = newStatus;
     }
@@ -200,10 +209,21 @@ export class Jukebox {
      * @throws Throws a {@link PlayerError} error if the player does not start playing in the configured amount of time,
      * or if another unknown error happens while attempting to begin playback.
      */
-    private async playInTime(player: AudioPlayer, resource: AudioResource<MusicDisc>): Promise<void> {
+    private async playInTime(
+        player: AudioPlayer,
+        resource: AudioResource<MusicDisc>,
+        connection: VoiceConnection,
+    ): Promise<void> {
         try {
+            player.once(AudioPlayerStatus.Playing, () => {
+                this.makeActive(resource.metadata, connection, player);
+            });
+
             player.play(resource);
         } catch (error) {
+            player.off(AudioPlayerStatus.Playing, () => {
+                this.makeActive(resource.metadata, connection, player);
+            });
             if (error instanceof Error) {
                 this.logError(`Known resource error`, { error, disc: resource.metadata.toJSON() });
             } else {
@@ -221,6 +241,9 @@ export class Jukebox {
             try {
                 await entersState(player, AudioPlayerStatus.Playing, Config.timeoutThresholds.play * 1000);
             } catch (error) {
+                player.off(AudioPlayerStatus.Playing, () => {
+                    this.makeActive(resource.metadata, connection, player);
+                });
                 throw new PlayerTimeoutError(resource.metadata);
             }
         } else {
@@ -265,10 +288,6 @@ export class Jukebox {
             if (this._status.tier === StatusTiers.Active) this.makeIdle();
         });
 
-        player.on(AudioPlayerStatus.Playing, () => {
-            this.makeActive(disc, connection, player);
-        });
-
         player.on(AudioPlayerStatus.Idle, () => {
             if (this._status.tier === StatusTiers.Active) this.makeIdle();
             else if (this._status.tier === StatusTiers.Inactive) {
@@ -289,7 +308,7 @@ export class Jukebox {
             throw new Error(`Unable to create subscription`);
         }
 
-        await this.playInTime(player, resource);
+        await this.playInTime(player, resource, connection);
         return player;
     }
 
@@ -299,7 +318,7 @@ export class Jukebox {
      * Will not implicitly do any state transitions since those should be handled by audio player event listeners.
      */
     public async playNextInQueue(interaction?: JukebotInteraction): Promise<InteractionReplyOptions> {
-        const nextItem = this.inventory.at(0);
+        const nextItem = this.inventory.shift();
         if (nextItem === undefined) {
             if (this._status.tier === StatusTiers.Active) this._status.player.stop();
             return { content: `The queue has finished` };
@@ -364,8 +383,6 @@ export class Jukebox {
                         disc: nextItem.toJSON(),
                     });
                 }
-                // this item failed, so lets remove it from the queue and try the next one
-                this.inventory.shift();
                 return this.playNextInQueue();
                 // TODO: compound embed messages, "skipped X due to error" + "now playing X"
             }
@@ -373,7 +390,8 @@ export class Jukebox {
             // play the resource
             try {
                 interaction?.editReply({ content: `Playing...` });
-                await this.playInTime(this._status.player, resource);
+                if (this._status.tier === StatusTiers.Active) this.makeIdle();
+                await this.playInTime(this._status.player, resource, this._status.connection);
             } catch (error) {
                 if (error instanceof PlayerError) {
                     return this.playNextInQueue();

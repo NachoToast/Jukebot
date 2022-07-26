@@ -2,17 +2,17 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import { Hopper } from '../../classes/Hopper';
 import { HopperError } from '../../classes/Hopper/Errors';
 import { HopperResult } from '../../classes/Hopper/types';
-import { makeAddedToQueueEmbed } from '../../classes/Jukebox/EmbedBuilders';
-import { StatusTiers } from '../../classes/Jukebox/types';
+import { makeAddedToQueueEmbed, makeHybridEmbed, makeNowPlayingEmbed } from '../../classes/Jukebox/EmbedBuilders';
+import { JukeboxStatus, StatusTiers } from '../../classes/Jukebox/types';
 import { Command, CommandParams } from '../../classes/template/Command';
 import { getSearchType } from '../../functions/getSearchType';
 import { Loggers } from '../../global/Loggers';
 import {
     InvalidSearch,
     InvalidSearchSources,
+    MapSearchSourceToTypes,
     SearchSources,
     SpotifySearchTypes,
-    TextSearchTypes,
     ValidSearchSources,
     YouTubeSearchTypes,
 } from '../../types/Searches';
@@ -65,7 +65,7 @@ export class Play extends Command {
             searchTerm,
         });
 
-        let results: HopperResult<ValidSearchSources, TextSearchTypes | SpotifySearchTypes | YouTubeSearchTypes>;
+        let results: HopperResult<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>;
 
         try {
             [results] = await Promise.all([
@@ -99,12 +99,39 @@ export class Play extends Command {
 
         jukebox.inventory.push(...results.items);
         if (jukebox.status.tier !== StatusTiers.Active) {
+            // jukebox not active, so
             const res = await jukebox.playNextInQueue(interaction);
-            await interaction.editReply(res);
-            return;
-        }
+            const newStatus = jukebox.status as JukeboxStatus; // it's no longer guaranteed to be inactive
 
-        await interaction.editReply({ content: makeAddedToQueueEmbed(jukebox, results, search) });
+            if (results.playlistMetadata !== undefined) {
+                // if a playlist was queued
+
+                if (newStatus.tier === StatusTiers.Active) {
+                    // and is now being played
+                    // show hybrid embed
+                    await interaction.editReply({ content: makeHybridEmbed(newStatus, jukebox, results, search) });
+                } else {
+                    // but is not being played
+                    // meaning something went wrong, so show whatever the response is
+                    await interaction.editReply(res);
+                }
+            } else {
+                // a single item was queued
+                if (newStatus.tier === StatusTiers.Active) {
+                    // and is now being played
+                    // show now "playing embed"
+                    await interaction.editReply({ content: makeNowPlayingEmbed(newStatus) });
+                } else {
+                    // but is not being played
+                    // meaning something went wrong, so show whatever the response is
+                    await interaction.editReply(res);
+                }
+            }
+        } else {
+            // jukebox was active, so we definitely aren't playing what was literally just added
+            // therefore make "added to queue" embed
+            await interaction.editReply({ content: makeAddedToQueueEmbed(jukebox, results, search) });
+        }
     }
 
     private invalidSearchMessage(search: InvalidSearch<SearchSources>): string {
