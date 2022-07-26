@@ -214,16 +214,21 @@ export class Jukebox {
         resource: AudioResource<MusicDisc>,
         connection: VoiceConnection,
     ): Promise<void> {
-        try {
+        player.once(AudioPlayerStatus.Playing, () => {
+            this.makeActive(resource.metadata, connection, player);
+        });
+
+        player.on(AudioPlayerStatus.AutoPaused, () => {
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
             player.once(AudioPlayerStatus.Playing, () => {
                 this.makeActive(resource.metadata, connection, player);
             });
+        });
 
+        try {
             player.play(resource);
         } catch (error) {
-            player.off(AudioPlayerStatus.Playing, () => {
-                this.makeActive(resource.metadata, connection, player);
-            });
+            player.removeAllListeners();
             if (error instanceof Error) {
                 this.logError(`Known resource error`, { error, disc: resource.metadata.toJSON() });
             } else {
@@ -278,10 +283,6 @@ export class Jukebox {
             this.logError(`Player error`, { error });
             this._startingInteraction.channel.send({ content: `Player error occurred` }).catch(() => null);
             this.destroy();
-        });
-
-        player.on(AudioPlayerStatus.AutoPaused, () => {
-            if (this._status.tier === StatusTiers.Active) this.makeIdle();
         });
 
         player.on(AudioPlayerStatus.Paused, () => {
@@ -489,7 +490,7 @@ export class Jukebox {
         });
 
         connection.on(VoiceConnectionStatus.Disconnected, () => {
-            if (this._status.tier !== StatusTiers.Inactive) this.makeInactive();
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
         });
 
         connection.on(VoiceConnectionStatus.Destroyed, () => {
