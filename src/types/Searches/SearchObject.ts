@@ -1,4 +1,3 @@
-import { SearchPlaylistTypes } from './SearchReturnValues';
 import { SearchSources, ValidSearchSources } from './SearchSources';
 import { MapSearchSourceToTypes } from './SearchTypes';
 
@@ -11,7 +10,6 @@ export interface ValidSearch<Source extends ValidSearchSources, SearchType exten
     valid: true;
     source: Source;
     type: SearchType;
-    needsPlaylistMetadata: SearchType extends SearchPlaylistTypes ? true : false;
 }
 
 export interface InvalidSearch<T extends SearchSources> extends BaseSearchType {
@@ -20,6 +18,6 @@ export interface InvalidSearch<T extends SearchSources> extends BaseSearchType {
     type?: T extends ValidSearchSources ? MapSearchSourceToTypes<T> : undefined;
 }
 
-export type SearchObject =
-    | InvalidSearch<SearchSources>
-    | ValidSearch<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>;
+export type AnyValidSearch = ValidSearch<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>;
+
+export type SearchObject = InvalidSearch<SearchSources> | AnyValidSearch;

@@ -18,7 +18,3 @@ export enum InvalidSearchSources {
 }
 
 export type SearchSources = ValidSearchSources | InvalidSearchSources;
-
-// export type ValidSearchSources = Exclude<SearchSources, SearchSources.Unknown | SearchSources.Invalid>;
-
-// export type InvalidSearchSources = Exclude<SearchSources, ValidSearchSources>;

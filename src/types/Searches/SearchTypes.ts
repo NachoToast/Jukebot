@@ -1,3 +1,4 @@
+import { SpotifyTrack, YouTubeVideo } from 'play-dl';
 import { SearchSources, ValidSearchSources } from './SearchSources';
 
 export enum YouTubeSearchTypes {
@@ -27,4 +28,12 @@ export type MapSearchSourceToTypes<T extends SearchSources> = T extends ValidSea
     ? SpotifySearchTypes
     : T extends ValidSearchSources.Text
     ? TextSearchTypes.Text
+    : never;
+
+export type MapSearchSourceToFinalTypes<T extends SearchSources> = T extends ValidSearchSources.YouTube
+    ? YouTubeVideo
+    : T extends ValidSearchSources.Spotify
+    ? SpotifyTrack
+    : T extends ValidSearchSources.Text
+    ? string
     : never;
