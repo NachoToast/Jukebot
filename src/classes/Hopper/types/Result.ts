@@ -1,26 +1,18 @@
-import { ValidSearch, IsPlaylist } from '../../../types/SearchTypes';
+import { MapSearchSourceToTypes, SearchPlaylistTypes, ValidSearchSources } from '../../../types/Searches';
 import { MusicDisc } from '../../MusicDisc';
-import { HopperError, VideoHopperError } from '../Errors';
-import { BrokenReasons } from './BrokenReasons';
+import { HopperSingleErrorResponse } from './ErrorResponse';
 
-interface BaseHopperResult {
-    success: boolean;
-}
-
-export interface SuccessfulHopperResult<T extends ValidSearch> extends BaseHopperResult {
-    success: true;
+/** Results returned by a Hopper after a successful fetching of results. */
+export interface HopperResult<T extends ValidSearchSources, K extends MapSearchSourceToTypes<T>> {
+    /** Items created from search, may be empty (e.g. from an empty Spotify playlist, or an errored single search). */
     items: MusicDisc[];
-    errors: (HopperError<T[`source`]> | VideoHopperError<BrokenReasons>)[];
-    playlistMetadata: IsPlaylist<T[`type`]> extends true ? PlaylistMetadata : undefined;
-}
 
-/** Failed due to unexpected errors, NOT due to no results being found or results being invalid. */
-export interface FailedHopperResult extends BaseHopperResult {
-    success: false;
-    error?: unknown;
-}
+    /** Errors that occurred while retrieving items.*/
+    errors: HopperSingleErrorResponse<T>[];
 
-export type HopperResult<T extends ValidSearch> = SuccessfulHopperResult<T> | FailedHopperResult;
+    /** Metadata of the playlist found, if applicable. */
+    playlistMetadata: K extends SearchPlaylistTypes ? PlaylistMetadata : undefined;
+}
 
 export interface PlaylistMetadata {
     playlistName: string;

@@ -1,9 +1,9 @@
 import { JukebotInteraction } from '../../../types/JukebotInteraction';
-import { ValidSearch } from '../../../types/SearchTypes';
+import { MapSearchSourceToTypes, ValidSearch, ValidSearchSources } from '../../../types/Searches';
 
-export interface HopperProps<T extends ValidSearch> {
+export interface HopperProps<T extends ValidSearchSources, K extends MapSearchSourceToTypes<T>> {
     interaction: JukebotInteraction;
-    search: T;
+    search: ValidSearch<T, K>;
     searchTerm: string;
     maxItems: number | undefined;
 }
