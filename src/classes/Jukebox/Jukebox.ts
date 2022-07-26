@@ -1,66 +1,58 @@
 import {
     AudioPlayer,
+    AudioPlayerStatus,
+    AudioResource,
     createAudioPlayer,
+    DiscordGatewayAdapterCreator,
+    entersState,
+    joinVoiceChannel,
     NoSubscriberBehavior,
     VoiceConnection,
     VoiceConnectionStatus,
-    joinVoiceChannel,
-    DiscordGatewayAdapterCreator,
-    entersState,
-    AudioResource,
-    AudioPlayerStatus,
 } from '@discordjs/voice';
 import { InteractionReplyOptions, VoiceBasedChannel } from 'discord.js';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Config } from '../../global/Config';
+import { Devmode } from '../../global/Devmode';
 import { Loggers } from '../../global/Loggers';
-import { Messages } from '../../global/Messages';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
-import { ValidSearch } from '../../types/SearchTypes';
-import { Hopper } from '../Hopper';
-import { HopperProps, HopperResult } from '../Hopper/types';
-import { MusicDisc } from '../MusicDisc';
+import { DiscTimeoutError, MusicDisc } from '../MusicDisc';
+import { makeNowPlayingEmbed } from './EmbedBuilders';
 import {
-    JukeboxEvents,
-    JukeboxStatus,
-    JukeboxProps,
-    StatusTiers,
-    InactiveJukeboxStatus,
-    IdleJukeboxStatus,
+    ConnectionError,
+    ConnectionPermissionError,
+    ConnectionTimeoutError,
+    ConnectionUnknownError,
+    PlayerError,
+    PlayerResourceError,
+    PlayerTimeoutError,
+} from './Errors';
+import {
     ActiveJukeboxStatus,
+    IdleJukeboxStatus,
+    InactiveJukeboxStatus,
+    JukeboxEvents,
+    JukeboxProps,
+    JukeboxStatus,
+    StatusTiers,
 } from './types';
 
-/** Manages playback and queueing of music for a single guild. */
 export class Jukebox {
-    /** The interaction that created this instance. */
+    /** The interaction that initially created this instance. */
     private readonly _startingInteraction: JukebotInteraction;
 
-    /** Voice channel the bot is currently in, or aiming to be in. */
+    /** Voice channel for the bot to join. */
     private readonly _targetVoiceChannel: VoiceBasedChannel;
 
     public readonly events: TypedEmitter<JukeboxEvents> = new TypedEmitter();
 
     private _status: JukeboxStatus;
 
-    /** Queue of MusicDiscs. */
+    /** Queue of songs, this will **not** include the currently playing song. */
     public inventory: MusicDisc[] = [];
-
-    /**
-     * Whether this is currently in the process of beginning to play something,
-     * i.e. waiting for a resource.
-     *
-     * Use the {@link JukeboxEvents.noLongerPlayLocked noLongerPlayLocked} event on a Jukebox's
-     * {@link Jukebox.events event emitter} to listen for when playlock has ended.
-     *
-     * @throws Throws an error if the given voice channel cannot be joined by the bot.
-     */
-    private _playLock = false;
 
     public constructor(props: JukeboxProps) {
         this._startingInteraction = props.interaction;
-
-        if (props.voiceChannel.joinable === false)
-            throw new Error(Messages.cannotJoinThisChannel(props.voiceChannel.id));
 
         this._targetVoiceChannel = props.voiceChannel;
 
@@ -72,182 +64,10 @@ export class Jukebox {
         };
     }
 
-    private destroyPlayer(player: AudioPlayer): void {
-        try {
-            player.off(`error`, (error) => {
-                this.logError(`Player error`, { error });
-                this.destroy();
-            });
-
-            console.log(
-                `Removing player, unremoved listener count:`,
-                player.listenerCount(`debug`) +
-                    player.listenerCount(`error`) +
-                    player.listenerCount(`stateChange`) +
-                    player.listenerCount(`subscribe`) +
-                    player.listenerCount(`unsubscribe`),
-            );
-
-            player.stop();
-        } catch (error) {
-            this.logError(`Error trying to destroy player`, { error });
-        }
-    }
-
-    /**
-     * Creates an {@link AudioPlayer} and attempts to get it to start playing within the
-     * {@link Config.timeoutThresholds.play configured} time.
-     * @param {VoiceConnection} connection The connection that should subscribe to this player.
-     * @param {AudioResource<MusicDisc>} resource The resource to play.
-     *
-     * @throws Throws an error if unable to start playing within the configured time,
-     * or if subscribing or playback fails.
-     */
-    private async makePlayer(connection: VoiceConnection, resource: AudioResource<MusicDisc>): Promise<AudioPlayer> {
-        const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
-
-        player.once(`error`, (error) => {
-            this.logError(`Player error`, { error });
-            this.destroy();
-        });
-
-        if (connection.subscribe(player) === undefined) {
-            this.logError(`Unable to create subscription`);
-            throw new Error(`Unable to create subscription`);
-        }
-
-        try {
-            player.play(resource);
-        } catch (error) {
-            this.logError(`Unable to play resource`, { error, resource });
-            throw new Error(`Unable to play resource`);
-        } finally {
-            // this still executes despite the control flow statement ("throw")
-            // in the above catch block
-            // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch#the_finally-block
-            resource.metadata.unprepare();
-        }
-
-        if (Config.timeoutThresholds.play) {
-            try {
-                await entersState(player, AudioPlayerStatus.Playing, Config.timeoutThresholds.play * 1000);
-                return player;
-            } catch (error) {
-                throw new Error(Messages.timeout(Config.timeoutThresholds.play, `start playing`));
-            }
-        }
-
-        return await new Promise<AudioPlayer>((resolve) => {
-            player.once(AudioPlayerStatus.Playing, () => resolve(player));
-        });
-    }
-
-    private destroyConnection(connection: VoiceConnection): void {
-        try {
-            connection.off(`error`, (error) => {
-                this.logError(`Connection error`, { error });
-                this.destroy();
-            });
-
-            connection.off(VoiceConnectionStatus.Destroyed, () => {
-                this._status = this.makeInactiveStatus();
-            });
-
-            connection.off(VoiceConnectionStatus.Disconnected, () => {
-                this._status = this.makeInactiveStatus();
-            });
-
-            console.log(
-                `Removing connection, unremoved listener count:`,
-                connection.listenerCount(`debug`) +
-                    connection.listenerCount(`error`) +
-                    connection.listenerCount(`stateChange`),
-            );
-
-            connection.destroy();
-        } catch (error) {
-            this.logError(`Error trying to destroy connection`, { error });
-        }
-    }
-
-    /**
-     * Attempts to connect to the {@link Jukebox._targetVoiceChannel target voice channel} in the
-     * {@link Config.timeoutThresholds.connect configured} amount of time.
-     *
-     * @throws Throws an error if the connection cannot be made, or is not ready in the configured amount of time.
-     */
-    private async makeConnection(): Promise<VoiceConnection> {
-        let connection: VoiceConnection | undefined = undefined;
-
-        // if already connected to target voice channel
-        if (this._status.tier !== StatusTiers.Inactive && this._status.channel === this._targetVoiceChannel) {
-            const previousConnection = this._status.connection;
-
-            switch (previousConnection.state.status) {
-                case VoiceConnectionStatus.Connecting:
-                    // already attempting to make connection, so can reuse
-                    connection = previousConnection;
-                    break;
-                case VoiceConnectionStatus.Destroyed:
-                    // connection unusable, so continue with rest of method
-                    break;
-                case VoiceConnectionStatus.Disconnected:
-                    // connection reusable, start rejoin process
-                    previousConnection.rejoin();
-                    connection = previousConnection;
-                    break;
-                case VoiceConnectionStatus.Ready:
-                    // connection exists already, no need to continue
-                    // with rest of method
-                    return previousConnection;
-                case VoiceConnectionStatus.Signalling:
-                    // changing state, but not necessarily to a ready one
-                    // so assume its being destroyed, meaning not reusable
-                    break;
-            }
-        }
-
-        if (connection === undefined) {
-            connection = joinVoiceChannel({
-                channelId: this._targetVoiceChannel.id,
-                guildId: this._targetVoiceChannel.guildId,
-                adapterCreator: this._targetVoiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
-                selfDeaf: true,
-            });
-        }
-
-        connection.once(`error`, (error) => {
-            this.logError(`Connection error`, { error });
-            this.destroy();
-        });
-
-        connection.on(VoiceConnectionStatus.Disconnected, () => {
-            this._status = this.makeInactiveStatus();
-        });
-
-        if (Config.timeoutThresholds.connect) {
-            try {
-                await entersState(connection, VoiceConnectionStatus.Ready, Config.timeoutThresholds.connect * 1000);
-                return connection;
-            } catch (error) {
-                throw new Error(Messages.timeout(Config.timeoutThresholds.connect, `connect`));
-            }
-        }
-
-        return await new Promise<VoiceConnection>((resolve) => {
-            connection!.once(VoiceConnectionStatus.Ready, () => resolve(connection!));
-        });
-    }
-
-    /**
-     * Handles transitioning from an idle or active state to an inactive one.
-     *
-     * This also does event listener cleanup of the connection and player.
-     */
-    private makeInactiveStatus(): InactiveJukeboxStatus {
+    private makeInactive(): void {
         if (this._status.tier === StatusTiers.Inactive) {
             Loggers.warn.log(`[${this._startingInteraction.guild.name}] Transitioning from inactive to inactive`);
-            return this._status;
+            return;
         }
 
         if (this._status.leaveTimeout) {
@@ -269,24 +89,22 @@ export class Jukebox {
         this.events.emit(`stateChange`, this._status, newStatus);
 
         this._status = newStatus;
-
-        return newStatus;
     }
 
     /**
      * Handles transitioning from an active state to an idle one.
      *
-     * @throws Throws an error if trying to transition from an inactive state,
-     * because an inactive state can only transition into an active one.
+     * @throws Throws an error if called while in an inactive state,
+     * as inactive states can only transition into active ones.
      */
-    private makeIdleStatus(): IdleJukeboxStatus {
+    private makeIdle(): void {
         if (this._status.tier === StatusTiers.Inactive) {
             throw new Error(`Cannot transition from inactive to idle`);
         }
 
         if (this._status.tier === StatusTiers.Idle) {
             Loggers.warn.log(`[${this._startingInteraction.guild.name}] Transitioning from idle to idle`);
-            return this._status;
+            return;
         }
 
         const leaveTimeout = Config.timeoutThresholds.leaveVoice
@@ -306,8 +124,6 @@ export class Jukebox {
         this.events.emit(`stateChange`, this._status, newStatus);
 
         this._status = newStatus;
-
-        return newStatus;
     }
 
     /**
@@ -316,18 +132,14 @@ export class Jukebox {
      * @param {VoiceConnection} connection The current voice channel {@link VoiceConnection connection}.
      * @param {AudioPlayer} player The {@link AudioPlayer player} that is handling playback.
      */
-    private makeActiveStatus(
-        playing: MusicDisc,
-        connection: VoiceConnection,
-        player: AudioPlayer,
-    ): ActiveJukeboxStatus {
+    private makeActive(playing: MusicDisc, connection: VoiceConnection, player: AudioPlayer): void {
         if (this._status.leaveTimeout) {
             clearTimeout(this._status.leaveTimeout);
         }
 
         if (this._status.tier === StatusTiers.Active) {
             Loggers.warn.log(`[${this._startingInteraction.guild.name}] Transitioning from active to active`);
-            return this._status;
+            return;
         }
 
         const newStatus: ActiveJukeboxStatus = {
@@ -344,36 +156,18 @@ export class Jukebox {
             newStatus.playingSince -= this._status.for;
         }
 
+        if (playing === this.inventory.at(0)) {
+            this.inventory.shift();
+        }
+
         this.events.emit(`stateChange`, this._status, newStatus);
 
         this._status = newStatus;
-
-        return newStatus;
-    }
-
-    /**
-     * Removes listeners, stops playblack, clears the queue, and destroys connection.
-     *
-     * Should only be called when the Jukebox needs to kill itself.
-     *
-     * All error logging should be done prior to this.
-     *
-     */
-    public destroy(): void {
-        if (this._status.leaveTimeout) clearTimeout(this._status.leaveTimeout);
-
-        if (this._status.tier !== StatusTiers.Inactive) {
-            this.destroyPlayer(this._status.player);
-            this.destroyConnection(this._status.connection);
-        }
-
-        this.events.emit(`destroyed`, this);
     }
 
     /**
      * After a {@link Config.timeoutThresholds.leaveVoice certain amount} of inactivity,
-     * this method will make the bot leave the voice chat and call the
-     * {@link Jukebox.makeInactiveStatus makeInactiveStatus()} method.
+     * this method will make the bot leave the voice chat and start the inactivity timer.
      */
     private disconnectDueToInactivity(): void {
         if (this._status.tier !== StatusTiers.Idle) {
@@ -387,136 +181,359 @@ export class Jukebox {
             this.logError(`Error while sending "left due to inactivity" message`, { error });
         }
 
-        this.makeInactiveStatus();
+        this.makeInactive();
     }
 
-    /** Starts playback after being inactive, triggered by a request to add an item to the queue. */
-    public async playSearchFromInactive<T extends ValidSearch>(
-        search: HopperProps<T>,
-        /** Interaction to live-edit response onto. */
-        interaction?: JukebotInteraction,
-    ): Promise<InteractionReplyOptions> {
-        const jsonSearch = {
-            ...search,
-            interaction: { member: { id: interaction?.member.id, name: interaction?.member.displayName } },
-        };
+    /** Removes all listeners and stops the audio player. */
+    private destroyPlayer(player: AudioPlayer): void {
+        try {
+            player.removeAllListeners();
+            player.stop();
+        } catch (error) {
+            this.logError(`Error trying to destroy player`, { error });
+        }
+    }
+
+    /**
+     * Tells the audio player to start playing the resource in the {@link Config.timeoutThresholds.play specified time}.
+     *
+     * @throws Throws a {@link PlayerError} error if the player does not start playing in the configured amount of time,
+     * or if another unknown error happens while attempting to begin playback.
+     */
+    private async playInTime(player: AudioPlayer, resource: AudioResource<MusicDisc>): Promise<void> {
+        try {
+            player.play(resource);
+        } catch (error) {
+            if (error instanceof Error) {
+                this.logError(`Known resource error`, { error, disc: resource.metadata.toJSON() });
+            } else {
+                this.logError(`Unknown resource error`, { error, disc: resource.metadata.toJSON() });
+            }
+            throw new PlayerResourceError(error, resource);
+        } finally {
+            // this still executes despite the control flow statement ("throw")
+            // in the above catch block
+            // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch#the_finally-block
+            resource.metadata.unprepare();
+        }
+
+        if (Config.timeoutThresholds.play) {
+            try {
+                await entersState(player, AudioPlayerStatus.Playing, Config.timeoutThresholds.play * 1000);
+            } catch (error) {
+                throw new PlayerTimeoutError(resource.metadata);
+            }
+        } else {
+            await new Promise<void>((resolve) => {
+                player.once(AudioPlayerStatus.Playing, () => resolve());
+            });
+        }
+    }
+
+    /**
+     * Creates an {@link AudioPlayer} and attempts to start playback within the
+     * {@link Config.timeoutThresholds.play configured time}.
+     *
+     * - Error logging is done internally.
+     * - Event listeners and state managers are added internally.
+     *
+     * @param {VoiceConnection} connection The connection that should subscribe to this player.
+     * @param {MusicDisc} disc The MusicDisc, ideally with it's resource generated.
+     *
+     * @throws Throws an {@link PlayerError} for many reasons:
+     * - Unable to start playing within the configured time.
+     * - Unable to generate resource within the configured time (if not already generated).
+     * - Subscribing fails.
+     * - Playback fails.
+     * - Generation fails.
+     */
+    private async makePlayer(connection: VoiceConnection, disc: MusicDisc): Promise<AudioPlayer> {
+        const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
+        const resource = await disc.prepare();
+
+        player.once(`error`, (error) => {
+            this.logError(`Player error`, { error });
+            this._startingInteraction.channel.send({ content: `Player error occurred` }).catch(() => null);
+            this.destroy();
+        });
+
+        player.on(AudioPlayerStatus.AutoPaused, () => {
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
+        });
+
+        player.on(AudioPlayerStatus.Paused, () => {
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
+        });
+
+        player.on(AudioPlayerStatus.Playing, () => {
+            this.makeActive(disc, connection, player);
+        });
+
+        player.on(AudioPlayerStatus.Idle, () => {
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
+            else if (this._status.tier === StatusTiers.Inactive) {
+                this.logError(`Impossible state, player went idle but Jukebox is inactive`);
+            }
+            this.playNextInQueue();
+        });
+
+        if (Devmode) {
+            player.on<`stateChange`>(`stateChange`, (oldS, newS) => {
+                if (oldS.status === newS.status) return;
+                console.log(`player: ${oldS.status} => ${newS.status}`);
+            });
+        }
+
+        if (connection.subscribe(player) === undefined) {
+            this.logError(`Unable to create subscription`);
+            throw new Error(`Unable to create subscription`);
+        }
+
+        await this.playInTime(player, resource);
+        return player;
+    }
+
+    /**
+     * Attempts to play the next item in the queue. If something is currently playing it will kill it.
+     *
+     * Will not implicitly do any state transitions since those should be handled by audio player event listeners.
+     */
+    public async playNextInQueue(interaction?: JukebotInteraction): Promise<InteractionReplyOptions> {
+        const nextItem = this.inventory.at(0);
+        if (nextItem === undefined) {
+            if (this._status.tier === StatusTiers.Active) this._status.player.stop();
+            return { content: `The queue has finished` };
+        }
+
+        let resource: AudioResource<MusicDisc> | undefined = undefined;
+
+        if (this._status.tier === StatusTiers.Inactive) {
+            // currently in an inactive state, so no connection or player
+            let connection: VoiceConnection | undefined = undefined;
+
+            // connect & create resource
+            try {
+                interaction?.editReply({ content: `Connecting and preparing audio...` });
+                [connection, resource] = await Promise.all([this.makeConnection(), nextItem.prepare()]);
+            } catch (error) {
+                // if something errors here, we want to dispose of our attempted connection and generated resource
+                // since they won't get assigned to `this._status` until we call the `makePlayer()` method,
+                // meaning they won't be cleaned up automatically
+                if (connection) this.destroyConnection(connection);
+                if (resource) nextItem.unprepare();
+                if (error instanceof DiscTimeoutError || error instanceof ConnectionError) {
+                    return { content: error.toString() };
+                }
+
+                this.logError(`Unknown error from ${this.playNextInQueue.name} (make connection & create resource)`, {
+                    error,
+                    disc: nextItem.toJSON(),
+                });
+
+                return {
+                    content: `Unknown error occurred while connecting to <#${this._targetVoiceChannel.id}> and preparing audio`,
+                };
+            }
+
+            // play resource
+            try {
+                interaction?.editReply({ content: `Playing...` });
+                await this.makePlayer(connection, nextItem);
+            } catch (error) {
+                if (error instanceof PlayerError) {
+                    return { content: error.toString() };
+                }
+                this.logError(`Unknown error from ${this.playNextInQueue.name} (play resource)`, {
+                    error,
+                    disc: nextItem.toJSON(),
+                });
+                return { content: `Unknown error occurred while trying to start playback` };
+            }
+        } else {
+            // currently in an idle or active state, so we have a pre-existing connection and player
+
+            // prepare the resource
+            try {
+                interaction?.editReply({ content: `Preparing audio...` });
+                resource = await nextItem.prepare();
+            } catch (error) {
+                if (!(error instanceof DiscTimeoutError)) {
+                    // the only error we expect is "unable to generate resource in time"
+                    this.logError(`Unknown error from ${this.playNextInQueue.name} step 1 (prepare resource)`, {
+                        error,
+                        disc: nextItem.toJSON(),
+                    });
+                }
+                // this item failed, so lets remove it from the queue and try the next one
+                this.inventory.shift();
+                return this.playNextInQueue();
+                // TODO: compound embed messages, "skipped X due to error" + "now playing X"
+            }
+
+            // play the resource
+            try {
+                interaction?.editReply({ content: `Playing...` });
+                await this.playInTime(this._status.player, resource);
+            } catch (error) {
+                if (error instanceof PlayerError) {
+                    return this.playNextInQueue();
+                    // TODO: compound embed messages, "skipped X due to error" + "now playing X"
+                }
+                this.logError(`Unknown error from ${this.playNextInQueue.name} (play resource)`, {
+                    error,
+                    disc: nextItem.toJSON(),
+                });
+                return { content: `Unknown error occurred while trying to start playback` };
+            }
+        }
+
+        // we know status will be active due to the call to `this.playInTime()`
+        return { content: makeNowPlayingEmbed(this._status as ActiveJukeboxStatus) };
+    }
+
+    /** Removes all listeners and destroys the connection. */
+    private destroyConnection(connection: VoiceConnection): void {
+        try {
+            connection.removeAllListeners();
+            connection.destroy();
+        } catch (error) {
+            this.logError(`Error trying to destroy connection`, { error });
+        }
+    }
+
+    /**
+     * Attempts to create a {@link VoiceConnection} connection to the
+     * {@link Jukebox._targetVoiceChannel target voice channel} within the
+     * {@link Config.timeoutThresholds.connect configured time}.
+     *
+     * - Error logging is done internally.
+     * - Event listeners and state managers are added internally.
+     *
+     * @throws Throws a {@link ConnectionError ConnectionError} error if:
+     * - Unable to connect within the configured time.
+     * - Jukebot is lacking permission to join the target voice channel.
+     * - The connection otherwise cannot be made.
+     */
+    private async makeConnection(): Promise<VoiceConnection> {
+        let connection: VoiceConnection | undefined = undefined;
+
+        // if already connected to target voice channel
+        if (this._status.tier !== StatusTiers.Inactive && this._status.channel === this._targetVoiceChannel) {
+            const previousConnection = this._status.connection;
+
+            switch (previousConnection.state.status) {
+                case VoiceConnectionStatus.Connecting:
+                    // already attempting to make connection, so can reuse
+                    connection = previousConnection;
+                    break;
+                case VoiceConnectionStatus.Destroyed:
+                    // connection unusable, so continue with rest of method
+                    break;
+                case VoiceConnectionStatus.Disconnected:
+                    // connection reusable, start rejoin process
+                    if (previousConnection.rejoin()) {
+                        connection = previousConnection;
+                    } else {
+                        this.logError(`Have disconnected connection but unable to rejoin`);
+                        break;
+                    }
+                    break;
+                case VoiceConnectionStatus.Ready:
+                    // connection exists already, no need to continue
+                    // with rest of method
+                    return previousConnection;
+                case VoiceConnectionStatus.Signalling:
+                    // changing state, but not necessarily to a ready one
+                    // so assume its being destroyed, meaning not reusable
+                    break;
+            }
+        }
+
+        if (connection === undefined) {
+            if (!this._targetVoiceChannel.joinable) {
+                throw new ConnectionPermissionError(this._targetVoiceChannel);
+            }
+
+            connection = joinVoiceChannel({
+                channelId: this._targetVoiceChannel.id,
+                guildId: this._targetVoiceChannel.guildId,
+                adapterCreator: this._targetVoiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
+                selfDeaf: true,
+            });
+        }
+
+        connection.once(`error`, (error) => {
+            this._startingInteraction.channel.send({
+                content: new ConnectionUnknownError(this._targetVoiceChannel).toString(),
+            });
+            this.logError(`Connection error`, { error });
+            this.destroy();
+        });
+
+        connection.on(VoiceConnectionStatus.Disconnected, () => {
+            if (this._status.tier !== StatusTiers.Inactive) this.makeInactive();
+        });
+
+        connection.on(VoiceConnectionStatus.Destroyed, () => {
+            if (this._status.tier !== StatusTiers.Inactive) this.makeInactive();
+        });
+
+        if (Devmode) {
+            connection.on<`stateChange`>(`stateChange`, (oldS, newS) => {
+                if (oldS.status === newS.status) return;
+                console.log(`connection: ${oldS.status} => ${newS.status}`);
+            });
+        }
+
+        if (Config.timeoutThresholds.connect) {
+            try {
+                await entersState(connection, VoiceConnectionStatus.Ready, Config.timeoutThresholds.connect * 1000);
+            } catch (error) {
+                throw new ConnectionTimeoutError(this._targetVoiceChannel);
+            }
+        } else {
+            try {
+                await new Promise<void>((resolve) => {
+                    connection!.once(VoiceConnectionStatus.Ready, () => resolve());
+                });
+            } catch (error) {
+                this.logError(
+                    `Got possible undefined connection while awaiting connect promise in ${this.makeConnection.name}`,
+                    { error },
+                );
+                throw new ConnectionUnknownError(this._targetVoiceChannel);
+            }
+        }
+
+        return connection;
+    }
+
+    /** Irreversibly destroys this instance. */
+    public destroy(): void {
+        if (this._status.leaveTimeout) clearTimeout(this._status.leaveTimeout);
 
         if (this._status.tier !== StatusTiers.Inactive) {
-            this.logError(`Tried to play from inactive when status is not inactive (${this._status.tier})`, {
-                search: jsonSearch,
-            });
-            return { content: `Internal state error` };
+            this.destroyPlayer(this._status.player);
+            this.destroyConnection(this._status.connection);
         }
 
-        // these are all the requirements to "reboot" the Jukebox
-        let connection: VoiceConnection | undefined = undefined;
-        let results: HopperResult<T>;
-        let resource: AudioResource<MusicDisc> | undefined = undefined;
-        let player: AudioPlayer | undefined = undefined;
+        this.events.emit(`destroyed`, this);
+    }
 
-        const cleanup = () => {
-            if (player) this.destroyPlayer(player);
-            if (connection) this.destroyConnection(connection);
-            if (this.inventory.at(0)?.resource !== undefined) this.inventory[0].unprepare();
-        };
+    public logError(message: string, props?: { error?: unknown; [k: string]: unknown }) {
+        Loggers.error.log(`[${this._startingInteraction.guild.name}] ${message}`, {
+            ...props,
+            vc: { name: this._targetVoiceChannel.name, id: this._targetVoiceChannel.id },
+            guildId: this._startingInteraction.guildId,
+        });
+    }
 
-        // 1. make a connection to the target voice channel and get search results (in parallel)
-        try {
-            const connectPromise = this.makeConnection();
+    public get status() {
+        return this._status;
+    }
 
-            const resultsPromise = new Hopper<T>(search).fetchResults();
-
-            const editPromise = interaction?.deferReply().catch(() => (interaction = undefined));
-
-            [connection, results] = await Promise.all([connectPromise, resultsPromise, editPromise]);
-        } catch (error) {
-            cleanup();
-            if (error instanceof Error) {
-                return { content: error.message };
-            }
-
-            this.logError(`Unknown error occurred on playSearchFromInactive step 1 (connect & fetch results)`, {
-                error,
-                search: jsonSearch,
-            });
-            return { content: `Unknown error occurred while searching and connecting` };
-        }
-
-        // 2. make sure the search didn't have an unexpected error
-        if (!results.success) {
-            connection.destroy();
-            this.logError(`Unknown error occurred on playSearchFromInactive step 2 (fetch results error)`, {
-                error: results.error,
-                search: jsonSearch,
-            });
-            return { content: `Unknown error occurred while searching` };
-        }
-
-        // 3. check that we actually got search results
-        if (results.items.length === 0) {
-            cleanup();
-            // TODO: show results.errors in an embed or something
-            return { content: `No results found` };
-        }
-
-        this.inventory.push(...results.items);
-
-        // 4. now we can prepare the resource
-        try {
-            const resourcePromise = this.inventory[0].prepare();
-
-            const editPromise = interaction
-                ?.editReply({
-                    content: `Preparing resource...`,
-                })
-                .catch(() => (interaction = undefined));
-
-            [resource] = await Promise.all([resourcePromise, editPromise]);
-        } catch (error) {
-            cleanup();
-            if (error instanceof Error) {
-                return { content: error.message };
-            }
-
-            this.logError(`Unknown error occurred on playSearchFromInactive step 4 (prepare resource)`, {
-                error,
-                disc: this.inventory[0].toJSON(),
-                search: jsonSearch,
-            });
-            return { content: `Unknown error occurred while preparing resource` };
-        }
-
-        // 5. now we can play the resource
-        try {
-            const playPromise = this.makePlayer(connection, resource);
-
-            const editPromise = interaction
-                ?.editReply({
-                    content: `Playing...`,
-                })
-                .catch(() => (interaction = undefined));
-
-            [player] = await Promise.all([playPromise, editPromise]);
-        } catch (error) {
-            cleanup();
-            if (error instanceof Error) {
-                return { content: error.message };
-            }
-
-            this.logError(`Unknown error occurred on playSearchFromInactive step 5 (play resource)`, {
-                error,
-                disc: this.inventory[0].toJSON(),
-                search: jsonSearch,
-            });
-            return { content: `Unknown error occurred while playing` };
-        }
-
-        // 6. finally we can update the status of the Jukebox to active
-        this.makeActiveStatus(this.inventory[0], connection, player);
-
-        return {
-            content: `Now playing **${this.inventory[0].title}** [${this.inventory[0].durationString}] (*requested by ${this.inventory[0].addedBy.displayName}*)`,
-        };
+    public get isFull(): boolean {
+        return this.inventory.length >= Config.maxQueueSize;
     }
 
     /** Maximum number of {@link MusicDisc}'s that can be added to the queue, undefined being no limit. */
@@ -525,24 +542,5 @@ export class Jukebox {
             return Config.maxQueueSize - this.inventory.length;
         }
         return undefined;
-    }
-
-    public get isFull(): boolean {
-        if (Config.maxQueueSize) {
-            return this.inventory.length === Config.maxQueueSize;
-        }
-        return false;
-    }
-
-    public get status(): JukeboxStatus {
-        return this._status;
-    }
-
-    private logError(message: string, props?: { error?: unknown; [k: string]: unknown }) {
-        Loggers.error.log(`[${this._startingInteraction.guild.name}] ${message}`, {
-            ...props,
-            vc: { name: this._targetVoiceChannel.name, id: this._targetVoiceChannel.id },
-            guildId: this._startingInteraction.guildId,
-        });
     }
 }
