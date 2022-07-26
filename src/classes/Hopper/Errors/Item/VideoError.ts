@@ -1,26 +1,30 @@
 import { YouTubeVideo } from 'play-dl';
-import { SearchSources } from '../../../types/SearchTypes';
-import { BrokenReasons } from '../types';
-import { HopperError } from './BaseError';
+import { ValidSearchSources } from '../../../../types/Searches';
+import { BrokenReasons } from '../../types';
+import { HopperItemError } from './ItemError';
 
 /**
  * An error in getting results from a YouTube video,
  * due to any number of {@link BrokenReasons reasons}.
  */
-export class VideoHopperError<T extends BrokenReasons> extends HopperError<SearchSources.YouTube> {
+export class HopperItemVideoError<
+    T extends BrokenReasons = BrokenReasons,
+> extends HopperItemError<ValidSearchSources.YouTube> {
     public readonly reason: BrokenReasons;
     public readonly extra: T extends BrokenReasons.Other ? string : undefined;
 
+    /**
+     * @param {YouTubeVideo} item The video associated with this error.
+     * @param {T} reason The {@link BrokenReasons reason} this video isn't valid.
+     * @param {string|undefined} extra Extra information if the reason is `Unknown`.
+     */
     public constructor(item: YouTubeVideo, reason: T, extra: T extends BrokenReasons.Other ? string : undefined) {
         super(item);
         this.reason = reason;
         this.extra = extra;
     }
 
-    public toString(short: boolean): string {
-        if (short) {
-            return `\`${this.originalItem.title ?? `Unknown Video`}\` is not a valid video`;
-        }
+    public toString(): string {
         const name = this.originalItem.title ?? `Unknown Video`;
         switch (this.reason) {
             case BrokenReasons.Private:
@@ -30,11 +34,9 @@ export class VideoHopperError<T extends BrokenReasons> extends HopperError<Searc
             case BrokenReasons.Live:
                 return `\`${name}\` is a live video`;
             case BrokenReasons.NotAVideo:
-                return `\`${name}\` is a ${this.originalItem.type}`;
+                return `\`${name}\` is a ${this.originalItem.type}, not a video`;
             case BrokenReasons.Other:
                 return `\`${name}\` had unexpected video error: '${this.extra}'`;
-            default:
-                return `\`${name}\` had unknown video error`;
         }
     }
 }
