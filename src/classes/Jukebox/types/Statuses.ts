@@ -4,11 +4,11 @@ import { MusicDisc } from '../../MusicDisc';
 
 export enum StatusTiers {
     /** The bot is not in a VC, but a Jukebox instance still exists for the guild. */
-    Inactive,
+    Inactive = `inactive`,
     /** The bot is in VC but not playing anything. */
-    Idle,
+    Idle = `idle`,
     /** The bot is in VC and playing music. */
-    Active,
+    Active = `active`,
 }
 
 interface BaseJukeboxStatus {

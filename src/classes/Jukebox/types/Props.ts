@@ -1,10 +1,10 @@
 import { VoiceBasedChannel } from 'discord.js';
 import { JukebotInteraction } from '../../../types/JukebotInteraction';
-import { ValidSearch } from '../../../types/SearchTypes';
+import { AnyValidSearch } from '../../../types/Searches';
 
 export interface JukeboxProps {
     interaction: JukebotInteraction;
     voiceChannel: VoiceBasedChannel;
-    search: ValidSearch;
+    search: AnyValidSearch;
     searchTerm: string;
 }
