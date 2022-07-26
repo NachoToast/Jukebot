@@ -17,7 +17,6 @@ describe(`getSearchType`, () => {
             valid: true,
             source: ValidSearchSources.YouTube,
             type: YouTubeSearchTypes.Video,
-            needsPlaylistMetadata: false,
         };
 
         expect(getSearchType(`https://www.youtube.com/watch?v=uAy9iHsj0HU`)).toEqual(valid);
@@ -30,7 +29,6 @@ describe(`getSearchType`, () => {
             valid: true,
             source: ValidSearchSources.YouTube,
             type: YouTubeSearchTypes.Playlist,
-            needsPlaylistMetadata: true,
         };
 
         expect(getSearchType(`https://www.youtube.com/playlist?list=PLA61KdzeZtK54MJ7V6XjPCUe6aCyKU3dp`)).toEqual(
@@ -61,7 +59,6 @@ describe(`getSearchType`, () => {
             valid: true,
             source: ValidSearchSources.Spotify,
             type: SpotifySearchTypes.Track,
-            needsPlaylistMetadata: false,
         };
 
         expect(getSearchType(`https://open.spotify.com/track/20OjFkqDnJKYnZe2HTh4oK`)).toEqual(valid);
@@ -73,7 +70,6 @@ describe(`getSearchType`, () => {
             valid: true,
             source: ValidSearchSources.Spotify,
             type: SpotifySearchTypes.Playlist,
-            needsPlaylistMetadata: true,
         };
 
         expect(getSearchType(`https://open.spotify.com/playlist/1BaaQnVeKIJfazUPsw4O70?si=abc123`)).toEqual(valid);
@@ -116,7 +112,6 @@ describe(`getSearchType`, () => {
             valid: true,
             source: ValidSearchSources.Text,
             type: TextSearchTypes.Text,
-            needsPlaylistMetadata: false,
         };
 
         const invalid: InvalidSearch<ValidSearchSources.Text> = {

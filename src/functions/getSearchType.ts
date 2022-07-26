@@ -21,7 +21,6 @@ export function getSearchType(s: string): SearchObject {
                     valid: true,
                     source: ValidSearchSources.YouTube,
                     type: YouTubeSearchTypes.Playlist,
-                    needsPlaylistMetadata: true,
                 };
                 return output;
             }
@@ -31,7 +30,6 @@ export function getSearchType(s: string): SearchObject {
                     valid: true,
                     source: ValidSearchSources.YouTube,
                     type: YouTubeSearchTypes.Video,
-                    needsPlaylistMetadata: false,
                 };
                 return output;
             }
@@ -49,7 +47,6 @@ export function getSearchType(s: string): SearchObject {
                 valid: true,
                 source: ValidSearchSources.YouTube,
                 type: YouTubeSearchTypes.Video,
-                needsPlaylistMetadata: false,
             };
             return output;
         }
@@ -60,7 +57,6 @@ export function getSearchType(s: string): SearchObject {
                     valid: true,
                     source: ValidSearchSources.Spotify,
                     type: SpotifySearchTypes.Track,
-                    needsPlaylistMetadata: false,
                 };
                 return output;
             }
@@ -69,7 +65,6 @@ export function getSearchType(s: string): SearchObject {
                     valid: true,
                     source: ValidSearchSources.Spotify,
                     type: SpotifySearchTypes.Playlist,
-                    needsPlaylistMetadata: true,
                 };
                 return output;
             }
@@ -78,7 +73,6 @@ export function getSearchType(s: string): SearchObject {
                     valid: true,
                     source: ValidSearchSources.Spotify,
                     type: SpotifySearchTypes.Album,
-                    needsPlaylistMetadata: true,
                 };
                 return output;
             }
@@ -112,7 +106,6 @@ export function getSearchType(s: string): SearchObject {
                 valid: true,
                 source: ValidSearchSources.Text,
                 type: TextSearchTypes.Text,
-                needsPlaylistMetadata: false,
             };
             return output;
         }
