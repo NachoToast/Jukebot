@@ -21,7 +21,7 @@ import { Config } from '../global/Config';
 import { JukebotInteraction } from '../types/JukebotInteraction';
 import { Loggers } from '../global/Loggers';
 import { Jukebox } from './Jukebox';
-import { JukeboxProps, JukeboxStatus } from './Jukebox/types';
+import { JukeboxProps, JukeboxStatus, StatusTiers } from './Jukebox/types';
 import { Devmode } from '../global/Devmode';
 
 export class Jukebot {
@@ -195,5 +195,19 @@ export class Jukebot {
         this._jukeboxes.set(props.interaction.guildId, jukebox);
 
         return jukebox;
+    }
+
+    public getNumJukeboxes(): Record<StatusTiers, number> {
+        const output: Record<StatusTiers, number> = {
+            [StatusTiers.Active]: 0,
+            [StatusTiers.Idle]: 0,
+            [StatusTiers.Inactive]: 0,
+        };
+
+        for (const [, jukebox] of this._jukeboxes) {
+            output[jukebox.status.tier]++;
+        }
+
+        return output;
     }
 }

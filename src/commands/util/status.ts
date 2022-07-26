@@ -1,7 +1,9 @@
 import moment from 'moment';
-import { StatusTiers } from '../../classes/Jukebox/types';
+import { JukeboxStatus, StatusTiers } from '../../classes/Jukebox/types';
 import { Command, CommandParams } from '../../classes/template/Command';
 import { getVersion } from '../../functions/getVersion';
+import { numericalToString } from '../../functions/timeConverters';
+import { Config } from '../../global/Config';
 import { Colours } from '../../types/Colours';
 
 export class Status extends Command {
@@ -28,18 +30,21 @@ export class Status extends Command {
         ];
 
         const jukebox = jukebot.getJukebox(interaction.guildId);
+        output.push(
+            `Server Status: ${Colours.FgMagenta}${
+                jukebox
+                    ? `${jukebox.status.tier[0].toUpperCase() + jukebox.status.tier.slice(1)} ${Status.statusTimeLeft(
+                          jukebox.status,
+                          jukebox.lastStatusChange,
+                      )}`
+                    : `n/a`
+            }${Colours.Reset}`,
+        );
 
-        if (jukebox) {
-            output.push(
-                `Status: ${Colours.FgMagenta}${
-                    jukebox.status.tier === StatusTiers.Active
-                        ? `Active`
-                        : jukebox.status.tier === StatusTiers.Idle
-                        ? `Idle`
-                        : `Inactive`
-                }${Colours.Reset}`,
-            );
-        }
+        const jukeboxData = jukebot.getNumJukeboxes();
+        output.push(
+            `Servers: ${jukeboxData.active} Active | ${jukeboxData.idle} Idle | ${jukeboxData.inactive} Inactive | ${jukebot.client.guilds.cache.size} Total`,
+        );
 
         await interaction.reply({
             content: `> \`\`\`ansi\n> ` + output.join(`\n> `) + `\n> \`\`\``,
@@ -52,5 +57,27 @@ export class Status extends Command {
         if (ping < 2000) return `bad`;
         if (ping < 3000) return `very bad`;
         return `oh god`;
+    }
+
+    /** Returns how long until the status of a Jukebox will change. */
+    private static statusTimeLeft<T extends JukeboxStatus>(status: T, lastStatusChange: number): string {
+        let lastsFor: number;
+
+        switch (status.tier) {
+            case StatusTiers.Active:
+                return ``;
+            case StatusTiers.Idle:
+                lastsFor = Config.timeoutThresholds.leaveVoice;
+                break;
+            case StatusTiers.Inactive:
+                lastsFor = Config.timeoutThresholds.clearQueue;
+                break;
+        }
+
+        if (lastsFor === 0) return `(Forever)`;
+
+        const secondsTillChange = lastsFor - Math.floor((Date.now() - lastStatusChange) / 1000);
+
+        return `(${numericalToString(secondsTillChange)} left)`;
     }
 }
