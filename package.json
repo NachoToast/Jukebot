@@ -33,7 +33,6 @@
         "@discordjs/opus": "^0.7.0",
         "@discordjs/rest": "^0.3.0",
         "@discordjs/voice": "^0.8.0",
-        "canvas": "^2.9.0",
         "discord-api-types": "^0.26.1",
         "discord.js": "^14.0.2",
         "ffmpeg-static": "^4.4.1",
