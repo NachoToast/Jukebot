@@ -67,16 +67,15 @@ export class Play extends Command {
 
         let results: HopperResult<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>;
 
+        await interaction.reply({ content: `Getting search results...` });
+
         try {
-            [results] = await Promise.all([
-                new Hopper({
-                    interaction,
-                    search,
-                    searchTerm,
-                    maxItems: jukebox.freeSpace,
-                }).fetchResults(),
-                interaction.reply({ content: `Getting search results...` }),
-            ]);
+            results = await new Hopper({
+                interaction,
+                search,
+                searchTerm,
+                maxItems: jukebox.freeSpace,
+            }).fetchResults();
 
             if (results.items.length === 0) {
                 throw new Error(`No results found`);
