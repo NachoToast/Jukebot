@@ -22,7 +22,7 @@ import { Config } from '../global/Config';
 import { JukebotInteraction } from '../types/JukebotInteraction';
 import { Loggers } from '../global/Loggers';
 import { Jukebox } from './Jukebox';
-import { JukeboxProps, JukeboxStatus, StatusTiers } from './Jukebox/types';
+import { JukeboxProps, StatusTiers } from './Jukebox/types';
 import { Devmode } from '../global/Devmode';
 
 export class Jukebot {
@@ -234,25 +234,16 @@ export class Jukebot {
 
         const jukebox = new Jukebox(props);
 
-        const handleStateChange = (oldS: JukeboxStatus, newS: JukeboxStatus) => {
-            console.log(`[${props.interaction.guild.name}] ${oldS.tier} -> ${newS.tier}`);
-        };
+        if (Devmode) {
+            jukebox.events.on(`stateChange`, (oldS, newS) => {
+                console.log(`[${props.interaction.guild.name}] ${oldS.tier} -> ${newS.tier}`);
+            });
+        }
 
-        const handleDestroy = () => {
+        jukebox.events.once(`destroyed`, () => {
             this._jukeboxes.delete(props.interaction.guildId);
-            jukebox.events.off(`stateChange`, handleStateChange);
-            jukebox.events.off(`destroyed`, handleDestroy);
-            console.log(
-                `Jukebox (${props.interaction.guild.name}) destroyed, listeners: ${
-                    jukebox.events.listenerCount(`destroyed`) +
-                    jukebox.events.listenerCount(`noLongerPlayLocked`) +
-                    jukebox.events.listenerCount(`stateChange`)
-                }`,
-            );
-        };
-
-        jukebox.events.on(`stateChange`, handleStateChange);
-        jukebox.events.once(`destroyed`, handleDestroy);
+            jukebox.events.removeAllListeners();
+        });
 
         this._jukeboxes.set(props.interaction.guildId, jukebox);
 
