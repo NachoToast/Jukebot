@@ -166,7 +166,14 @@ export class Jukebot {
         try {
             await command.execute({ interaction: interaction as JukebotInteraction, jukebot: this });
         } catch (error) {
-            Loggers.error.log(`interactionCreate Error`, error);
+            Loggers.error.log(`interactionCreate Error`, {
+                error,
+                command: command.name,
+                interaction: {
+                    id: interaction.id,
+                    member: { id: interaction.member.id, name: interaction.member.displayName },
+                },
+            });
         }
     }
 
