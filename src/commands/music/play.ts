@@ -1,4 +1,6 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
+import { Snowflake } from 'discord.js';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { Hopper } from '../../classes/Hopper';
 import { HopperError } from '../../classes/Hopper/Errors';
 import { HopperResult } from '../../classes/Hopper/types';
@@ -21,6 +23,9 @@ import { Shuffle } from './shuffle';
 export class Play extends Command {
     public name = `play`;
     public description = `Play a song, or add it to the queue`;
+
+    /** Play commands in progress for each guild. */
+    private _processing: Record<Snowflake, TypedEmitter<{ done: () => void }>> = {};
 
     public build(): SlashCommandBuilder {
         const cmd = super.build();
@@ -109,6 +114,15 @@ export class Play extends Command {
 
         jukebox.inventory.push(...results.items);
 
+        if (this._processing[interaction.guildId] !== undefined) {
+            await Promise.all([
+                new Promise<void>((res) => this._processing[interaction.guildId].once(`done`, () => res())),
+                interaction.editReply({ content: `Waiting on previous command...` }),
+            ]);
+        }
+
+        this._processing[interaction.guildId] = new TypedEmitter();
+
         if (jukebox.status.tier !== StatusTiers.Active) {
             // jukebox not active, so
             const res = await jukebox.playNextInQueue(interaction);
@@ -143,6 +157,9 @@ export class Play extends Command {
             // therefore make "added to queue" embed
             await interaction.editReply({ content: makeAddedToQueueEmbed(jukebox, results, search) });
         }
+
+        this._processing[interaction.guildId].emit(`done`);
+        delete this._processing[interaction.guildId];
     }
 
     private invalidSearchMessage(search: InvalidSearch<SearchSources>): string {

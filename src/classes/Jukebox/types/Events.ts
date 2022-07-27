@@ -9,7 +9,5 @@ export interface JukeboxEvents {
      */
     destroyed: (jukebox: Jukebox) => void;
 
-    noLongerPlayLocked: () => void;
-
     stateChange: (oldState: JukeboxStatus, newStats: JukeboxStatus) => void;
 }
