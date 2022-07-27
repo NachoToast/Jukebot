@@ -35,13 +35,13 @@ export const Config = {
         connect: 10,
 
         /** Start song playback. */
-        play: 5,
+        play: 10,
 
         /** Leave the VC after this many seconds of inactivity. */
-        leaveVoice: 5,
+        leaveVoice: 300,
 
         /** Clear the queue X seconds after leaving the VC. */
-        clearQueue: 5,
+        clearQueue: 300,
 
         /** Stop listening to "Next Page" events after X seconds. */
         stopQueuePagination: 300,
