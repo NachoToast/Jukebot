@@ -74,7 +74,7 @@ export class Jukebot {
         );
 
         const activityFunction = () => {
-            this.client.user.setActivity(chooseRandomArtist(), { type: ActivityType.Playing });
+            this.client.user.setActivity(chooseRandomArtist(), { type: ActivityType.Listening });
         };
 
         activityFunction();
