@@ -651,7 +651,7 @@ export class Jukebox {
         return this._targetVoiceChannel;
     }
 
-    private static getHasListenersInVoice(voiceChannel: VoiceBasedChannel): boolean {
+    public static getHasListenersInVoice(voiceChannel: VoiceBasedChannel): boolean {
         return voiceChannel.members.some(
             (e) => !e.user.bot && e.voice.selfDeaf !== true && e.voice.serverDeaf !== true,
         );
