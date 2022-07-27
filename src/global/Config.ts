@@ -1,3 +1,5 @@
+import { HexColorString } from "discord.js";
+
 export const Config = {
     /** Maximum number of items allowed in a queue, set to 0 for no limit. */
     maxQueueSize: 1000,
@@ -18,7 +20,7 @@ export const Config = {
     volumeModifier: 0.1,
 
     /** Not yet implemented. */
-    embedColor: `#794c36`,
+    embedColor: `#794c36` as HexColorString,
 
     /**
      * These values dictate maximum time allowed for certain tasks.
