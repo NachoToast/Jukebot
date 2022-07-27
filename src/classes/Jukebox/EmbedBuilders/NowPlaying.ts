@@ -4,6 +4,7 @@ import { ActiveJukeboxStatus } from '../types';
 import { Config } from '../../../global/Config';
 import { viewCountFormatter } from '../../../functions/viewCountFormatter';
 import { Jukebox } from '../Jukebox';
+import { numericalToString } from '../../../functions/timeConverters';
 
 /** Makes a "now playing X" embed. */
 export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): InteractionReplyOptions {
@@ -27,7 +28,7 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
         .setColor(color)
 
         if (queueLength > 0) {
-            embed.setFooter({ text: `Queue Length: ${queueLength} | Queue Time: ${queueTime}`})
+            embed.setFooter({ text: `Queue Length: ${queueLength} | Queue Time: ${numericalToString(queueTime)}`})
         }
 
     return { embeds: [embed] }
