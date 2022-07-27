@@ -42,7 +42,7 @@ export class Jukebox {
     private readonly _startingInteraction: JukebotInteraction;
 
     /** Voice channel for the bot to join. */
-    private readonly _targetVoiceChannel: VoiceBasedChannel;
+    private _targetVoiceChannel: VoiceBasedChannel;
 
     public readonly events: TypedEmitter<JukeboxEvents> = new TypedEmitter();
 
@@ -65,10 +65,6 @@ export class Jukebox {
                 ? setTimeout(() => this.destroy(), Config.timeoutThresholds.clearQueue * 1000)
                 : null,
         };
-    }
-
-    public get lastStatusChange(): number {
-        return this._lastStatusChange;
     }
 
     private makeInactive(): void {
@@ -94,6 +90,7 @@ export class Jukebox {
         };
 
         this.events.emit(`stateChange`, this._status, newStatus);
+        this._lastStatusChange = Date.now();
 
         this._status = newStatus;
     }
@@ -222,6 +219,9 @@ export class Jukebox {
             if (this._status.tier === StatusTiers.Active) this.makeIdle();
             player.once(AudioPlayerStatus.Playing, () => {
                 this.makeActive(resource.metadata, connection, player);
+                if (!Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
+                    this.pauseDueToNoListeners(player, true);
+                }
             });
         });
 
@@ -406,8 +406,18 @@ export class Jukebox {
             }
         }
 
+        // we know status will be active since either branch of the previous `if` statement
+        // called `this.playInTime()` or `this.makePlayer()` successfully,
+        // both of which change the status to active on success
+        const newStatus = this._status as ActiveJukeboxStatus;
+
+        if (Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
+            return { content: makeNowPlayingEmbed(newStatus) };
+        } else {
+            return await this.pauseDueToNoListeners(newStatus.player, false);
+        }
+
         // we know status will be active due to the call to `this.playInTime()`
-        return { content: makeNowPlayingEmbed(this._status as ActiveJukeboxStatus) };
     }
 
     /** Removes all listeners and destroys the connection. */
@@ -527,6 +537,49 @@ export class Jukebox {
         return connection;
     }
 
+    /** Handles the bot being dragged into another voice channel. */
+    public handleChannelDrag(newChannel: VoiceBasedChannel): void {
+        this._targetVoiceChannel = newChannel;
+        // we don't need to do anything else, since the connection will rejoin
+        // and the player will start playing again automatically
+    }
+
+    public handleListenerLeave(): void {
+        if (this._status.tier !== StatusTiers.Active) return;
+        if (!Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
+            this.pauseDueToNoListeners(this._status.player, true);
+        }
+    }
+
+    private async pauseDueToNoListeners(player: AudioPlayer, announce: true): Promise<void>;
+    private async pauseDueToNoListeners(player: AudioPlayer, announce: false): Promise<InteractionReplyOptions>;
+    private async pauseDueToNoListeners(
+        player: AudioPlayer,
+        announce: boolean,
+    ): Promise<InteractionReplyOptions | void> {
+        if (player.pause(false)) {
+            try {
+                if (announce) {
+                    await this._startingInteraction.channel.send({ content: `Paused due to nobody listening` });
+                    return;
+                }
+                return { content: `Paused due to nobody listening` };
+            } catch (error) {
+                this.logError(`Error sending "paused due to to nobody listening" message`, {
+                    error,
+                    startingInteractionChannel: {
+                        id: this._startingInteraction.channel.id,
+                        name: this._startingInteraction.channel.name,
+                    },
+                });
+            }
+        } else {
+            this.logError(`Unable to pause after drag into non-listener vc`, {
+                channel: { id: this._targetVoiceChannel.id, name: this._targetVoiceChannel.name },
+            });
+        }
+    }
+
     /** Irreversibly destroys this instance. */
     public destroy(): void {
         if (this._status.leaveTimeout) clearTimeout(this._status.leaveTimeout);
@@ -561,5 +614,19 @@ export class Jukebox {
             return Config.maxQueueSize - this.inventory.length;
         }
         return undefined;
+    }
+
+    public get lastStatusChange(): number {
+        return this._lastStatusChange;
+    }
+
+    public get voiceChannel(): VoiceBasedChannel {
+        return this._targetVoiceChannel;
+    }
+
+    private static getHasListenersInVoice(voiceChannel: VoiceBasedChannel): boolean {
+        return voiceChannel.members.some(
+            (e) => !e.user.bot && e.voice.selfDeaf !== true && e.voice.serverDeaf !== true,
+        );
     }
 }

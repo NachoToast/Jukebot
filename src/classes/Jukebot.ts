@@ -9,6 +9,7 @@ import {
     RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand,
     Routes,
     Snowflake,
+    VoiceState,
 } from 'discord.js';
 import { chooseRandomArtist } from '../functions/chooseRandomArtist';
 import { getVersion } from '../functions/getVersion';
@@ -45,6 +46,7 @@ export class Jukebot {
     private async login(token: string): Promise<void> {
         this.client.once(`ready`, () => this.onReady(token));
         this.client.on(`interactionCreate`, (interaction) => this.onInteractionCreate(interaction));
+        this.client.on<`voiceStateUpdate`>(`voiceStateUpdate`, (oldS, newS) => this.onVoiceStateChange(oldS, newS));
 
         const loginTimeout = Config.timeoutThresholds.discordLogin
             ? setTimeout(() => {
@@ -159,6 +161,59 @@ export class Jukebot {
             await command.execute({ interaction: interaction as JukebotInteraction, jukebot: this });
         } catch (error) {
             Loggers.error.log(error);
+        }
+    }
+
+    private onVoiceStateChange(oldState: VoiceState, newState: VoiceState): void {
+        if (oldState.channel === newState.channel) return; // we only care about changing voice channels
+        if (oldState.channel === null) return; // and only moving or leaving channels, not joining
+        if (oldState.member === null) {
+            // not sure when this would ever happen
+            Loggers.warn.log(`[VoiceStateChange] No member`, {
+                guild: { id: oldState.guild.id, name: oldState.guild.name },
+                newChannel: { id: newState.channel?.id, name: newState.channel?.name },
+                oldChannel: { id: oldState.channel?.id, name: oldState.channel?.name },
+            });
+            return;
+        }
+        if (oldState.guild.members.me === null) {
+            // somehow Jukebot wasn't in this guild
+            Loggers.warn.log(`[VoiceStateChange] Not in this guild`, {
+                guild: { id: oldState.guild.id, name: oldState.guild.name },
+                newChannel: { id: newState.channel?.id, name: newState.channel?.name },
+                oldChannel: { id: oldState.channel?.id, name: oldState.channel?.name },
+            });
+            return;
+        }
+
+        if (oldState.member.id === oldState.guild.members.me.id && newState.channel !== null) {
+            // if Jukebot moved to a new voice channel, update accordingly
+            const jukebox = this.getJukebox(oldState.guild.id);
+            if (jukebox) jukebox.handleChannelDrag(newState.channel);
+            else {
+                Loggers.warn.log(`[VoiceStateChange] Jukebot moved but no instance tracked`, {
+                    guild: { id: oldState.guild.id, name: oldState.guild.name },
+                    newChannel: { id: newState.channel?.id, name: newState.channel?.name },
+                    oldChannel: { id: oldState.channel?.id, name: oldState.channel?.name },
+                });
+            }
+            return;
+        }
+
+        if (newState.channel === null) {
+            // if someone left a voice channel
+            const jukebox = this.getJukebox(oldState.guild.id);
+
+            if (
+                jukebox !== undefined &&
+                jukebox.voiceChannel.id === oldState.channel.id &&
+                jukebox.status.tier === StatusTiers.Active
+            ) {
+                // and we had an active jukebox in that same voice channel
+                // check to make sure there's still people listening to its music
+                jukebox.handleListenerLeave();
+                return;
+            }
         }
     }
 
