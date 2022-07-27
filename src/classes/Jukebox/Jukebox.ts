@@ -500,7 +500,7 @@ export class Jukebox {
         });
 
         connection.on(VoiceConnectionStatus.Disconnected, () => {
-            if (this._status.tier === StatusTiers.Active) this.makeIdle();
+            if (this._status.tier === StatusTiers.Active) this.makeInactive();
         });
 
         connection.on(VoiceConnectionStatus.Destroyed, () => {
