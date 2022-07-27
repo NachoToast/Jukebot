@@ -16,6 +16,7 @@ import {
     ValidSearchSources,
     YouTubeSearchTypes,
 } from '../../types/Searches';
+import { Shuffle } from './shuffle';
 
 export class Play extends Command {
     public name = `play`;
@@ -28,11 +29,17 @@ export class Play extends Command {
             option.setName(`song`).setDescription(`The song name or YouTube/Spotify URL`).setRequired(true),
         );
 
+        cmd.addBooleanOption((option) =>
+            option.setName(`shuffle`).setDescription(`Shuffle results before adding (if playlist)`),
+        );
+
         return cmd;
     }
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const searchTerm = interaction.options.get(`song`, true).value;
+        const doShuffle = !!interaction.options.get(`shuffle`, false)?.value;
+
         if (typeof searchTerm !== `string`) {
             await interaction.reply({ content: `Please specify a song name or URL`, ephemeral: true });
             return;
@@ -96,7 +103,12 @@ export class Play extends Command {
             return;
         }
 
+        if (doShuffle && results.items.length > 2) {
+            Shuffle.inPlaceShuffle(results.items);
+        }
+
         jukebox.inventory.push(...results.items);
+
         if (jukebox.status.tier !== StatusTiers.Active) {
             // jukebox not active, so
             const res = await jukebox.playNextInQueue(interaction);
