@@ -62,7 +62,7 @@ export class MusicDisc {
         const res = createAudioResource<MusicDisc>(youtubeStream, {
             inputType,
             metadata: this,
-            inlineVolume: Config.volumeModifier === 1 ? true : false,
+            inlineVolume: Config.volumeModifier !== 1 ? true : false,
         });
 
         if (Config.volumeModifier !== 1) {
