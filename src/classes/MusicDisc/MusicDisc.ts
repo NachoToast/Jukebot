@@ -56,13 +56,15 @@ export class MusicDisc {
         const res = createAudioResource<MusicDisc>(youtubeStream, {
             inputType,
             metadata: this,
-            inlineVolume: true,
+            inlineVolume: Config.volumeModifier === 1 ? true : false,
         });
 
-        if (res.volume === undefined) {
-            Loggers.warn.log(`Unable to create volume transformer`, this.toJSON());
-        } else {
-            res.volume.setVolume(0.1);
+        if (Config.volumeModifier !== 1) {
+            if (res.volume === undefined) {
+                Loggers.warn.log(`Unable to create volume transformer`, this.toJSON());
+            } else {
+                res.volume.setVolume(Config.volumeModifier);
+            }
         }
 
         return res;

@@ -14,6 +14,12 @@ export const Config = {
      */
     levenshteinThreshold: 0.1,
 
+    /** Volume on all tracks is multiplied by this amount. Setting to 1 disables inline volume. */
+    volumeModifier: 0.1,
+
+    /** Not yet implemented. */
+    embedColor: `#794c36`,
+
     /**
      * These values dictate maximum time allowed for certain tasks.
      *
