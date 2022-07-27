@@ -241,9 +241,14 @@ export class Jukebot {
         return this._jukeboxes.get(guildId);
     }
 
-    public getOrMakeJukebox(props: JukeboxProps): Jukebox {
-        const existing = this._jukeboxes.get(props.interaction.guildId);
-        if (existing !== undefined) return existing;
+    public makeJukebox(props: JukeboxProps): Jukebox {
+        if (this._jukeboxes.has(props.interaction.guildId)) {
+            Loggers.error.log(`Tried to create Jukebox while one with that guild ID already exists`, {
+                guild: { id: props.interaction.guildId, name: props.interaction.guild.name },
+                member: { id: props.interaction.member.id, name: props.interaction.member.displayName },
+            });
+            return this._jukeboxes.get(props.interaction.guildId)!;
+        }
 
         const jukebox = new Jukebox(props);
 
@@ -261,6 +266,10 @@ export class Jukebot {
         this._jukeboxes.set(props.interaction.guildId, jukebox);
 
         return jukebox;
+    }
+
+    public getOrMakeJukebox(props: JukeboxProps): Jukebox {
+        return this.getJukebox(props.interaction.guildId) || this.makeJukebox(props);
     }
 
     public getNumJukeboxes(): Record<StatusTiers, number> {
