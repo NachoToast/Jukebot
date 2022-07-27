@@ -18,5 +18,5 @@ export function makeHybridEmbed(
     result: HopperResult<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>,
     search: AnyValidSearch,
 ): string {
-    return makeNowPlayingEmbed(status) + `\n` + makeAddedToQueueEmbed(jukebox, result, search);
+    return makeNowPlayingEmbed(jukebox, status) + `\n` + makeAddedToQueueEmbed(jukebox, result, search);
 }

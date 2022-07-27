@@ -14,6 +14,6 @@ export class NowPlaying extends Command {
             return;
         }
 
-        await interaction.reply(makeNowPlayingEmbed(jukebox.status));
+        await interaction.reply(makeNowPlayingEmbed(jukebox, jukebox.status));
     }
 }

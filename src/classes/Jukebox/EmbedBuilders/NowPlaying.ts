@@ -3,11 +3,18 @@ import moment from 'moment';
 import { ActiveJukeboxStatus } from '../types';
 import { Config } from '../../../global/Config';
 import { viewCountFormatter } from '../../../functions/viewCountFormatter';
+import { Jukebox } from '../Jukebox';
 
 /** Makes a "now playing X" embed. */
-export function makeNowPlayingEmbed(status: ActiveJukeboxStatus): InteractionReplyOptions {
+export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): InteractionReplyOptions {
     const disc = status.playing;
     const color = Config.embedColor
+    const queueLength = jukebox.inventory.length
+
+    let queueTime = 0
+    for (let i = 0; i < queueLength; i++) {
+        queueTime = queueTime + jukebox.inventory[i].durationSeconds;
+    }
 
     const embed = new EmbedBuilder()
         .setTitle(disc.title)
@@ -18,6 +25,10 @@ export function makeNowPlayingEmbed(status: ActiveJukeboxStatus): InteractionRep
         .addFields(
             { name: `**Requested By**`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}`})
         .setColor(color)
+
+        if (queueLength > 0) {
+            embed.setFooter({ text: `Queue Length: ${queueLength} | Queue Time: ${queueTime}`})
+        }
 
     return { embeds: [embed] }
 
