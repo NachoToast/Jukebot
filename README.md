@@ -69,3 +69,4 @@ Usage: `yarn <scriptname>` or `npm run <scriptname>`
 -   `typecheck` - Typecheck files using TSC.
 -   `check-all` - Run tests, linting, and typechecking.
 -   `auth` - "Login" to Spotify and YouTube.
+-   `undeploy <guildId>` - Undeploy application guild commands for a specified server.

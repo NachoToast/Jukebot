@@ -13,7 +13,8 @@
         "test": "jest",
         "typecheck": "tsc --noEmit",
         "check-all": "yarn test && yarn lint && yarn typecheck",
-        "auth": "ts-node scripts/login.ts"
+        "auth": "ts-node scripts/login.ts",
+        "undeploy": "ts-node scripts/undeploy.ts"
     },
     "devDependencies": {
         "@types/jest": "^27.4.0",
