@@ -82,4 +82,14 @@ describe(`timeConverters`, () => {
             expect(stringToNumerical(numericalToString(stringToNumerical(`3:33`)))).toBe(3 * 60 + 33);
         });
     });
+
+    describe(`infinite values`, () => {
+        it(`should show Number.POSITIVE_INFINITY as "Infinity"`, () => {
+            expect(numericalToString(Number.POSITIVE_INFINITY)).toBe(`Infinity`);
+        });
+
+        it(`should show "Infinity" as Number.POSITIVE_INFINITY`, () => {
+            expect(stringToNumerical(`Infinity`)).toBe(Number.POSITIVE_INFINITY);
+        });
+    });
 });

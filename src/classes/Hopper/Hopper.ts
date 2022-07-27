@@ -175,7 +175,6 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
     private handleYouTubeVideo(video: YouTubeVideo): MusicDisc | HopperItemError<ValidSearchSources.YouTube> {
         if (video.private) return new HopperItemVideoError(video, BrokenReasons.Private, undefined);
         if (video.upcoming) return new HopperItemVideoError(video, BrokenReasons.Upcoming, undefined);
-        if (video.live) return new HopperItemVideoError(video, BrokenReasons.Live, undefined);
         if (video.type !== `video`) return new HopperItemVideoError(video, BrokenReasons.NotAVideo, undefined);
         return new MusicDisc(this.interaction, video);
     }

@@ -2,7 +2,6 @@
 export enum BrokenReasons {
     Private,
     Upcoming,
-    Live,
     NotAVideo,
     Other,
 }

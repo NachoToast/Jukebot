@@ -31,8 +31,6 @@ export class HopperItemVideoError<
                 return `\`${name}\` is a private video`;
             case BrokenReasons.Upcoming:
                 return `\`${name}\` is an upcoming video`;
-            case BrokenReasons.Live:
-                return `\`${name}\` is a live video`;
             case BrokenReasons.NotAVideo:
                 return `\`${name}\` is a ${this.originalItem.type}, not a video`;
             case BrokenReasons.Other:

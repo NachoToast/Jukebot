@@ -22,11 +22,15 @@ export class MusicDisc {
     public readonly views: number;
     public readonly channel: string;
 
-    /** The duration of this song in seconds. */
+    public readonly live: boolean;
+
+    /** The duration of this song in seconds. Live videos will have {@link Number.POSITIVE_INFINITY} as this value. */
     public readonly durationSeconds: number;
 
     /** The duration of this song in string form.
      * @example '0:12', '3:45', '5:06:07'.
+     *
+     * Live videos will have "Infinity" as this value.
      */
     public readonly durationString: string;
 
@@ -42,8 +46,10 @@ export class MusicDisc {
         this.views = video.views;
         this.channel = video.channel?.name || `Unknown Artist`;
 
-        this.durationSeconds = video.durationInSec;
-        this.durationString = video.durationRaw;
+        this.live = video.live;
+
+        this.durationSeconds = video.live ? Number.POSITIVE_INFINITY : video.durationInSec;
+        this.durationString = video.live ? `Infinity` : video.durationRaw;
     }
 
     public get resource(): AudioResource<MusicDisc> | undefined {
