@@ -34,7 +34,7 @@ export class Jukebot {
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
 
     public constructor(token: string) {
-        Loggers.info.log(`Jukebot ${getVersion()} started`);
+        Loggers.info.log(`Jukebot ${getVersion()} starting`);
 
         this.client = new Client({
             intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildVoiceStates],
@@ -62,7 +62,7 @@ export class Jukebot {
             if (error instanceof Error && error.name === `Error [TOKEN_INVALID]`) {
                 Loggers.error.log(`Invalid token in ${Colours.FgMagenta}auth.json${Colours.Reset} file`);
             } else {
-                Loggers.error.log(error);
+                Loggers.error.log(`login Error`, error);
             }
             process.exit(1);
         }
@@ -100,6 +100,12 @@ export class Jukebot {
 
         if (Devmode) await this.guildDeploy(token, toDeploy);
         else await this.globalDeploy(token, toDeploy);
+
+        const finalOutput = `Jukebot ${Colours.FgMagenta}${getVersion()}${Colours.Reset} started`;
+        if (!Devmode) {
+            console.log(finalOutput);
+        }
+        Loggers.info.log(finalOutput);
     }
 
     /** Deploys slash commands locally and removes globally deployed commands. */
@@ -121,14 +127,14 @@ export class Jukebot {
                     `Deployed ${body.length} slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`,
                 );
             } catch (error) {
-                Loggers.error.log(error);
+                Loggers.error.log(`putApplicationGuildCommands Error`, error);
             }
         }
 
         try {
             await rest.put(Routes.applicationCommands(this.client.user.id), { body: [] });
         } catch (error) {
-            Loggers.error.log(error);
+            Loggers.error.log(`putApplicationCommands Error`, error);
             process.exit(1);
         }
     }
@@ -143,7 +149,7 @@ export class Jukebot {
                 `Deployed ${body.length} slash commands to ${Colours.FgMagenta}${this.client.guilds.cache.size}${Colours.Reset} guilds`,
             );
         } catch (error) {
-            Loggers.error.log(error);
+            Loggers.error.log(`globalDeploy Error`, error);
             process.exit(1);
         }
     }
@@ -160,7 +166,7 @@ export class Jukebot {
         try {
             await command.execute({ interaction: interaction as JukebotInteraction, jukebot: this });
         } catch (error) {
-            Loggers.error.log(error);
+            Loggers.error.log(`interactionCreate Error`, error);
         }
     }
 
