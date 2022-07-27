@@ -225,6 +225,16 @@ export class Jukebox {
             });
         });
 
+        player.on(AudioPlayerStatus.Paused, () => {
+            if (this._status.tier === StatusTiers.Active) this.makeIdle();
+            player.once(AudioPlayerStatus.Playing, () => {
+                this.makeActive(resource.metadata, connection, player);
+                if (!Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
+                    this.pauseDueToNoListeners(player, true);
+                }
+            });
+        });
+
         try {
             player.play(resource);
         } catch (error) {
@@ -246,9 +256,7 @@ export class Jukebox {
             try {
                 await entersState(player, AudioPlayerStatus.Playing, Config.timeoutThresholds.play * 1000);
             } catch (error) {
-                player.off(AudioPlayerStatus.Playing, () => {
-                    this.makeActive(resource.metadata, connection, player);
-                });
+                player.removeAllListeners();
                 throw new PlayerTimeoutError(resource.metadata);
             }
         } else {
@@ -283,10 +291,6 @@ export class Jukebox {
             this.logError(`Player error`, { error });
             this._startingInteraction.channel.send({ content: `Player error occurred` }).catch(() => null);
             this.destroy();
-        });
-
-        player.on(AudioPlayerStatus.Paused, () => {
-            if (this._status.tier === StatusTiers.Active) this.makeIdle();
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
@@ -548,6 +552,29 @@ export class Jukebox {
         if (this._status.tier !== StatusTiers.Active) return;
         if (!Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
             this.pauseDueToNoListeners(this._status.player, true);
+        }
+    }
+
+    public async handleListenerJoin(): Promise<void> {
+        if (this._status.tier !== StatusTiers.Idle) return;
+        if (Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
+            if (this._status.player.unpause()) {
+                try {
+                    await this._startingInteraction.channel.send({ content: `Playback resumed` });
+                } catch (error) {
+                    this.logError(`Error sending "playback resumed" message`, {
+                        error,
+                        startingInteractionChannel: {
+                            id: this._startingInteraction.channel.id,
+                            name: this._startingInteraction.channel.name,
+                        },
+                    });
+                }
+            } else {
+                this.logError(`Unable to unpause after listener joins vc`, {
+                    channel: { id: this._targetVoiceChannel.id, name: this._targetVoiceChannel.name },
+                });
+            }
         }
     }
 

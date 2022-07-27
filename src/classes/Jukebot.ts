@@ -165,8 +165,10 @@ export class Jukebot {
     }
 
     private onVoiceStateChange(oldState: VoiceState, newState: VoiceState): void {
-        if (oldState.channel === newState.channel) return; // we only care about changing voice channels
-        if (oldState.channel === null) return; // and only moving or leaving channels, not joining
+        // we only care about when a voice channel changes (i.e. leaving, joining, and moving VCs)
+        // this guard clause ignores other reasons, e.g. a user muting themselves
+        if (oldState.channel?.id === newState.channel?.id) return;
+
         if (oldState.member === null) {
             // not sure when this would ever happen
             Loggers.warn.log(`[VoiceStateChange] No member`, {
@@ -200,18 +202,23 @@ export class Jukebot {
             return;
         }
 
-        if (newState.channel === null) {
-            // if someone left a voice channel
-            const jukebox = this.getJukebox(oldState.guild.id);
+        const jukebox = this.getJukebox(oldState.guild.id);
+
+        if (jukebox !== undefined) {
+            // if we have a jukebox in this guild
 
             if (
-                jukebox !== undefined &&
-                jukebox.voiceChannel.id === oldState.channel.id &&
-                jukebox.status.tier === StatusTiers.Active
+                jukebox.voiceChannel.id === oldState.channel?.id && // and its in the channel that the user left, and
+                jukebox.status.tier === StatusTiers.Active // it was playing something
             ) {
-                // and we had an active jukebox in that same voice channel
                 // check to make sure there's still people listening to its music
                 jukebox.handleListenerLeave();
+                return;
+            } else if (
+                jukebox.voiceChannel.id === newState.channel?.id && // & it is in the channel that the user joined, and
+                jukebox.status.tier === StatusTiers.Idle // it is idling
+            ) {
+                jukebox.handleListenerJoin();
                 return;
             }
         }
