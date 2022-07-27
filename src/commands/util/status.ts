@@ -60,12 +60,12 @@ export class Status extends Command {
     }
 
     /** Returns how long until the status of a Jukebox will change. */
-    private static statusTimeLeft<T extends JukeboxStatus>(status: T, lastStatusChange: number): string {
+    private static statusTimeLeft(status: JukeboxStatus, lastStatusChange: number): string {
         let lastsFor: number;
 
         switch (status.tier) {
             case StatusTiers.Active:
-                return ``;
+                return `(${numericalToString(Math.floor((Date.now() - lastStatusChange) / 1000))} Elapsed)`;
             case StatusTiers.Idle:
                 lastsFor = Config.timeoutThresholds.leaveVoice;
                 break;
