@@ -1,3 +1,5 @@
+import { HexColorString } from 'discord.js';
+
 export const Config = {
     /** Maximum number of items allowed in a queue, set to 0 for no limit. */
     maxQueueSize: 1000,
@@ -16,9 +18,8 @@ export const Config = {
 
     /** Volume on all tracks is multiplied by this amount. Setting to 1 disables inline volume. */
     volumeModifier: 0.1,
-
     /** Not yet implemented. */
-    embedColor: `#794c36`,
+    embedColor: `#794c36` as HexColorString,
 
     /**
      * These values dictate maximum time allowed for certain tasks.
@@ -49,7 +50,11 @@ export const Config = {
         /** Clear the queue X seconds after leaving the VC. */
         clearQueue: 300,
 
-        /** Stop listening to "Next Page" events after X seconds. */
+        /**
+         * Stop listening to "Next Page" events after X seconds.
+         *
+         * Please do not set this to 0, will have unexpected behaviour.
+         */
         stopQueuePagination: 300,
     },
 };
