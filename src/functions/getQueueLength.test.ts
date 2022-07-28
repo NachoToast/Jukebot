@@ -9,7 +9,7 @@ describe(`getQueueLength`, () => {
             { live: false, durationSeconds: 56 },
         ] as MusicDisc[];
 
-        expect(getQueueLength(noLive)).toEqual({ totalDuration: 12 + 34 + 56, hasLiveVideos: false });
+        expect(getQueueLength(noLive)).toEqual({ totalDuration: 12 + 34 + 56, numLiveVideos: 0 });
     });
 
     it(`Handles only live queues`, () => {
@@ -19,7 +19,7 @@ describe(`getQueueLength`, () => {
             { live: true, durationSeconds: Number.POSITIVE_INFINITY },
         ] as MusicDisc[];
 
-        expect(getQueueLength(allLive)).toEqual({ totalDuration: 0, hasLiveVideos: true });
+        expect(getQueueLength(allLive)).toEqual({ totalDuration: 0, numLiveVideos: 3 });
     });
 
     it(`Handles hybrid queues`, () => {
@@ -30,10 +30,10 @@ describe(`getQueueLength`, () => {
             { live: false, durationSeconds: 34 },
         ] as MusicDisc[];
 
-        expect(getQueueLength(someLive)).toEqual({ totalDuration: 12 + 34, hasLiveVideos: true });
+        expect(getQueueLength(someLive)).toEqual({ totalDuration: 12 + 34, numLiveVideos: 2 });
     });
 
     it(`Handles empty queues`, () => {
-        expect(getQueueLength([])).toEqual({ totalDuration: 0, hasLiveVideos: false });
+        expect(getQueueLength([])).toEqual({ totalDuration: 0, numLiveVideos: 0 });
     });
 });

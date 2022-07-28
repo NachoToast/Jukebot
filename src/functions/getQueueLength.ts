@@ -1,16 +1,16 @@
 import { MusicDisc } from '../classes/MusicDisc';
 
 /** Gets the cumulative duration (in seconds) of a queue, excluding live videos. */
-export function getQueueLength(queue: MusicDisc[]): { totalDuration: number; hasLiveVideos: boolean } {
+export function getQueueLength(queue: MusicDisc[]): { totalDuration: number; numLiveVideos: number } {
     let totalDuration = 0;
-    let hasLiveVideos = false;
+    let numLiveVideos = 0;
 
     for (const disc of queue) {
-        if (disc.live) hasLiveVideos = true;
+        if (disc.live) numLiveVideos++;
         else {
             totalDuration += disc.durationSeconds;
         }
     }
 
-    return { totalDuration, hasLiveVideos };
+    return { totalDuration, numLiveVideos };
 }
