@@ -1,4 +1,4 @@
-import { EmbedBuilder, InteractionReplyOptions } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import moment from 'moment';
 import { ActiveJukeboxStatus } from '../types';
 import { Config } from '../../../global/Config';
@@ -8,7 +8,7 @@ import { numericalToString } from '../../../functions/timeConverters';
 import { getQueueLength } from '../../../functions/getQueueLength';
 
 /** Makes a "now playing X" embed. */
-export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): InteractionReplyOptions {
+export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): EmbedBuilder {
     const disc = status.playing;
     const queueSize = jukebox.inventory.length;
 
@@ -42,5 +42,5 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
         embed.setFooter({ text: `Queue Length: ${queueSize} | ${queueTimeString}` });
     }
 
-    return { embeds: [embed] };
+    return embed;
 }

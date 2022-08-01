@@ -145,7 +145,7 @@ export class Play extends Command {
                 if (newStatus.tier === StatusTiers.Active) {
                     // and is now being played
                     // show now "playing embed"
-                    await interaction.editReply(makeNowPlayingEmbed(jukebox, newStatus));
+                    await interaction.editReply({ embeds: [makeNowPlayingEmbed(jukebox, newStatus)] });
                 } else {
                     // but is not being played
                     // meaning something went wrong, so show whatever the response is
