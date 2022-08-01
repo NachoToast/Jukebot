@@ -9,7 +9,6 @@ import { numericalToString } from '../../../functions/timeConverters';
 /** Makes a "now playing X" embed. */
 export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): InteractionReplyOptions {
     const disc = status.playing;
-    const color = Config.embedColor;
     const queueLength = jukebox.inventory.length;
 
     let queueTime = 0;
@@ -26,7 +25,7 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
             `Duration: ${disc.durationString}\nViews: ${viewCountFormatter(disc.views)}\nChannel: ${disc.channel}`,
         )
         .addFields({ name: `**Requested By**`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}` })
-        .setColor(color);
+        .setColor(Config.embedColor);
 
     if (queueLength > 0) {
         embed.setFooter({ text: `Queue Length: ${queueLength} | Queue Time: ${numericalToString(queueTime)}` });
