@@ -5,12 +5,12 @@ import { StatusTiers } from '../classes/Jukebox/types';
  * Returns the number of remaining seconds until the currently playing resource
  * finished playback.
  *
- * If no resource is currently playing, will return -1.
+ * If no resource is currently playing, will return 0.
  *
- * If the resource has been playing longer than it should have, will also return -1.
+ * If the resource has been playing longer than it should have, will also return 0.
  */
 export function getTimeTillPlaybackDone(jukebox: Jukebox): number {
-    if (jukebox.status.tier !== StatusTiers.Active) return -1;
+    if (jukebox.status.tier !== StatusTiers.Active) return 0;
 
     const startedAt = jukebox.status.playingSince;
 
@@ -19,7 +19,7 @@ export function getTimeTillPlaybackDone(jukebox: Jukebox): number {
 
     const timeLeft = jukebox.status.playing.durationSeconds - playingFor;
 
-    if (timeLeft < 0) return -1;
+    if (timeLeft < 0) return 0;
 
     return timeLeft;
 }

@@ -3,12 +3,12 @@ import { StatusTiers } from '../classes/Jukebox/types';
 import { getTimeTillPlaybackDone } from './getTimeTillPlaybackDone';
 
 describe(`getTimeTillPlaybackDone`, () => {
-    it(`Returns -1 for non-active Jukeboxes`, () => {
+    it(`Returns 0 for non-active Jukeboxes`, () => {
         const idle = { status: { tier: StatusTiers.Idle } } as Jukebox;
         const inactive = { status: { tier: StatusTiers.Inactive } } as Jukebox;
 
-        expect(getTimeTillPlaybackDone(idle)).toBe(-1);
-        expect(getTimeTillPlaybackDone(inactive)).toBe(-1);
+        expect(getTimeTillPlaybackDone(idle)).toBe(0);
+        expect(getTimeTillPlaybackDone(inactive)).toBe(0);
     });
 
     it(`Returns accurate information for valid play states`, () => {
@@ -43,7 +43,7 @@ describe(`getTimeTillPlaybackDone`, () => {
         expect(getTimeTillPlaybackDone(testC)).toBe(0);
     });
 
-    it(`Returns -1 for invalid play states`, () => {
+    it(`Returns 0 for invalid play states`, () => {
         const testA = {
             status: {
                 tier: StatusTiers.Active,
@@ -52,6 +52,6 @@ describe(`getTimeTillPlaybackDone`, () => {
             },
         } as Jukebox;
 
-        expect(getTimeTillPlaybackDone(testA)).toBe(-1);
+        expect(getTimeTillPlaybackDone(testA)).toBe(0);
     });
 });
