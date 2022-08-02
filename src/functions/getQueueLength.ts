@@ -1,16 +1,27 @@
 import { MusicDisc } from '../classes/MusicDisc';
+export interface QueueLengthInfo {
+    /** Cumulative duration (in seconds) of all non-live videos in the queue. */
+    totalDuration: number;
 
-/** Gets the cumulative duration (in seconds) of a queue, excluding live videos. */
-export function getQueueLength(queue: MusicDisc[]): { totalDuration: number; numLiveVideos: number } {
+    /** Cumulative duration (in seconds) of all videos before the first live one. */
+    durationTillFirstLive: number;
+
+    /** Number of live videos in the queue. */
+    numLiveVideos: number;
+}
+
+export function getQueueLength(queue: MusicDisc[]): QueueLengthInfo {
     let totalDuration = 0;
+    let durationTillFirstLive = 0;
     let numLiveVideos = 0;
 
     for (const disc of queue) {
         if (disc.live) numLiveVideos++;
         else {
             totalDuration += disc.durationSeconds;
+            if (numLiveVideos === 0) durationTillFirstLive += disc.durationSeconds;
         }
     }
 
-    return { totalDuration, numLiveVideos };
+    return { totalDuration, numLiveVideos, durationTillFirstLive };
 }

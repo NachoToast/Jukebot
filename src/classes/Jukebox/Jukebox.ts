@@ -416,7 +416,7 @@ export class Jukebox {
         const newStatus = this._status as ActiveJukeboxStatus;
 
         if (Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
-            return { content: makeNowPlayingEmbed(newStatus) };
+            return { embeds: [makeNowPlayingEmbed(this, newStatus)] };
         } else {
             return await this.pauseDueToNoListeners(newStatus.player, false);
         }
@@ -649,6 +649,10 @@ export class Jukebox {
 
     public get voiceChannel(): VoiceBasedChannel {
         return this._targetVoiceChannel;
+    }
+
+    public get startingInteraction(): JukebotInteraction {
+        return this._startingInteraction;
     }
 
     public static getHasListenersInVoice(voiceChannel: VoiceBasedChannel): boolean {

@@ -155,7 +155,12 @@ export class Jukebot {
     }
 
     private async onInteractionCreate(interaction: Interaction): Promise<void> {
-        if (interaction.type !== InteractionType.ApplicationCommand || !interaction.inGuild()) return;
+        if (interaction.type !== InteractionType.ApplicationCommand) return;
+
+        if (!interaction.inGuild()) {
+            await interaction.reply({ content: `You must be in a server to use this command`, ephemeral: true });
+            return;
+        }
 
         if (!(interaction.member instanceof GuildMember)) return;
         if (interaction.guild === null || interaction.channel === null) return;
