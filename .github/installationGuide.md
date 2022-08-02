@@ -1,6 +1,6 @@
 # Installation Guide
 
-Make sure you have [Node.js](https://nodejs.org/en/) installed on your computer. It should be version 16 or 17.
+Make sure you have [Node.js](https://nodejs.org/en/) installed on your computer. It should be a version between 16.9 and 17.
 
 To set up your own version of JukeBot, follow these steps
 
@@ -24,7 +24,7 @@ To set up your own version of JukeBot, follow these steps
         cp auth.example.json auth.json
         ```
 
-    2. Fill out the `devToken` field in [auth.json](../auth.json) with your Discord bot token from step 1(ii)
+    2. Fill out the `token` field in [auth.json](../auth.json) with your Discord bot token from step 1(ii)
 
 3. Set up Authorization
 
@@ -36,7 +36,7 @@ To set up your own version of JukeBot, follow these steps
 
     3. Spotify Authorization
 
-        - Jukebot uses Spotify to allow people to queue their playlists, albums, and other tracks
+        - Jukebot uses Spotify to allow people to queue their playlists, albums, and other tracks, you don't need to do this step, but you won't be able to play Spotify links otherwise.
 
         - If you get stuck in the following steps, you can consult [these instructions](https://github.com/play-dl/play-dl/tree/5d4485a54e01665ef2126d043f30498d8596c27a/instructions#spotify)
 

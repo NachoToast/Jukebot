@@ -1,24 +1,25 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import Command, { CommandParams } from '../../types/Command';
-import Messages from '../../types/Messages';
+import { StatusTiers } from '../../classes/Jukebox/types';
+import { Command, CommandParams } from '../../classes/template/Command';
 
 export class Leave extends Command {
-    public name = 'leave';
-    public description = 'Leave the voice chat (and clear the queue)';
-    public build(): SlashCommandBuilder {
-        return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
-    }
+    public name = `leave`;
+    public description = `Leaves the voice channel`;
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const jukebox = jukebot.getJukebox(interaction.guildId);
-        if (!jukebox) {
-            await interaction.reply({ content: Messages.SelfNotInVoice, ephemeral: true });
+
+        if (jukebox === undefined || jukebox.status.tier === StatusTiers.Inactive) {
+            await interaction.reply({ content: `Not currently in a voice channel` });
             return;
         }
 
-        jukebox.cleanup();
-        await interaction.reply({ content: '👋' });
+        if (jukebox.status.connection.disconnect()) {
+            await interaction.reply({ content: `Left <#${jukebox.voiceChannel.id}>` });
+        } else {
+            jukebox.logError(`Unknown error occurred trying to manually disconnect`, {
+                channel: { id: jukebox.voiceChannel.id, name: jukebox.voiceChannel.name },
+            });
+            await interaction.editReply({ content: `Unknown error occurred trying to leave` });
+        }
     }
 }
-
-export default new Leave();

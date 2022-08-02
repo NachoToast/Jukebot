@@ -1,23 +1,19 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import Command, { CommandParams } from '../../types/Command';
-import Messages from '../../types/Messages';
+import { makeNowPlayingEmbed } from '../../classes/Jukebox/EmbedBuilders';
+import { StatusTiers } from '../../classes/Jukebox/types';
+import { Command, CommandParams } from '../../classes/template/Command';
 
 export class NowPlaying extends Command {
-    public name = 'nowplaying';
-    public description = "Get the currently playing song's info";
-    public build(): SlashCommandBuilder {
-        return new SlashCommandBuilder().setName(this.name).setDescription(this.description);
-    }
+    public name = `nowplaying`;
+    public description = `Get information on the currently playing song`;
 
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
         const jukebox = jukebot.getJukebox(interaction.guildId);
-        if (!jukebox) {
-            await interaction.reply({ content: Messages.NotPlaying, ephemeral: true });
+
+        if (jukebox === undefined || jukebox.status.tier !== StatusTiers.Active) {
+            await interaction.reply({ content: `Not currently playing anything` });
             return;
         }
 
-        await interaction.reply(jukebox.nowPlaying);
+        await interaction.reply({ embeds: [makeNowPlayingEmbed(jukebox, jukebox.status)] });
     }
 }
-
-export default new NowPlaying();

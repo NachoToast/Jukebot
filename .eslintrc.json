@@ -13,7 +13,7 @@
     "rules": {
         "no-unused-vars": "error",
         "linebreak-style": "off",
-        "quotes": ["error", "single", { "avoidEscape": true }],
+        "quotes": ["error", "backtick", { "avoidEscape": true }],
         "semi": "off",
         "no-var": "error",
         "default-case-last": "error",

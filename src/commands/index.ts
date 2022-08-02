@@ -1,7 +1,4 @@
-import Command from '../types/Command';
-import util from './util';
-import music from './music';
+import { musicCommands } from './music';
+import { utilCommands } from './util';
 
-const commandList: Command[] = [...util, ...music];
-
-export default commandList;
+export const commands = [...musicCommands, ...utilCommands];

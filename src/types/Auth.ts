@@ -1,4 +1,3 @@
-export default interface Auth {
-    token?: string;
-    devToken?: string;
+export interface Auth {
+    token: string;
 }

@@ -1,51 +1,198 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import Command, { CommandParams } from '../../types/Command';
-import Messages from '../../types/Messages';
-import { FullInteraction, GuildedInteraction } from '../../types/Interactions';
+import { Snowflake } from 'discord.js';
+import { TypedEmitter } from 'tiny-typed-emitter';
+import { Hopper } from '../../classes/Hopper';
+import { HopperError } from '../../classes/Hopper/Errors';
+import { HopperResult } from '../../classes/Hopper/types';
+import { makeAddedToQueueEmbed, makeHybridEmbed, makeNowPlayingEmbed } from '../../classes/Jukebox/EmbedBuilders';
+import { JukeboxStatus, StatusTiers } from '../../classes/Jukebox/types';
+import { Command, CommandParams } from '../../classes/template/Command';
+import { getSearchType } from '../../functions/getSearchType';
+import { Loggers } from '../../global/Loggers';
+import {
+    InvalidSearch,
+    InvalidSearchSources,
+    MapSearchSourceToTypes,
+    SearchSources,
+    SpotifySearchTypes,
+    ValidSearchSources,
+    YouTubeSearchTypes,
+} from '../../types/Searches';
+import { Shuffle } from './shuffle';
 
 export class Play extends Command {
-    public name = 'play';
-    public description = 'Add a song to the queue.';
-    public build(): SlashCommandBuilder {
-        const cmd = new SlashCommandBuilder().setName(this.name).setDescription(this.description);
+    public name = `play`;
+    public description = `Play a song, or add it to the queue`;
 
-        cmd.addStringOption((option) => option.setName('song').setDescription('The song to add').setRequired(true));
+    /** Play commands in progress for each guild. */
+    private _processing: Record<Snowflake, TypedEmitter<{ done: () => void }>> = {};
+
+    public build(): SlashCommandBuilder {
+        const cmd = super.build();
+
+        cmd.addStringOption((option) =>
+            option.setName(`song`).setDescription(`The song name or YouTube/Spotify URL`).setRequired(true),
+        );
 
         cmd.addBooleanOption((option) =>
-            option.setName('shuffle').setDescription('Shuffle before adding (if playlist)'),
+            option.setName(`shuffle`).setDescription(`Shuffle results before adding (if playlist)`),
         );
 
         return cmd;
     }
 
-    // eslint-disable-next-line class-methods-use-this
     public async execute({ interaction, jukebot }: CommandParams): Promise<void> {
-        const guildedInteraction = interaction as GuildedInteraction;
+        const searchTerm = interaction.options.get(`song`, true).value;
+        const doShuffle = !!interaction.options.get(`shuffle`, false)?.value;
 
-        const existingJukebox = jukebot.getJukebox(guildedInteraction.guildId);
-
-        await interaction.deferReply({ ephemeral: false });
-        // if already playing audio, skip voice channel checks
-        if (existingJukebox) {
-            await existingJukebox.add(guildedInteraction, true);
+        if (typeof searchTerm !== `string`) {
+            await interaction.reply({ content: `Please specify a song name or URL`, ephemeral: true });
             return;
         }
 
-        if (!guildedInteraction.member.voice.channel) {
-            await interaction.editReply({ content: Messages.NotInVoice });
+        const search = getSearchType(searchTerm);
+        if (!search.valid) {
+            search.source;
+            await interaction.reply({ content: this.invalidSearchMessage(search), ephemeral: true });
             return;
         }
 
-        const fullInteraction = interaction as FullInteraction;
+        if (interaction.member.voice.channel === null) {
+            await interaction.reply({ content: `You must be in voice to use this command`, ephemeral: true });
+            return;
+        }
+
+        if (interaction.member.voice.channel.joinable === false) {
+            await interaction.reply({
+                content: `I cannot join <#${interaction.member.voice.channelId}> `,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const jukebox = jukebot.getOrMakeJukebox({
+            interaction,
+            voiceChannel: interaction.member.voice.channel,
+            search,
+            searchTerm,
+        });
+
+        let results: HopperResult<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>;
+
+        await interaction.reply({ content: `Getting search results...` });
 
         try {
-            const jukeBox = jukebot.getOrMakeJukebox(fullInteraction);
-            await jukeBox.add(guildedInteraction, true);
+            results = await new Hopper({
+                interaction,
+                search,
+                searchTerm,
+                maxItems: jukebox.freeSpace,
+            }).fetchResults();
+
+            if (results.items.length === 0) {
+                throw new Error(`No results found`);
+            }
         } catch (error) {
-            await interaction.editReply({ content: `${error}` });
+            if (error instanceof Error) {
+                await interaction.editReply({ content: error.message });
+                return;
+            }
+
+            if (error instanceof HopperError) {
+                await interaction.editReply({ content: error.toString() });
+                return;
+            }
+
+            await interaction.editReply({ content: `Unknown error occurred while searching for results` });
+            Loggers.error.log(`Search result error`, { error, search });
             return;
+        }
+
+        if (doShuffle && results.items.length > 2) {
+            Shuffle.inPlaceShuffle(results.items);
+        }
+
+        jukebox.inventory.push(...results.items);
+
+        if (this._processing[interaction.guildId] !== undefined) {
+            await Promise.all([
+                new Promise<void>((res) => this._processing[interaction.guildId].once(`done`, () => res())),
+                interaction.editReply({ content: `Waiting on previous command...` }),
+            ]);
+        }
+
+        this._processing[interaction.guildId] = new TypedEmitter();
+
+        if (jukebox.status.tier !== StatusTiers.Active) {
+            // jukebox not active, so
+            const res = await jukebox.playNextInQueue(interaction);
+            const newStatus = jukebox.status as JukeboxStatus; // it's no longer guaranteed to be inactive
+
+            if (results.playlistMetadata !== undefined) {
+                // if a playlist was queued
+
+                if (newStatus.tier === StatusTiers.Active) {
+                    // and is now being played
+                    // show hybrid embed
+                    await interaction.editReply({ embeds: makeHybridEmbed(newStatus, jukebox, results), content: `` });
+                } else {
+                    // but is not being played
+                    // meaning something went wrong, so show whatever the response is
+                    await interaction.editReply(res);
+                }
+            } else {
+                // a single item was queued
+                if (newStatus.tier === StatusTiers.Active) {
+                    // and is now being played
+                    // show now "playing embed"
+                    await interaction.editReply({ embeds: [makeNowPlayingEmbed(jukebox, newStatus)], content: `` });
+                } else {
+                    // but is not being played
+                    // meaning something went wrong, so show whatever the response is
+                    await interaction.editReply(res);
+                }
+            }
+        } else {
+            // jukebox was active, so we definitely aren't playing what was literally just added
+            // therefore make "added to queue" embed
+            await interaction.editReply({ embeds: [makeAddedToQueueEmbed(jukebox, results, false)], content: `` });
+        }
+
+        this._processing[interaction.guildId].emit(`done`);
+        delete this._processing[interaction.guildId];
+    }
+
+    private invalidSearchMessage(search: InvalidSearch<SearchSources>): string {
+        switch (search.source) {
+            case InvalidSearchSources.Invalid:
+                return `Invalid URL`;
+            case InvalidSearchSources.Unknown:
+                return `Unrecognized URL, must be from either Spotify or YouTube`;
+            case ValidSearchSources.Text:
+                return `Search must be greater than 3 characters`;
+            case ValidSearchSources.Spotify:
+                switch (search.type) {
+                    case SpotifySearchTypes.Album:
+                        return `Invalid Spotify album URL`;
+                    case SpotifySearchTypes.Playlist:
+                        return `Invalid Spotify playlist URL`;
+                    case SpotifySearchTypes.Track:
+                        return `Invalid Spotify track URL`;
+                    default:
+                        return `Unrecognized Spotify URL`;
+                }
+            case ValidSearchSources.YouTube:
+                switch (search.type) {
+                    case YouTubeSearchTypes.Playlist:
+                        return `Invalid YouTube playlist URL`;
+                    case YouTubeSearchTypes.Video:
+                        return `Invalid YouTube video URL`;
+                    default:
+                        return `Unrecognized YouTube URL`;
+                }
+            default:
+                Loggers.error.log(`Unrecognized search source`, { search });
+                return `Unrecognized search`;
         }
     }
 }
-
-export default new Play();

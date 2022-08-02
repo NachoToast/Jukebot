@@ -1,4 +1,5 @@
-import status from './status';
-import source from './source';
+import { Status } from './status';
+import { Source } from './source';
+import { Patchnotes } from './patchnotes';
 
-export default [status, source];
+export const utilCommands = [Status, Source, Patchnotes];
