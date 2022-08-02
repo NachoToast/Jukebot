@@ -215,6 +215,7 @@ export class Jukebox {
             this.makeActive(resource.metadata, connection, player);
         });
 
+        player.removeAllListeners(AudioPlayerStatus.AutoPaused);
         player.on(AudioPlayerStatus.AutoPaused, () => {
             if (this._status.tier === StatusTiers.Active) this.makeIdle();
             player.once(AudioPlayerStatus.Playing, () => {
@@ -225,6 +226,7 @@ export class Jukebox {
             });
         });
 
+        player.removeAllListeners(AudioPlayerStatus.Paused);
         player.on(AudioPlayerStatus.Paused, () => {
             if (this._status.tier === StatusTiers.Active) this.makeIdle();
             player.once(AudioPlayerStatus.Playing, () => {
