@@ -44,10 +44,16 @@ export function makeAddedToQueueEmbed(
         let numUnaccountedFor = result.playlistMetadata.playlistSize - result.items.length;
 
         if (result.errors.length) {
+            let firstXErrors = result.errors
+                .slice(0, 5)
+                .map((e) => e.toString())
+                .join(`\n`);
+            if (result.errors.length > 5) firstXErrors += `\n${result.errors.length - 5} more errors...`;
+
             // some songs weren't added due to errors
             baseEmbed.addFields({
                 name: `Errored Songs (${result.errors.length})`,
-                value: result.errors.map((e) => e.toString()).join(`\n`),
+                value: firstXErrors,
             });
             numUnaccountedFor -= result.errors.length;
         }
