@@ -7,6 +7,7 @@ import {
     MessageComponentInteraction,
 } from 'discord.js';
 import { Jukebox } from '../../classes/Jukebox';
+import { makeQueueFooter } from '../../classes/Jukebox/EmbedBuilders';
 import { Command, CommandParams } from '../../classes/template/Command';
 import { getQueueLength } from '../../functions/getQueueLength';
 import { numericalToString } from '../../functions/timeConverters';
@@ -41,21 +42,14 @@ export class Queue extends Command {
             return;
         }
 
-        const title = `${jukebox.inventory.length} Song${jukebox.inventory.length !== 1 ? `s` : ``} Queued`;
+        const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
+        const title = `${jukebox.inventory.length} Song${
+            jukebox.inventory.length !== 1 ? `s` : ``
+        } Queued (Total Length: ${numericalToString(totalDuration)}${
+            numLiveVideos > 0 ? ` Excluding ${numLiveVideos} Live Video${numLiveVideos !== 1 ? `s` : ``}` : ``
+        })`;
         const description: string[] = [];
 
-        let lengthDescription;
-        const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
-        if (numLiveVideos > 0) {
-            lengthDescription = `Total Length (Excluding ${numLiveVideos} Live Video${
-                numLiveVideos !== 1 ? `s` : ``
-            }): `;
-        } else {
-            lengthDescription = `Total Length: `;
-        }
-        lengthDescription += numericalToString(totalDuration);
-
-        description.push(lengthDescription);
         let page = 1;
         const numPages = Math.ceil(jukebox.inventory.length / Queue._itemsPerPage);
 
@@ -118,6 +112,15 @@ export class Queue extends Command {
                 );
 
             embed.setDescription([description.join(`\n`), songs.join(`\n`)].join(`\n`));
+
+            const relevantQueueItems = jukebox.inventory.slice(0, Queue._itemsPerPage * page);
+            embed.setFooter(
+                makeQueueFooter(
+                    relevantQueueItems,
+                    getQueueLength(relevantQueueItems),
+                    jukebox.startingInteraction.guild.iconURL(),
+                ),
+            );
 
             const row = new ActionRowBuilder<ButtonBuilder>();
 
