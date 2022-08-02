@@ -168,3 +168,7 @@ export class Queue extends Command {
         await interaction.reply(items);
     }
 }
+
+export class Q extends Queue {
+    public name = `q`;
+}
