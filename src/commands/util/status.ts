@@ -19,7 +19,9 @@ export class Status extends Command {
         const utilizedMemory = process.memoryUsage().heapUsed / 1024 ** 2;
 
         const output: string[] = [
-            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${getVersion()}${Colours.Reset}`,
+            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${getVersion()}${Colours.Reset} ${
+                jukebot.releaseObserver.currentVersionTip
+            }`,
             `Uptime: ${Colours.FgGreen}${uptime[0].toUpperCase() + uptime.slice(1)}${Colours.Reset} ${
                 Colours.FgBlack
             }${new Date(jukebot.client.readyAt).toLocaleString(`en-NZ`)} NZT${Colours.Reset}`,

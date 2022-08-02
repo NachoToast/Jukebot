@@ -24,6 +24,7 @@ import { Loggers } from '../global/Loggers';
 import { Jukebox } from './Jukebox';
 import { JukeboxProps, StatusTiers } from './Jukebox/types';
 import { Devmode } from '../global/Devmode';
+import { ReleaseObserver } from './ReleaseObserver';
 
 export class Jukebot {
     public readonly client: Client<true>;
@@ -32,6 +33,8 @@ export class Jukebot {
     public readonly commands: Collection<string, Command> = new Collection();
 
     private readonly _jukeboxes: Collection<Snowflake, Jukebox> = new Collection();
+
+    public readonly releaseObserver: ReleaseObserver = new ReleaseObserver();
 
     public constructor(token: string) {
         Loggers.info.log(`Jukebot ${getVersion()} starting`);
