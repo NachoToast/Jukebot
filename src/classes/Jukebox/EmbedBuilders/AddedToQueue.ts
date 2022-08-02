@@ -166,7 +166,7 @@ function makeSingleAddedToQueueEmbed(disc: MusicDisc, jukebox: Jukebox): EmbedBu
 
     const timeTillPlay = totalDuration + getTimeTillPlaybackDone(jukebox);
 
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(title)
         .setAuthor({ name: `Added to Queue`, iconURL: origin.member.displayAvatarURL() })
         .setColor(Config.embedColor)
@@ -180,8 +180,10 @@ function makeSingleAddedToQueueEmbed(disc: MusicDisc, jukebox: Jukebox): EmbedBu
                     ? `n/a (${numLiveVideos} Live Video${numLiveVideos !== 1 ? `s` : ``} Present)`
                     : numericalToString(timeTillPlay)
             }`,
-        })
-        .setFooter(
+        });
+
+    if (jukebox.inventory.length) {
+        embed.setFooter(
             makeQueueFooter(
                 jukebox.inventory.length,
                 numLiveVideos,
@@ -189,4 +191,7 @@ function makeSingleAddedToQueueEmbed(disc: MusicDisc, jukebox: Jukebox): EmbedBu
                 origin.guild.iconURL(),
             ),
         );
+    }
+
+    return embed;
 }

@@ -23,16 +23,18 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
         .addFields({ name: `**Requested By**`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}` })
         .setColor(Config.embedColor);
 
-    const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
+    if (jukebox.inventory.length) {
+        const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
 
-    embed.setFooter(
-        makeQueueFooter(
-            jukebox.inventory.length,
-            numLiveVideos,
-            numericalToString(totalDuration),
-            jukebox.startingInteraction.guild.iconURL(),
-        ),
-    );
+        embed.setFooter(
+            makeQueueFooter(
+                jukebox.inventory.length,
+                numLiveVideos,
+                numericalToString(totalDuration),
+                jukebox.startingInteraction.guild.iconURL(),
+            ),
+        );
+    }
 
     return embed;
 }
