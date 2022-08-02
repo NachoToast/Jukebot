@@ -134,7 +134,7 @@ export class Play extends Command {
                 if (newStatus.tier === StatusTiers.Active) {
                     // and is now being played
                     // show hybrid embed
-                    await interaction.editReply({ content: makeHybridEmbed(newStatus, jukebox, results, search) });
+                    await interaction.editReply({ embeds: makeHybridEmbed(newStatus, jukebox, results), content: `` });
                 } else {
                     // but is not being played
                     // meaning something went wrong, so show whatever the response is
@@ -145,7 +145,7 @@ export class Play extends Command {
                 if (newStatus.tier === StatusTiers.Active) {
                     // and is now being played
                     // show now "playing embed"
-                    await interaction.editReply({ embeds: [makeNowPlayingEmbed(jukebox, newStatus)] });
+                    await interaction.editReply({ embeds: [makeNowPlayingEmbed(jukebox, newStatus)], content: `` });
                 } else {
                     // but is not being played
                     // meaning something went wrong, so show whatever the response is
@@ -155,7 +155,7 @@ export class Play extends Command {
         } else {
             // jukebox was active, so we definitely aren't playing what was literally just added
             // therefore make "added to queue" embed
-            await interaction.editReply({ content: makeAddedToQueueEmbed(jukebox, results, search) });
+            await interaction.editReply({ embeds: [makeAddedToQueueEmbed(jukebox, results, false)], content: `` });
         }
 
         this._processing[interaction.guildId].emit(`done`);

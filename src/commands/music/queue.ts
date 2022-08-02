@@ -114,10 +114,12 @@ export class Queue extends Command {
             embed.setDescription([description.join(`\n`), songs.join(`\n`)].join(`\n`));
 
             const relevantQueueItems = jukebox.inventory.slice(0, Queue._itemsPerPage * page);
+            const { totalDuration, numLiveVideos } = getQueueLength(relevantQueueItems);
             embed.setFooter(
                 makeQueueFooter(
-                    relevantQueueItems,
-                    getQueueLength(relevantQueueItems),
+                    relevantQueueItems.length,
+                    numLiveVideos,
+                    numericalToString(totalDuration),
                     jukebox.startingInteraction.guild.iconURL(),
                 ),
             );

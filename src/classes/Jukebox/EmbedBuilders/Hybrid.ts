@@ -1,4 +1,5 @@
-import { AnyValidSearch, MapSearchSourceToTypes, ValidSearchSources } from '../../../types/Searches';
+import { EmbedBuilder } from 'discord.js';
+import { ValidSearchSources, MapSearchSourceToTypes } from '../../../types/Searches';
 import { HopperResult } from '../../Hopper/types';
 import { Jukebox } from '../Jukebox';
 import { ActiveJukeboxStatus } from '../types';
@@ -16,7 +17,8 @@ export function makeHybridEmbed(
     status: ActiveJukeboxStatus,
     jukebox: Jukebox,
     result: HopperResult<ValidSearchSources, MapSearchSourceToTypes<ValidSearchSources>>,
-    search: AnyValidSearch,
-): string {
-    return makeNowPlayingEmbed(jukebox, status) + `\n` + makeAddedToQueueEmbed(jukebox, result, search);
+): EmbedBuilder[] {
+    const nowPlaying = makeNowPlayingEmbed(jukebox, status);
+    const addedToQueue = makeAddedToQueueEmbed(jukebox, result, true);
+    return [nowPlaying, addedToQueue];
 }

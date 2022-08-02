@@ -6,6 +6,7 @@ import { viewCountFormatter } from '../../../functions/viewCountFormatter';
 import { Jukebox } from '../Jukebox';
 import { getQueueLength } from '../../../functions/getQueueLength';
 import { makeQueueFooter } from './queueFooter';
+import { numericalToString } from '../../../functions/timeConverters';
 
 /** Makes a "now playing X" embed. */
 export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): EmbedBuilder {
@@ -22,10 +23,13 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
         .addFields({ name: `**Requested By**`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}` })
         .setColor(Config.embedColor);
 
+    const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
+
     embed.setFooter(
         makeQueueFooter(
-            jukebox.inventory,
-            getQueueLength(jukebox.inventory),
+            jukebox.inventory.length,
+            numLiveVideos,
+            numericalToString(totalDuration),
             jukebox.startingInteraction.guild.iconURL(),
         ),
     );
