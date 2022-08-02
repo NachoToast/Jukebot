@@ -12,6 +12,10 @@ import { numericalToString } from '../../../functions/timeConverters';
 export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatus): EmbedBuilder {
     const disc = status.playing;
 
+    const playingFor = Math.floor((Date.now() - status.playingSince) / 1000);
+    const playingLeft = disc.durationSeconds - playingFor;
+    const percentDone = Math.floor((100 * playingFor) / disc.durationSeconds);
+
     const embed = new EmbedBuilder()
         .setTitle(disc.title)
         .setAuthor({ name: `Now Playing`, iconURL: disc.addedBy.displayAvatarURL() })
@@ -20,7 +24,13 @@ export function makeNowPlayingEmbed(jukebox: Jukebox, status: ActiveJukeboxStatu
         .setDescription(
             `Duration: ${disc.durationString}\nViews: ${viewCountFormatter(disc.views)}\nChannel: ${disc.channel}`,
         )
-        .addFields({ name: `**Requested By**`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}` })
+        .addFields(
+            { name: `Requested By`, value: `${disc.addedBy} ${moment(disc.addedAt).fromNow()}` },
+            {
+                name: `Time Elapsed (${percentDone}%)`,
+                value: `${numericalToString(playingFor)} (${numericalToString(playingLeft)} Left)`,
+            },
+        )
         .setColor(Config.embedColor);
 
     if (jukebox.inventory.length) {
