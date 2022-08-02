@@ -17,6 +17,7 @@ import { Devmode } from '../../global/Devmode';
 import { Loggers } from '../../global/Loggers';
 import { JukebotInteraction } from '../../types/JukebotInteraction';
 import { DiscTimeoutError, MusicDisc } from '../MusicDisc';
+import { UsedQueue } from '../UsedQueue';
 import { makeNowPlayingEmbed } from './EmbedBuilders';
 import {
     ConnectionError,
@@ -53,6 +54,9 @@ export class Jukebox {
 
     /** Queue of songs, this will **not** include the currently playing song. */
     public inventory: MusicDisc[] = [];
+
+    /** List of songs that have been previously played. */
+    public prevInventory: UsedQueue<MusicDisc> = new UsedQueue();
 
     public constructor(props: JukeboxProps) {
         this._startingInteraction = props.interaction;
@@ -162,7 +166,7 @@ export class Jukebox {
         }
 
         if (playing === this.inventory.at(0)) {
-            this.inventory.shift();
+            this.prevInventory.addItems(this.inventory.shift()!);
         }
 
         this.events.emit(`stateChange`, this._status, newStatus);
@@ -330,6 +334,7 @@ export class Jukebox {
             if (this._status.tier === StatusTiers.Active) this._status.player.stop();
             return { content: `The queue has finished` };
         }
+        this.prevInventory.addItems(nextItem);
 
         let resource: AudioResource<MusicDisc> | undefined = undefined;
 

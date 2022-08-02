@@ -4,6 +4,7 @@ import { Leave } from './leave';
 import { NowPlaying } from './nowPlaying';
 import { Pause } from './pause';
 import { Play } from './play';
+import { Previous } from './previous';
 import { Q, Queue } from './queue';
 import { Remove } from './remove';
 import { Resume, Unpause } from './resume';
@@ -24,4 +25,5 @@ export const musicCommands = [
     Fix,
     Leave,
     Remove,
+    Previous,
 ];
