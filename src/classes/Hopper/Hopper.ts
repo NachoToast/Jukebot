@@ -389,7 +389,7 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
         let results: YouTubeVideo[];
 
         try {
-            results = await search(searchTerm, { source: { youtube: `video` }, fuzzy: true, limit });
+            results = await search(searchTerm, { source: { youtube: `video` }, limit });
 
             // filter out results like [1 HOUR] for spotify tracks
             if (typeof searchItem !== `string`) {
