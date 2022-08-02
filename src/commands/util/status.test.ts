@@ -19,6 +19,7 @@ describe(`/status`, () => {
                 [StatusTiers.Inactive]: 3,
             };
         },
+        releaseObserver: { currentVersionTip: `fakeTip` },
     } as unknown as Jukebot;
     const interaction = { createdTimestamp: Date.now() - 1000, reply } as unknown as JukebotInteraction;
 
