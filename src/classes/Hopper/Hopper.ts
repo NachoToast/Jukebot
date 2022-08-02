@@ -422,10 +422,10 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
     /**
      * Converts data from a track into a string to search Youtube with.
      *
-     * Currently it just does "author names song name lyrics", e.g.
-     * "Alan Walker Faded lyrics"
+     * Currently it just does "author names song name ", e.g.
+     * "Alan Walker Faded"
      */
     private static youtubeSearchEquivalent({ artists, name }: SpotifyTrack): string {
-        return `${artists.map(({ name }) => name).join(` `)} ${name} lyrics`;
+        return `${artists.map(({ name }) => name).join(` `)} ${name}`;
     }
 }
