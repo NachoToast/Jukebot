@@ -169,6 +169,8 @@ export class Jukebox {
             this.prevInventory.addItems(this.inventory.shift()!);
         }
 
+        this.inventory[0].prepare();
+
         this.events.emit(`stateChange`, this._status, newStatus);
         this._lastStatusChange = Date.now();
 
@@ -384,19 +386,23 @@ export class Jukebox {
             // currently in an idle or active state, so we have a pre-existing connection and player
 
             // prepare the resource
-            try {
-                interaction?.editReply({ content: `Preparing audio...` });
-                resource = await nextItem.prepare();
-            } catch (error) {
-                if (!(error instanceof DiscTimeoutError)) {
-                    // the only error we expect is "unable to generate resource in time"
-                    this.logError(`Unknown error from ${this.playNextInQueue.name} step 1 (prepare resource)`, {
-                        error,
-                        disc: nextItem.toJSON(),
-                    });
+            if (nextItem.resource !== undefined) {
+                resource = nextItem.resource;
+            } else {
+                try {
+                    interaction?.editReply({ content: `Preparing audio...` });
+                    resource = await nextItem.prepare();
+                } catch (error) {
+                    if (!(error instanceof DiscTimeoutError)) {
+                        // the only error we expect is "unable to generate resource in time"
+                        this.logError(`Unknown error from ${this.playNextInQueue.name} step 1 (prepare resource)`, {
+                            error,
+                            disc: nextItem.toJSON(),
+                        });
+                    }
+                    return this.playNextInQueue();
+                    // TODO: compound embed messages, "skipped X due to error" + "now playing X"
                 }
-                return this.playNextInQueue();
-                // TODO: compound embed messages, "skipped X due to error" + "now playing X"
             }
 
             // play the resource
