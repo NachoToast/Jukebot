@@ -651,6 +651,10 @@ export class Jukebox {
         return this._targetVoiceChannel;
     }
 
+    public get startingInteraction(): JukebotInteraction {
+        return this._startingInteraction;
+    }
+
     public static getHasListenersInVoice(voiceChannel: VoiceBasedChannel): boolean {
         return voiceChannel.members.some(
             (e) => !e.user.bot && e.voice.selfDeaf !== true && e.voice.serverDeaf !== true,
