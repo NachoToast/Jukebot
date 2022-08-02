@@ -416,7 +416,7 @@ export class Jukebox {
         const newStatus = this._status as ActiveJukeboxStatus;
 
         if (Jukebox.getHasListenersInVoice(this._targetVoiceChannel)) {
-            return { embeds: [makeNowPlayingEmbed(this, newStatus)] };
+            return { embeds: [makeNowPlayingEmbed(this, newStatus)], content: `` };
         } else {
             return await this.pauseDueToNoListeners(newStatus.player, false);
         }
