@@ -17,7 +17,7 @@ export class Pause extends Command {
             await interaction.reply({ content: `Paused` });
         } else {
             jukebox.logError(`Unknown error occurred trying to manually pause`);
-            await interaction.editReply({ content: `Unknown error occurred trying to pause` });
+            await interaction.reply({ content: `Unknown error occurred trying to pause` });
         }
     }
 }
