@@ -169,7 +169,7 @@ export class Jukebox {
             this.prevInventory.addItems(this.inventory.shift()!);
         }
 
-        this.inventory[0].prepare();
+        this.inventory[0]?.prepare();
 
         this.events.emit(`stateChange`, this._status, newStatus);
         this._lastStatusChange = Date.now();
