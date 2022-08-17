@@ -162,7 +162,7 @@ function makeSingleAddedToQueueEmbed(disc: MusicDisc, jukebox: Jukebox): EmbedBu
     description += `\nChannel: ${channel}`;
 
     // we slice to avoid information about the song that was just added
-    const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory.slice(0, -1));
+    const { totalDuration, numLiveVideos } = getQueueLength(jukebox.inventory);
 
     const timeTillPlay = totalDuration + getTimeTillPlaybackDone(jukebox);
 
