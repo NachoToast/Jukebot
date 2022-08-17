@@ -35,6 +35,7 @@ import {
     HopperUnknownError,
     HopperItemNoResultsError,
     HopperItemConversionError,
+    HopperError,
 } from './Errors';
 import { HopperProps, HopperResult, BrokenReasons, HopperSingleErrorResponse } from './types';
 
@@ -216,9 +217,29 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
 
         try {
             playlist = await playlist_info(url, { incomplete: true });
-            videos = await playlist.next(this.maxItems);
+            await playlist.fetch();
+
+            const maxPage =
+                this.maxItems === undefined
+                    ? playlist.total_pages
+                    : Math.min(Math.ceil(this.maxItems / 100), playlist.total_pages);
+
+            // we will overwrite video count later in the method to account for
+            // private videos (not done natively)
+            playlist.videoCount = 0;
+
+            videos = [];
+            for (let page = 1; page <= maxPage; page++) {
+                const results = playlist.page(page);
+                playlist.videoCount += results.length;
+                videos.push(...results);
+            }
         } catch (error) {
-            throw new HopperUnknownError(this.searchTerm, { error, url });
+            throw new (class extends HopperError {
+                public toString(): string {
+                    return `Unable to find this YouTube playlist, is it private?`;
+                }
+            })();
         }
 
         const items: MusicDisc[] = [];
@@ -236,7 +257,7 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
             playlistMetadata: {
                 playlistName: playlist.title ?? `Unknown Playlist`,
                 playlistImageURL: playlist.thumbnail?.url || chooseRandomDisc(),
-                playlistSize: playlist.videoCount ?? 0,
+                playlistSize: playlist.videoCount,
                 playlistURL: playlist.url || url,
                 createdBy: playlist.channel?.name ?? `Unknown Channel`,
             },
