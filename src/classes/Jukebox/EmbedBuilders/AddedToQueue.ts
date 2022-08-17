@@ -64,9 +64,7 @@ export function makeAddedToQueueEmbed(
                 name: `Queue Full`,
                 value: `**${numUnaccountedFor}** Songs were skipped due to the queue being full (${Config.maxQueueSize}).`,
             });
-        }
-
-        if (numUnaccountedFor > 0) {
+        } else if (numUnaccountedFor > 0) {
             Loggers.error.log(`Got results unaccounted for in "AddedToQueue" embed maker`, {
                 numUnaccountedFor,
                 full: jukebox.isFull,
@@ -136,7 +134,9 @@ function makePlaylistAddedToQueueEmbed(
 
     if (!playbackStarted) {
         embed.addFields({
-            name: `Position in Queue: **${jukebox.inventory.length - discs.length}**`,
+            // a queue position of 0 is possible if queueing a playlist onto an empty queue while
+            // the bot is playing something
+            name: `Position in Queue: **${Math.max(jukebox.inventory.length - discs.length, 1)}**`,
             value: `Time till play: ${
                 numLiveVideos > 0
                     ? `n/a (${numLiveVideos} Live Video${numLiveVideos !== 1 ? `s` : ``} Present)`
