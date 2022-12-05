@@ -34,7 +34,7 @@
         "@discordjs/opus": "^0.8.0",
         "@discordjs/rest": "^0.3.0",
         "@discordjs/voice": "^0.8.0",
-        "discord-api-types": "^0.26.1",
+        "discord-api-types": "^0.37.21",
         "discord.js": "^14.0.2",
         "ffmpeg-static": "^4.4.1",
         "moment": "^2.29.2",
