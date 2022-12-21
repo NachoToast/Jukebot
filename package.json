@@ -1,10 +1,17 @@
 {
     "name": "jukebot",
     "version": "2.1.0",
+    "private": true,
     "main": "build/index.js",
     "license": "MIT",
-    "repository": "https://github.com/NachoToast/Jukebot.git",
-    "private": true,
+    "author": {
+        "name": "NachoToast",
+        "url": "https://github.com/NachoToast"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/NachoToast/Jukebot.git"
+    },
     "scripts": {
         "dev": "nodemon src/index.ts --devmode",
         "start": "node .",
