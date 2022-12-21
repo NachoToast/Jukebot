@@ -13,12 +13,11 @@
         "url": "https://github.com/NachoToast/Jukebot.git"
     },
     "scripts": {
-        "dev": "nodemon src/index.ts --devmode",
-        "start": "node .",
-        "lint": "eslint --ext .ts src --max-warnings=0",
+        "start": "nodemon src/index.ts --devmode",
         "build": "tsc -p tsconfig.build.json",
-        "test": "jest",
+        "lint": "eslint --ext .ts src --max-warnings=0",
         "typecheck": "tsc --noEmit",
+        "test": "jest",
         "check-all": "yarn test && yarn lint && yarn typecheck",
         "auth": "ts-node scripts/login.ts",
         "undeploy": "ts-node scripts/undeploy.ts"
