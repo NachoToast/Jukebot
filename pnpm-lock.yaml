@@ -14,13 +14,13 @@ specifiers:
   typescript: ^5.0.3
 
 dependencies:
+  dayjs: 1.11.7
   discord.js: 14.8.0
 
 devDependencies:
   '@types/node': 18.15.11
   '@typescript-eslint/eslint-plugin': 5.57.0_z24sz2fazj3bxoipp6m4s7b2mi
   '@typescript-eslint/parser': 5.57.0_vwh6htx42aidho2qgfca5u5rwm
-  dayjs: 1.11.7
   eslint: 8.37.0
   eslint-config-prettier: 8.8.0_eslint@8.37.0
   nodemon: 2.0.22
@@ -513,7 +513,7 @@ packages:
 
   /dayjs/1.11.7:
     resolution: {integrity: sha512-+Yw9U6YO5TQohxLcIkrXBeY73WP3ejHWVvx8XCk3gxvQDCTEmS48ZrSZCKciI7Bhl/uCMyxYtE9UqRILmFphkQ==}
-    dev: true
+    dev: false
 
   /debug/3.2.7_supports-color@5.5.0:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
