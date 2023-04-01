@@ -5,13 +5,9 @@
             "type": "string",
             "description": "Links to the JSON schema (the thing generating these descriptions), don't change this!"
         },
-        "discordClientId": {
+        "discordToken": {
             "type": "string",
-            "description": "Client ID of the Discord bot."
-        },
-        "discordClientSecret": {
-            "type": "string",
-            "description": "Client secret of the Discord bot."
+            "description": "Token of the Discord bot."
         },
         "maxQueueSize": {
             "type": "integer",
@@ -101,5 +97,5 @@
         }
     },
     "additionalProperties": false,
-    "required": ["discordClientId", "discordClientSecret"]
+    "required": ["discordToken"]
 }
