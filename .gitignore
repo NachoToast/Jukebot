@@ -1,19 +1,16 @@
-# Dependencies
+# dependencies
 node_modules/
 
-# NPM Lockfile
+# package managers
 package-lock.json
+yarn.lock
+.yarn-integrity
 
-# Compiled JavaScript files
+# user generated
 build/
-
-# Tokens and sensitive data
-.data/
-auth.json
-
-# Logs
 *.log
+.vscode/settings.json
+config.json
 
-# Other folders
-data/
-media/
+# dependency generated
+.data/

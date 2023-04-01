@@ -1,6 +1,6 @@
 {
     "name": "jukebot",
-    "version": "2.1.1",
+    "version": "3.0.0",
     "private": true,
     "main": "build/index.js",
     "license": "MIT",
@@ -14,53 +14,19 @@
     },
     "scripts": {
         "start": "nodemon src/index.ts --devmode",
-        "build": "tsc -p tsconfig.build.json",
+        "build": "tsc",
         "lint": "eslint --ext .ts src --max-warnings=0",
         "typecheck": "tsc --noEmit",
-        "test": "jest",
-        "check-all": "yarn test && yarn lint && yarn typecheck",
-        "auth": "ts-node scripts/login.ts",
-        "undeploy": "ts-node scripts/undeploy.ts"
+        "check-all": "pnpm lint && pnpm typecheck"
     },
     "devDependencies": {
-        "@types/jest": "^27.4.0",
-        "@types/node": "^18.14.2",
-        "@typescript-eslint/eslint-plugin": "^5.10.1",
-        "@typescript-eslint/parser": "^5.10.1",
-        "eslint": "^8.7.0",
-        "eslint-config-prettier": "^8.3.0",
-        "jest": "^27.4.7",
-        "nodemon": "^2.0.15",
-        "prettier": "^2.5.1",
-        "ts-jest": "^27.1.3",
-        "ts-node": "^10.4.0",
-        "typescript": "^4.5.5"
-    },
-    "dependencies": {
-        "@discordjs/opus": "^0.8.0",
-        "@discordjs/rest": "^0.3.0",
-        "@discordjs/voice": "^0.8.0",
-        "discord-api-types": "^0.26.1",
-        "discord.js": "^14.0.2",
-        "ffmpeg-static": "^5.1.0",
-        "moment": "^2.29.2",
-        "play-dl": "^1.8.2",
-        "sodium": "^3.0.2",
-        "tiny-typed-emitter": "^2.1.0"
-    },
-    "jest": {
-        "preset": "ts-jest",
-        "testEnvironment": "node"
-    },
-    "nodemonConfig": {
-        "watch": [
-            "src",
-            "auth.json",
-            "config.json"
-        ],
-        "ext": "ts",
-        "ignore": [
-            "**/*.test.ts"
-        ]
+        "@types/node": "^18.15.11",
+        "@typescript-eslint/eslint-plugin": "^5.57.0",
+        "@typescript-eslint/parser": "^5.57.0",
+        "eslint": "^8.37.0",
+        "eslint-config-prettier": "^8.8.0",
+        "prettier": "^2.8.7",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.3"
     }
 }
