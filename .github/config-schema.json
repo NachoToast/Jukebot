@@ -1,0 +1,105 @@
+{
+    "$schema": "http://json-schema.org/schema",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Links to the JSON schema (the thing generating these descriptions), don't change this!"
+        },
+        "discordClientId": {
+            "type": "string",
+            "description": "Client ID of the Discord bot."
+        },
+        "discordClientSecret": {
+            "type": "string",
+            "description": "Client secret of the Discord bot."
+        },
+        "maxQueueSize": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Maximum number of items allowed in a queue, set to 0 for no limit.",
+            "default": 1000
+        },
+        "statusTimePeriod": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Time (in seconds) between bot status/activity updates. Setting to 0 disables updates entirely.",
+            "default": 120
+        },
+        "levenshteinThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Minimum string similarity of search result and queried search.\nResults below this number won't be recognized.\nUser to prevent unintentionally queueing random videos.",
+            "default": 0.1
+        },
+        "volumeModifier": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Volume on all tracks is multiplied by this amount.",
+            "default": 0.1
+        },
+        "embedColour": {
+            "type": "string",
+            "description": "Colour of embeds, in HEX format.",
+            "default": "#794C36"
+        },
+        "timeoutThresholds": {
+            "type": "object",
+            "description": "These values dictate maximum time allowed for certain tasks.\nSetting to 0 will give unlimited time (unless specified otherwise).\nValues are all in seconds.",
+            "properties": {
+                "discordLogin": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Maximum time allowed for logging into Discord.",
+                    "default": 30
+                },
+                "fetchResults": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Maximum time allowed for fetching search results.",
+                    "default": 30
+                },
+                "generateResource": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Maximum time allowed for preparing audio streams.",
+                    "default": 10
+                },
+                "connect": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Maximum time allowed for connecting to a voice channel.",
+                    "default": 10
+                },
+                "play": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Maximum time allowed to start playing a track.",
+                    "default": 10
+                },
+                "inactivity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Leave the voice channel after this many seconds of inactivity.",
+                    "default": 300
+                },
+                "clearQueue": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Clears the queue this many seconds after leaving the voice channel.",
+                    "default": 300
+                },
+                "stopMessageListeners": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Stops responding to button presses and other interactions on sent messages after this many seconds.\nSetting to 0 may have unexpected behaviour.",
+                    "default": 300
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false,
+    "required": ["discordClientId", "discordClientSecret"]
+}
