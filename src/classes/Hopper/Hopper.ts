@@ -412,8 +412,8 @@ export class Hopper<T extends ValidSearchSources, K extends MapSearchSourceToTyp
         try {
             results = await search(searchTerm, { source: { youtube: `video` }, limit });
 
-            // filter out results like [1 HOUR] for spotify tracks
-            if (typeof searchItem !== `string`) {
+            // filter out results like [1 HOUR] unless specifically requested
+            if (!searchTerm.toLowerCase().includes(`hour`)) {
                 results = results.filter((e) => !e.title?.toLowerCase().includes(`hour`));
             }
         } catch (error) {
