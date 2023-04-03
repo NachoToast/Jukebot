@@ -1,15 +1,19 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, GuildMember } from 'discord.js';
 import {
     Spotify,
     SpotifyAlbum,
     SpotifyTrack,
+    YouTubePlayList,
     YouTubeVideo,
+    is_expired,
     playlist_info,
+    refreshToken,
     search,
     spotify,
     video_basic_info,
 } from 'play-dl';
 import { JukebotGlobals } from '../global';
+import { errorMessages } from '../messages/errorMessages';
 import { Search } from '../types';
 import { MusicDisc } from './MusicDisc';
 
@@ -28,61 +32,174 @@ interface MultipleRetrievedItems {
 /** Fetches search results for the user. */
 export class Allay {
     private readonly _origin: ChatInputCommandInteraction<'cached' | 'raw'>;
+    private readonly _member: GuildMember;
     private readonly _searchTerm: string;
     private readonly _search: Search;
 
-    public constructor(origin: ChatInputCommandInteraction<'cached' | 'raw'>, searchTerm: string) {
+    public constructor(origin: ChatInputCommandInteraction<'cached' | 'raw'>, member: GuildMember, searchTerm: string) {
         this._origin = origin;
+        this._member = member;
         this._searchTerm = searchTerm;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
     }
 
     public async retrieveItems(): Promise<MusicDisc | MultipleRetrievedItems> {
-        let output: MusicDisc | MultipleRetrievedItems;
+        if (Allay.isExpired()) {
+            if (this._search.source === 'spotify') {
+                // wait for refresh if we need it
+                const didRefresh = await refreshToken();
+                if (!didRefresh) throw new Error(errorMessages.failedSpotifyRefresh);
+            } else {
+                // don't wait for refresh if we don't need it
+                refreshToken().catch((e) => {
+                    this._origin.followUp({
+                        content: errorMessages.failedSpotifyRefreshBackground(e),
+                    });
+                });
+            }
+        }
+
+        let fetchPromise: Promise<MusicDisc | MultipleRetrievedItems>;
 
         switch (this._search.source) {
             case 'youtube':
                 switch (this._search.type) {
                     case 'video':
-                        output = await this.handleYouTubeVideoURL();
+                        fetchPromise = this.handleYouTubeVideoURL();
                         break;
                     case 'playlist':
-                        output = await this.handleYouTubePlaylistURL();
+                        fetchPromise = this.handleYouTubePlaylistURL();
                         break;
                 }
                 break;
             case 'spotify':
-                output = await this.handleSpotifyURL();
+                fetchPromise = this.handleSpotifyURL();
                 break;
             case 'text':
-                output = await this.handleTextSearch(this._searchTerm);
+                fetchPromise = this.handleTextSearch(this._searchTerm);
                 break;
         }
 
-        return output;
+        return await fetchPromise;
+    }
+
+    /** Makes an "Added to Queue" embed. */
+    public makeEmbed(retrievedItems: MusicDisc | MultipleRetrievedItems): EmbedBuilder {
+        if (retrievedItems instanceof MusicDisc) return this.makeSingleItemEmbed(retrievedItems);
+        return this.makeMultipleItemsEmbed(retrievedItems);
+    }
+
+    private makeSingleItemEmbed(disc: MusicDisc): EmbedBuilder {
+        const { views, channel, title, url, thumbnail } = disc;
+
+        const description = [`Duration: ${disc.durationString}`];
+
+        if (views !== 0) description.push(`Views: ${Intl.NumberFormat('en', { notation: 'compact' }).format(views)}`);
+        description.push(`Channel: ${channel}`);
+
+        if (this._search.source === 'spotify') {
+            description.push(`[View on Spotify](${this._searchTerm})`);
+        }
+
+        const niceSearchSource =
+            this._search.source === 'text'
+                ? 'Discord'
+                : this._search.source[0].toUpperCase() + this._search.source.slice(1);
+
+        const embed = new EmbedBuilder()
+            .setTitle(title)
+            .setColor(JukebotGlobals.config.embedColour)
+            .setURL(url)
+            .setThumbnail(thumbnail)
+            .setDescription(description.join('\n'))
+            .setFooter({
+                text: `Searched via ${niceSearchSource}`,
+                iconURL: this._member.displayAvatarURL(),
+            });
+
+        return embed;
+    }
+
+    private makeMultipleItemsEmbed({ items, errors, playlist }: MultipleRetrievedItems): EmbedBuilder {
+        const songSummary: string[] = [];
+
+        const description = [
+            `Fetched ${items.length === playlist.size ? 'all' : `${items.length} /`} ${playlist.size} songs${
+                errors.length !== 0 ? ` (${errors.length} errored)` : ''
+            }.`,
+        ];
+
+        for (let i = 0, len = Math.min(items.length, 10); i < len; i++) {
+            const { title, durationString, url } = items[i];
+            songSummary.push(`${i + 1}. [${title}](${url}) (${durationString})`);
+        }
+
+        if (items.length > 10) {
+            songSummary.push(`${items.length - 10} more...`);
+        }
+
+        const niceSearchSource =
+            this._search.source === 'text'
+                ? 'Discord'
+                : this._search.source[0].toUpperCase() + this._search.source.slice(1);
+
+        const embed = new EmbedBuilder()
+            .setTitle(playlist.name)
+            .setColor(JukebotGlobals.config.embedColour)
+            .setURL(playlist.url)
+            .setThumbnail(playlist.thumbnail)
+            .setDescription(description.join('\n'))
+            .setFooter({
+                text: `Searched via ${niceSearchSource}`,
+                iconURL: this._member.displayAvatarURL(),
+            })
+            .addFields({
+                name: 'Songs Preview',
+                value: songSummary.join('\n'),
+            });
+
+        return embed;
     }
 
     private async handleSpotifyURL(): Promise<MusicDisc | MultipleRetrievedItems> {
-        const spotifyResult = await spotify(this._searchTerm);
+        let spotifyResult: Spotify;
 
-        const isTrack = ((playlist: Spotify): playlist is SpotifyTrack => playlist.type === 'track')(spotifyResult);
-        const isAlbum = ((playlist: Spotify): playlist is SpotifyAlbum => playlist.type === 'album')(spotifyResult);
+        try {
+            spotifyResult = await spotify(this._searchTerm);
+        } catch (error) {
+            if (error instanceof Error) {
+                if (error.message.startsWith('Spotify Data is missing'))
+                    throw new Error(errorMessages.missingSpotifyData);
 
-        if (isTrack) return await this.handleSpotifyTrack(spotifyResult);
+                if (error.message.startsWith("Cannot read properties of undefined (reading 'spotify')")) {
+                    throw new Error(errorMessages.invalidSpotifyData);
+                }
+
+                if (error.message.startsWith('Got 404 from the request')) {
+                    throw new Error(errorMessages.spotify404(this._search.type));
+                }
+            }
+
+            throw error;
+        }
+
+        if (Allay.isTrack(spotifyResult)) return await this.handleSpotifyTrack(spotifyResult);
 
         const items: MusicDisc[] = [];
         const errors: Error[] = [];
 
         const allTracks = await spotifyResult.all_tracks();
 
-        for (const track of allTracks.splice(0, JukebotGlobals.config.maxQueueSize)) {
-            try {
-                const disc = await this.handleSpotifyTrack(track);
-                items.push(disc);
-            } catch (error) {
-                errors.push(error instanceof Error ? error : new Error(`Unknown error with track <${track.url}>`));
-            }
-        }
+        await Promise.all(
+            allTracks.map(async (track) => {
+                try {
+                    const disc = await this.handleSpotifyTrack(track);
+                    items.push(disc);
+                } catch (error) {
+                    errors.push(error instanceof Error ? error : new Error(errorMessages.unknownTrackError(track)));
+                }
+            }),
+        );
 
         return {
             items,
@@ -92,7 +209,9 @@ export class Allay {
                 thumbnail: spotifyResult.thumbnail.url,
                 size: spotifyResult.tracksCount,
                 url: spotifyResult.url ?? this._searchTerm,
-                createdBy: isAlbum ? spotifyResult.artists.map((e) => e.name).join(', ') : spotifyResult.owner.name,
+                createdBy: Allay.isAlbum(spotifyResult)
+                    ? spotifyResult.artists.map((e) => e.name).join(', ')
+                    : spotifyResult.owner.name,
             },
         };
     }
@@ -105,12 +224,16 @@ export class Allay {
     private async handleTextSearch(searchTerm: string, limit: number = 3): Promise<MusicDisc> {
         let results = await search(searchTerm, { source: { youtube: 'video' }, limit });
 
-        // filter out results like [1 HOUR] unless specifically requested
-        if (!searchTerm.toLowerCase().includes('hour')) {
-            results = results.filter((e) => !e.title?.toLowerCase().includes('hour'));
+        const searchTermLower = searchTerm.toLowerCase();
+
+        // filter out specific modifiers unless specifically requested
+        for (const word of ['hour', 'live', 'sped', 'remix', 'reverb', 'dampening']) {
+            if (!searchTermLower.includes(word)) {
+                results = results.filter((e) => !e.title?.toLowerCase().includes(word));
+            }
         }
 
-        if (results.length === 0) throw new Error('No results found');
+        if (results.length === 0) throw new Error(errorMessages.noResultsFound);
 
         const levenshteinData = results.map((e) => {
             if (e.title === undefined) return 0;
@@ -130,16 +253,27 @@ export class Allay {
         const bestResult = results[bestIndex];
 
         if (highestSimilarity < JukebotGlobals.config.levenshteinThreshold) {
-            throw new Error(
-                `No results found with acceptable similarity (above ${JukebotGlobals.config.levenshteinThreshold})`,
-            );
+            throw new Error(errorMessages.noAcceptableResultsFound);
         }
 
         return this.handleYouTubeVideo(bestResult);
     }
 
     private async handleYouTubePlaylistURL(): Promise<MultipleRetrievedItems> {
-        const playlist = await (await playlist_info(this._searchTerm, { incomplete: true })).fetch();
+        let playlist: YouTubePlayList;
+
+        try {
+            playlist = await (await playlist_info(this._searchTerm, { incomplete: true })).fetch();
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                error.message.startsWith('While getting info from url\nSign in to confirm your age')
+            ) {
+                throw new Error(errorMessages.missingYouTubeData);
+            }
+
+            throw error;
+        }
 
         // clamp max size to configued maximum
         const maxPage =
@@ -166,7 +300,7 @@ export class Allay {
                 const disc = this.handleYouTubeVideo(video);
                 items.push(disc);
             } catch (error) {
-                errors.push(error instanceof Error ? error : new Error(`Unknown error with video <${video.url}>`));
+                errors.push(error instanceof Error ? error : new Error(errorMessages.unknownVideoError(video)));
             }
         });
 
@@ -184,14 +318,28 @@ export class Allay {
     }
 
     private async handleYouTubeVideoURL(): Promise<MusicDisc> {
-        const video = (await video_basic_info(this._searchTerm)).video_details;
+        let video: YouTubeVideo;
+
+        try {
+            video = (await video_basic_info(this._searchTerm)).video_details;
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                error.message.startsWith('While getting info from url\nSign in to confirm your age')
+            ) {
+                throw new Error(errorMessages.missingYouTubeData);
+            }
+
+            throw error;
+        }
+
         return this.handleYouTubeVideo(video);
     }
 
     private handleYouTubeVideo(video: YouTubeVideo): MusicDisc {
-        if (video.private) throw new Error(`Cannot queue a private video (<${video.url}>)`);
-        if (video.upcoming !== undefined) throw new Error(`Cannot queue an upcoming video (<${video.url}>)`);
-        if (video.type !== 'video') throw new Error(`<${video.url}> is not a video`);
+        if (video.private) throw new Error(errorMessages.badVideoPrivate(video));
+        if (video.upcoming !== undefined) throw new Error(errorMessages.badVideoUpcoming(video));
+        if (video.type !== 'video') throw new Error(errorMessages.badVideoType(video));
         return new MusicDisc(this._origin, video);
     }
 
@@ -351,5 +499,22 @@ export class Allay {
      */
     private static youtubeSearchEquivalent({ artists, name }: SpotifyTrack): string {
         return `${artists.map(({ name }) => name).join(' ')} ${name}`;
+    }
+
+    private static isTrack(playlist: Spotify): playlist is SpotifyTrack {
+        return playlist.type === 'track';
+    }
+
+    private static isAlbum(playlist: Spotify): playlist is SpotifyAlbum {
+        return playlist.type === 'album';
+    }
+
+    private static isExpired(): boolean {
+        try {
+            return is_expired();
+        } catch (error) {
+            // will error when Spotify is not set up
+            return false;
+        }
     }
 }
