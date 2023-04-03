@@ -58,7 +58,7 @@ There are a lot of other configuration options you can give to the bot, and a JS
 
 If you want the bot to be able to queue songs from Spotify, you should do this step.
 
-> If you get stuck in the following steps, you can consult [these instructions](https://github.com/play-dl/play-dl/tree/main/instructions#spotify)
+> If you get stuck in the following steps, you can consult [these instructions](https://github.com/play-dl/play-dl/tree/main/instructions#spotify).
 
 1. Run the authorization script using `pnpm run auth` or `npm run auth`
 2. Type "Yes" when prompted to save to file
