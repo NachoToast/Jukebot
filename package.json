@@ -17,7 +17,8 @@
         "build": "tsc",
         "lint": "eslint --ext .ts src --max-warnings=0",
         "typecheck": "tsc --noEmit",
-        "check-all": "pnpm lint && pnpm typecheck"
+        "check-all": "pnpm lint && pnpm typecheck",
+        "auth": "ts-node scripts/login.ts"
     },
     "devDependencies": {
         "@types/node": "^18.15.11",
