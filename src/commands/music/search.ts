@@ -1,24 +1,21 @@
-import { Allay, MusicDisc } from '../../classes';
+import { Allay } from '../../classes';
 import { Command } from '../../types';
 
 export const searchCommand: Command = {
     name: 'search',
     description: "Search for a song, but don't add it to the queue",
-    execute: async function ({ interaction }): Promise<void> {
+    execute: async function ({ interaction, member }): Promise<void> {
+        await interaction.reply({ content: 'Searching...' });
         const searchTerm = interaction.options.getString('song', true);
 
         try {
-            const allay = new Allay(interaction, searchTerm);
+            const allay = new Allay(interaction, member, searchTerm);
             const result = await allay.retrieveItems();
 
-            if (result instanceof MusicDisc) {
-                await interaction.reply({ content: `Found: ${result.title}` });
-            } else {
-                await interaction.reply({ content: `Found Playlist: ${result.playlist.name}` });
-            }
+            await interaction.editReply({ content: '', embeds: [allay.makeEmbed(result)] });
         } catch (error) {
             if (!(error instanceof Error)) throw error;
-            await interaction.reply({ content: error.message });
+            await interaction.editReply({ content: `Error: ${error.message}` });
         }
     },
     build: function (baseCommand) {
