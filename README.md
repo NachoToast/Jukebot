@@ -41,6 +41,7 @@ See the [installation guide](.github/docs/installationGuide.md).
 -   `lint` Makes sure code follows style rules.
 -   `typecheck` Makes sure there are no type errors in the code.
 -   `check-all` Does linting and typechecking, note that this requires pnpm.
+-   `auth` Initiates YouTube/Spotify login process.
 
 #### Dependency Reference
 
