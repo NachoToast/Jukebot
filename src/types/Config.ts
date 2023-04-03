@@ -1,10 +1,12 @@
+import { HexColorString } from 'discord.js';
+
 export interface Config {
     discordToken: string;
     maxQueueSize: number;
     statusTimePeriod: number;
     levenshteinThreshold: number;
     volumeModifier: number;
-    embedColour: string;
+    embedColour: HexColorString;
     timeoutThresholds: {
         discordLogin: number;
         fetchResults: number;
