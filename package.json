@@ -35,7 +35,7 @@
         "typescript": "^5.0.3"
     },
     "dependencies": {
-        "@discordjs/voice": "^0.15.0",
+        "@discordjs/voice": "^0.16.0",
         "dayjs": "^1.11.7",
         "discord.js": "^14.8.0",
         "play-dl": "^1.9.6"
