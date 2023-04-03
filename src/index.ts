@@ -1,23 +1,33 @@
-import { Client, Events, GatewayIntentBits } from 'discord.js';
-import { loadConfig, loginOrDie } from './loaders';
-import { loadSlashCommands } from './loaders/loadSlashCommands';
-import { GuildMember } from 'discord.js';
+import { Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
+import { CommandDeployer } from './classes';
+import { commands } from './commands';
+import { JukebotGlobals } from './global';
+import { Colours } from './types';
 
 async function main() {
-    const config = loadConfig();
-
-    const devmode = process.argv.includes('--devmode');
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const clientVersion = process.env.npm_package_version || (require('../package.json').version as string);
-
     const client = new Client<true>({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
     });
 
-    await loginOrDie(client, config.discordToken, config.timeoutThresholds.discordLogin, devmode);
+    let loginTimeout: NodeJS.Timeout | undefined;
 
-    const commands = await loadSlashCommands(client, devmode);
+    if (JukebotGlobals.config.timeoutThresholds.discordLogin !== 0) {
+        loginTimeout = setTimeout(() => {
+            console.log(`Took too long to login (max ${loginTimeout}s), exiting...`);
+            process.exit(1);
+        }, JukebotGlobals.config.timeoutThresholds.discordLogin * 1_000);
+    }
+
+    await client.login(JukebotGlobals.config.discordToken);
+    clearTimeout(loginTimeout);
+
+    console.log(
+        `${client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - JukebotGlobals.startTime}ms${Colours.Reset})`,
+    );
+
+    const commandDeployer = new CommandDeployer(client);
+
+    await commandDeployer.autoDeploy();
 
     client.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isCommand()) return;
@@ -45,15 +55,21 @@ async function main() {
             return;
         }
 
-        await command.execute({
-            client,
-            clientVersion,
-            interaction,
-            channel: interaction.channel,
-            guild: interaction.guild,
-            member: interaction.member,
-        });
-        return;
+        try {
+            await command.execute({
+                client,
+                interaction,
+                channel: interaction.channel,
+                guild: interaction.guild,
+                member: interaction.member,
+            });
+        } catch (error) {
+            if (interaction.replied) {
+                await interaction.followUp({ content: 'Something went while running this command' });
+            } else {
+                await interaction.reply({ content: 'Something went while running this command' });
+            }
+        }
     });
 }
 
