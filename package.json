@@ -14,7 +14,7 @@
     },
     "scripts": {
         "start": "nodemon src/index.ts --devmode",
-        "build": "tsc",
+        "build": "tsc --project tsconfig.build.json",
         "lint": "eslint --ext .ts src --max-warnings=0",
         "typecheck": "tsc --noEmit",
         "check-all": "pnpm lint && pnpm typecheck",
