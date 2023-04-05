@@ -1,5 +1,6 @@
 import {
     Client,
+    OAuth2Guild,
     REST,
     RESTPostAPIApplicationCommandsJSONBody as RawSlashCommand,
     Routes,
@@ -51,27 +52,6 @@ export class CommandDeployer {
         }
     }
 
-    /** Deploys slash commands individually to each guild the bot is in. */
-    public async deployToAllGuilds(): Promise<void> {
-        const allGuilds = await this._client.guilds.fetch();
-
-        for (const [guildId, guild] of allGuilds) {
-            try {
-                await this._rest.put(Routes.applicationGuildCommands(this._applicationId, guildId), {
-                    body: this._commands,
-                });
-                console.log(`Deployed slash commands to ${Colours.FgMagenta}${guild.name}${Colours.Reset}`);
-            } catch (error) {
-                console.log(
-                    `Failed to deploy slash commands to guild ${Colours.FgMagenta}${guild.name}${Colours.Reset} (${guildId})`,
-                    error,
-                );
-            }
-        }
-
-        console.log(`Deployment to guilds finished (${allGuilds.size} total)`);
-    }
-
     /** Undeploys slash commands globally. */
     public async undeployGlobally(): Promise<void> {
         try {
@@ -81,22 +61,51 @@ export class CommandDeployer {
         }
     }
 
-    /** Undeploys slash commands individually from each guild the bot is in. */
-    public async undeployToAllGuilds(): Promise<void> {
+    /** Deploys slash commands to a single guild. */
+    public async deployToGuild(guildId: string, guild?: OAuth2Guild): Promise<void> {
+        const guildNameInLog = `${Colours.FgMagenta}${guild?.name ?? guildId}${Colours.Reset}`;
+
+        try {
+            await this._rest.put(Routes.applicationGuildCommands(this._applicationId, guildId), {
+                body: this._commands,
+            });
+            console.log(`Deployed slash commands to ${guildNameInLog}`);
+        } catch (error) {
+            console.log(`Failed to deploy slash commands to guild ${guildNameInLog}`, error);
+        }
+    }
+
+    /** Undeploys slash commands from a single guild. */
+    public async undeployFromGuild(guildId: string, guild?: OAuth2Guild): Promise<void> {
+        const guildNameInLog = `${Colours.FgMagenta}${guild?.name ?? guildId}${Colours.Reset}`;
+
+        try {
+            await this._rest.put(Routes.applicationGuildCommands(this._applicationId, guildId), {
+                body: [],
+            });
+            console.log(`Undeployed slash commands from ${guildNameInLog}`);
+        } catch (error) {
+            console.log(`Failed to undeploy slash commands from guild ${guildNameInLog}`, error);
+        }
+    }
+
+    /** Deploys slash commands individually to each guild the bot is in. */
+    public async deployToAllGuilds(): Promise<void> {
         const allGuilds = await this._client.guilds.fetch();
 
         for (const [guildId, guild] of allGuilds) {
-            try {
-                await this._rest.put(Routes.applicationGuildCommands(this._applicationId, guildId), {
-                    body: [],
-                });
-                console.log(`Undeployed slash commands from ${Colours.FgMagenta}${guild.name}${Colours.Reset}`);
-            } catch (error) {
-                console.log(
-                    `Failed to undeploy slash commands from guild ${Colours.FgMagenta}${guild.name}${Colours.Reset} (${guildId})`,
-                    error,
-                );
-            }
+            await this.deployToGuild(guildId, guild);
+        }
+
+        console.log(`Deployment to guilds finished (${allGuilds.size} total)`);
+    }
+
+    /** Undeploys slash commands individually from each guild the bot is in. */
+    public async undeployFromAllGuilds(): Promise<void> {
+        const allGuilds = await this._client.guilds.fetch();
+
+        for (const [guildId, guild] of allGuilds) {
+            await this.undeployFromGuild(guildId, guild);
         }
 
         console.log(`Undeployment from guilds finished (${allGuilds.size} total)`);
