@@ -3,23 +3,23 @@ import { CommandDeployer } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
 import { Colours } from './types';
+import { awaitOrTimeout } from './util';
 
 async function main() {
     const client = new Client<true>({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
     });
 
-    let loginTimeout: NodeJS.Timeout | undefined;
-
-    if (JukebotGlobals.config.timeoutThresholds.discordLogin !== 0) {
-        loginTimeout = setTimeout(() => {
-            console.log(`Took too long to login (max ${loginTimeout}s), exiting...`);
-            process.exit(1);
-        }, JukebotGlobals.config.timeoutThresholds.discordLogin * 1_000);
+    try {
+        await awaitOrTimeout(
+            client.login(JukebotGlobals.config.discordToken),
+            JukebotGlobals.config.timeoutThresholds.discordLogin,
+            `Took too long to login (max ${JukebotGlobals.config.timeoutThresholds.discordLogin}s), exiting...`,
+        );
+    } catch (error) {
+        console.log(error);
+        process.exit(1);
     }
-
-    await client.login(JukebotGlobals.config.discordToken);
-    clearTimeout(loginTimeout);
 
     console.log(
         `${client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - JukebotGlobals.startTime}ms${Colours.Reset})`,

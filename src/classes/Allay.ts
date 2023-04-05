@@ -15,6 +15,7 @@ import {
 import { JukebotGlobals } from '../global';
 import { errorMessages } from '../messages/errorMessages';
 import { Search } from '../types';
+import { awaitOrTimeout } from '../util';
 import { MusicDisc } from './MusicDisc';
 
 interface MultipleRetrievedItems {
@@ -80,7 +81,11 @@ export class Allay {
                 break;
         }
 
-        return await fetchPromise;
+        return await awaitOrTimeout(
+            fetchPromise,
+            JukebotGlobals.config.timeoutThresholds.fetchResults,
+            errorMessages.searchTimeout(this._search.source, this._searchTerm),
+        );
     }
 
     /** Makes an "Added to Queue" embed. */

@@ -1,11 +1,9 @@
-import { promisify } from 'util';
 import { AudioResource, createAudioResource } from '@discordjs/voice';
 import { ChatInputCommandInteraction } from 'discord.js';
 import { stream, YouTubeVideo } from 'play-dl';
 import { JukebotGlobals } from '../global';
 import { DiscImage } from '../types';
-
-const wait = promisify(setTimeout);
+import { awaitOrTimeout } from '../util';
 
 /** A track that is ready to be prepared and then played. */
 export class MusicDisc {
@@ -81,22 +79,13 @@ export class MusicDisc {
             });
         });
 
-        const timeoutPromise: Promise<void> =
-            JukebotGlobals.config.timeoutThresholds.generateResource === 0
-                ? Promise.resolve(undefined)
-                : wait(JukebotGlobals.config.timeoutThresholds.generateResource * 1_000);
+        this._resource = await awaitOrTimeout(
+            resourcePromise,
+            JukebotGlobals.config.timeoutThresholds.generateResource,
+            `Unable to load "${this.title}" (${this.durationString}) in a reasonable amount of time (${JukebotGlobals.config.timeoutThresholds.generateResource} seconds)`,
+        );
 
-        const resource = await Promise.race([resourcePromise, timeoutPromise]);
-
-        if (resource === undefined) {
-            // the timeout promise resolved before the resource generation promise did
-            throw new Error(
-                `Unable to load "${this.title}" (${this.durationString}) in a reasonable amount of time (${JukebotGlobals.config.timeoutThresholds.generateResource} seconds)`,
-            );
-        }
-
-        this._resource = resource;
-        return resource;
+        return this._resource;
     }
 
     public destroyResource(): void {
