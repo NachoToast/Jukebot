@@ -3,7 +3,7 @@ import { Command } from '../../types';
 
 export const sourceCommand: Command = {
     name: 'source',
-    description: "Get a link to the bot's code",
+    description: "Creates a link to the bot's source code",
     execute: async function ({ interaction }): Promise<void> {
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()

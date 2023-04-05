@@ -15,7 +15,7 @@ function pingHint(ping: number): string {
 
 export const statusCommand: Command = {
     name: 'status',
-    description: 'Check my status',
+    description: "Sends information about the bot's status",
     execute: async function ({ client, interaction }): Promise<void> {
         const ping = Math.abs(Date.now() - interaction.createdTimestamp);
         const apiLatency = Math.round(client.ws.ping);

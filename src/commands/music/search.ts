@@ -3,7 +3,7 @@ import { Command } from '../../types';
 
 export const searchCommand: Command = {
     name: 'search',
-    description: "Search for a song, but don't add it to the queue",
+    description: "Searches for a song, but doesn't add it to the queue",
     execute: async function ({ interaction, member }): Promise<void> {
         await interaction.reply({ content: 'Searching...' });
         const searchTerm = interaction.options.getString('song', true);
