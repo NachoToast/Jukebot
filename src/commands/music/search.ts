@@ -15,7 +15,7 @@ export const searchCommand: Command = {
             await interaction.editReply({ content: '', embeds: [allay.makeEmbed(result)] });
         } catch (error) {
             if (!(error instanceof Error)) throw error;
-            await interaction.editReply({ content: `Error: ${error.message}` });
+            await interaction.editReply({ content: error.message });
         }
     },
     build: function (baseCommand) {
