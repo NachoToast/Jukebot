@@ -36,12 +36,19 @@ export class Allay {
     private readonly _member: GuildMember;
     private readonly _searchTerm: string;
     private readonly _search: Search;
+    private readonly _maxResultsAllowed: number;
 
-    public constructor(origin: ChatInputCommandInteraction<'cached' | 'raw'>, member: GuildMember, searchTerm: string) {
+    public constructor(
+        origin: ChatInputCommandInteraction<'cached' | 'raw'>,
+        member: GuildMember,
+        searchTerm: string,
+        maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
+    ) {
         this._origin = origin;
         this._member = member;
         this._searchTerm = searchTerm;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
+        this._maxResultsAllowed = maxResultsAllowed === 0 ? Infinity : maxResultsAllowed;
     }
 
     public async retrieveItems(): Promise<MusicDisc | MultipleRetrievedItems> {
@@ -53,9 +60,11 @@ export class Allay {
             } else {
                 // don't wait for refresh if we don't need it
                 refreshToken().catch((e) => {
-                    this._origin.followUp({
-                        content: errorMessages.failedSpotifyRefreshBackground(e),
-                    });
+                    this._origin
+                        .followUp({
+                            content: errorMessages.failedSpotifyRefreshBackground(e),
+                        })
+                        .catch(() => null);
                 });
             }
         }
@@ -193,7 +202,7 @@ export class Allay {
         const items: MusicDisc[] = [];
         const errors: Error[] = [];
 
-        const allTracks = await spotifyResult.all_tracks();
+        const allTracks = (await spotifyResult.all_tracks()).slice(0, this._maxResultsAllowed);
 
         await Promise.all(
             allTracks.map(async (track) => {
@@ -281,10 +290,7 @@ export class Allay {
         }
 
         // clamp max size to configued maximum
-        const maxPage =
-            JukebotGlobals.config.maxQueueSize === undefined
-                ? playlist.total_pages
-                : Math.min(Math.ceil(JukebotGlobals.config.maxQueueSize / 100), playlist.total_pages);
+        const maxPage = Math.min(Math.ceil(this._maxResultsAllowed / 100), playlist.total_pages);
 
         // we will overwrite video count later in the method to account for private videos (not done natively)
         playlist.videoCount = 0;
