@@ -29,6 +29,10 @@ export class Hopper {
         this._inventory.splice(startIndex, deleteCount);
     }
 
+    public clear(): void {
+        this._inventory = [];
+    }
+
     public shuffle(): void {
         this._inventory.sort(() => Math.random() - 0.5);
     }
