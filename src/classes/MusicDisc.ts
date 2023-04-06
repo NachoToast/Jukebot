@@ -24,7 +24,7 @@ export class MusicDisc {
     public readonly isLive: boolean;
 
     /**
-     * The duration of this second in seconds. For live videos this will be {@link Number.POSITIVE_INFINITY infinite}.
+     * The duration of this second in seconds. For live videos this will be {@link Infinity infinite}.
      */
     public readonly durationSeconds: number;
 
@@ -44,7 +44,7 @@ export class MusicDisc {
         this.views = video.views ?? 0;
         this.channel = video.channel?.name ?? 'Unknown Artist';
         this.isLive = video.live;
-        this.durationSeconds = video.live ? Number.POSITIVE_INFINITY : video.durationInSec;
+        this.durationSeconds = video.live ? Infinity : video.durationInSec;
         this.durationString = video.live ? 'Infinity' : video.durationRaw;
     }
 
