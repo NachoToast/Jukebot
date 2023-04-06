@@ -1,5 +1,4 @@
 import { SpotifyTrack, YouTubeVideo } from 'play-dl';
-import { JukebotGlobals } from '../global';
 import { Search } from '../types';
 
 export const errorMessages = {
@@ -55,12 +54,4 @@ export const errorMessages = {
     /** Sent when a Spotify session request that was running in the background fails. */
     failedSpotifyRefreshBackground: (error: unknown) =>
         `Failed to refresh Spotify session${error instanceof Error ? `: ${error.message}` : ''}`,
-
-    /** Sent when unable to fetch search results in the configured maximum time. */
-    searchTimeout: (searchSource: Search['source'], searchTerm: string) =>
-        `Unable to fetch results for ${
-            searchSource !== 'text' ? searchTerm : `"${searchTerm}"`
-        } in a reasonable amount of time (${JukebotGlobals.config.timeoutThresholds.fetchResults} second${
-            JukebotGlobals.config.timeoutThresholds.fetchResults !== 1 ? 's' : ''
-        })`,
 };

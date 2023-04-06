@@ -1,9 +1,19 @@
 import { Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
-import { CommandDeployer } from './classes';
+import { CommandDeployer, Jukebox } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
 import { Colours } from './types';
 import { awaitOrTimeout } from './util';
+
+process.on('uncaughtException', (error) => {
+    console.log('Uncaught exception:', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (error, promise) => {
+    console.log('Unhandled rejection:', promise);
+    console.log('The error was:', error);
+});
 
 async function main() {
     const client = new Client<true>({
@@ -69,6 +79,25 @@ async function main() {
             } else {
                 await interaction.reply({ content: 'Something went while running this command' });
             }
+        }
+    });
+
+    client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+        // we only care when a voice channel changes (i.e. leaving, joining, and moving VCs)
+        // this guard clause ignores other reasons, e.g. a user muting themselves
+        if (oldState.channel?.id === newState.channel?.id) return;
+
+        // I'm not sure when this is ever true
+        if (oldState.member === null) return;
+
+        const wasBotInvolved = oldState.member.user.id === client.user.id;
+
+        // Jukebot was moved to another channel
+        if (wasBotInvolved && oldState.channel !== null && newState.channel !== null) {
+            // so update the target voice channel
+            const jukebox = Jukebox.getJukebox(newState.guild.id);
+            if (jukebox === undefined) return;
+            jukebox.handleDragged(newState.channel);
         }
     });
 }

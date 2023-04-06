@@ -8,7 +8,7 @@ import { awaitOrTimeout } from '../util';
 /** A track that is ready to be prepared and then played. */
 export class MusicDisc {
     /** The interaction that lead to the creation of this music disc. */
-    public readonly origin: ChatInputCommandInteraction<'cached' | 'raw'>;
+    public readonly origin: ChatInputCommandInteraction;
 
     /** YouTube video URL for this music disc. */
     public readonly url: string;
@@ -36,7 +36,7 @@ export class MusicDisc {
 
     private _resource?: AudioResource<MusicDisc>;
 
-    public constructor(interaction: ChatInputCommandInteraction<'cached' | 'raw'>, video: YouTubeVideo) {
+    public constructor(interaction: ChatInputCommandInteraction, video: YouTubeVideo) {
         this.origin = interaction;
         this.url = video.url;
         this.title = video.title ?? 'Unknown Song';

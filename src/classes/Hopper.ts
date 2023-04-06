@@ -7,7 +7,7 @@ export class Hopper {
     private readonly _maxSize: number;
 
     public constructor(maxSize: number = JukebotGlobals.config.maxQueueSize) {
-        this._maxSize = maxSize === 0 ? Infinity : maxSize;
+        this._maxSize = maxSize;
     }
 
     private _inventory: MusicDisc[] = [];

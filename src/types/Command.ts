@@ -9,7 +9,7 @@ import {
 
 interface CommandParams {
     client: Client<true>;
-    interaction: ChatInputCommandInteraction<'cached' | 'raw'>;
+    interaction: ChatInputCommandInteraction;
     channel: GuildTextBasedChannel;
     guild: Guild;
     member: GuildMember;

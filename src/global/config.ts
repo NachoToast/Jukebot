@@ -6,6 +6,16 @@ if (rawConfig.discordToken === undefined) {
     throw new Error('Missing discordToken in config.json');
 }
 
+function convertTimeoutThreshold(key: keyof Config['timeoutThresholds'], fallback: number) {
+    if (rawConfig.timeoutThresholds?.[key] !== undefined) {
+        if (rawConfig.timeoutThresholds[key] === 0) {
+            return Infinity;
+        }
+        return rawConfig.timeoutThresholds[key];
+    }
+    return fallback;
+}
+
 export const config: Config = {
     discordToken: rawConfig.discordToken,
     maxQueueSize: rawConfig.maxQueueSize ?? 1000,
@@ -14,13 +24,13 @@ export const config: Config = {
     volumeModifier: rawConfig.volumeModifier ?? 0.1,
     embedColour: rawConfig.embedColour ?? '#794C36',
     timeoutThresholds: {
-        discordLogin: rawConfig.timeoutThresholds?.discordLogin ?? 30,
-        fetchResults: rawConfig.timeoutThresholds?.fetchResults ?? 30,
-        generateResource: rawConfig.timeoutThresholds?.generateResource ?? 10,
-        connect: rawConfig.timeoutThresholds?.connect ?? 10,
-        play: rawConfig.timeoutThresholds?.play ?? 10,
-        inactivity: rawConfig.timeoutThresholds?.inactivity ?? 300,
-        clearQueue: rawConfig.timeoutThresholds?.clearQueue ?? 300,
-        stopMessageListeners: rawConfig.timeoutThresholds?.stopMessageListeners ?? 300,
+        discordLogin: convertTimeoutThreshold('discordLogin', 30),
+        fetchResults: convertTimeoutThreshold('fetchResults', 30),
+        generateResource: convertTimeoutThreshold('generateResource', 10),
+        connect: convertTimeoutThreshold('connect', 10),
+        play: convertTimeoutThreshold('play', 10),
+        inactivity: convertTimeoutThreshold('inactivity', 300),
+        clearQueue: convertTimeoutThreshold('clearQueue', 300),
+        stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 300),
     },
 };

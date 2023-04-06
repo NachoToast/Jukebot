@@ -13,6 +13,7 @@ import {
     video_basic_info,
 } from 'play-dl';
 import { JukebotGlobals } from '../global';
+import { timeoutMessages } from '../messages';
 import { errorMessages } from '../messages/errorMessages';
 import { Search } from '../types';
 import { awaitOrTimeout } from '../util';
@@ -32,14 +33,14 @@ interface MultipleRetrievedItems {
 
 /** Fetches search results for the user. */
 export class Allay {
-    private readonly _origin: ChatInputCommandInteraction<'cached' | 'raw'>;
+    private readonly _origin: ChatInputCommandInteraction;
     private readonly _member: GuildMember;
     private readonly _searchTerm: string;
     private readonly _search: Search;
     private readonly _maxResultsAllowed: number;
 
     public constructor(
-        origin: ChatInputCommandInteraction<'cached' | 'raw'>,
+        origin: ChatInputCommandInteraction,
         member: GuildMember,
         searchTerm: string,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
@@ -48,7 +49,7 @@ export class Allay {
         this._member = member;
         this._searchTerm = searchTerm;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
-        this._maxResultsAllowed = maxResultsAllowed === 0 ? Infinity : maxResultsAllowed;
+        this._maxResultsAllowed = maxResultsAllowed;
     }
 
     public async retrieveItems(): Promise<MusicDisc | MultipleRetrievedItems> {
@@ -93,7 +94,7 @@ export class Allay {
         return await awaitOrTimeout(
             fetchPromise,
             JukebotGlobals.config.timeoutThresholds.fetchResults,
-            errorMessages.searchTimeout(this._search.source, this._searchTerm),
+            timeoutMessages.searchTimeout(this._search.source, this._searchTerm),
         );
     }
 
