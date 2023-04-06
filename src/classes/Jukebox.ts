@@ -1,5 +1,6 @@
 import { AudioPlayer, VoiceConnection, VoiceConnectionStatus, joinVoiceChannel } from '@discordjs/voice';
 import { ChatInputCommandInteraction, VoiceBasedChannel } from 'discord.js';
+import { JukebotGlobals } from '../global';
 import { connectionEntersState } from '../util';
 import { Hopper } from './Hopper';
 
@@ -7,8 +8,8 @@ export class Jukebox {
     private static readonly _guildMap: Map<string, Jukebox> = new Map();
 
     private readonly _origin: ChatInputCommandInteraction;
-    private readonly _previousQueue: Hopper = new Hopper();
-    private readonly _upcomingQueue: Hopper = new Hopper();
+    private readonly _previousQueue: Hopper = new Hopper(JukebotGlobals.config.previousQueueSize);
+    private readonly _upcomingQueue: Hopper = new Hopper(JukebotGlobals.config.maxQueueSize);
 
     private _targetVoiceChannel: VoiceBasedChannel;
     private _connection?: VoiceConnection;

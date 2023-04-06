@@ -19,6 +19,7 @@ function convertTimeoutThreshold(key: keyof Config['timeoutThresholds'], fallbac
 export const config: Config = {
     discordToken: rawConfig.discordToken,
     maxQueueSize: rawConfig.maxQueueSize ?? 1000,
+    previousQueueSize: rawConfig.previousQueueSize ?? 20,
     statusTimePeriod: rawConfig.statusTimePeriod ?? 120,
     levenshteinThreshold: rawConfig.levenshteinThreshold ?? 0.1,
     volumeModifier: rawConfig.volumeModifier ?? 0.1,

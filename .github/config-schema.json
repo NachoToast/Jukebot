@@ -15,6 +15,12 @@
             "description": "Maximum number of items allowed in a queue, set to 0 for no limit.",
             "default": 1000
         },
+        "previousQueueSize": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Maximum number of items allowed in the previous queue, set to 0 for no limit.",
+            "default": 20
+        },
         "statusTimePeriod": {
             "type": "integer",
             "minimum": 0,

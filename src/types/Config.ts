@@ -3,6 +3,7 @@ import { HexColorString } from 'discord.js';
 export interface Config {
     discordToken: string;
     maxQueueSize: number;
+    previousQueueSize: number;
     statusTimePeriod: number;
     levenshteinThreshold: number;
     volumeModifier: number;
