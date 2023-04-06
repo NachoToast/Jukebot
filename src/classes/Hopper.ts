@@ -4,16 +4,20 @@ import { MusicDisc } from './MusicDisc';
 
 /** Represents a queue of MusicDiscs. */
 export class Hopper {
+    private readonly _maxSize: number;
+
+    public constructor(maxSize: number = JukebotGlobals.config.maxQueueSize) {
+        this._maxSize = maxSize === 0 ? Infinity : maxSize;
+    }
+
     private _inventory: MusicDisc[] = [];
 
     public isFull(): boolean {
-        if (JukebotGlobals.config.maxQueueSize === 0) return false;
-        return this._inventory.length >= JukebotGlobals.config.maxQueueSize;
+        return this._inventory.length >= this._maxSize;
     }
 
     public getFreeSlots(): number {
-        if (JukebotGlobals.config.maxQueueSize === 0) return Infinity;
-        return JukebotGlobals.config.maxQueueSize - this._inventory.length;
+        return this._maxSize - this._inventory.length;
     }
 
     public getNext(): MusicDisc | undefined {
