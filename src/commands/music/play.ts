@@ -13,7 +13,7 @@ export const playCommand: Command = {
         let jukebox = EntityManager.getGuildInstance(member.guild.id);
 
         if (jukebox?.upcomingQueue.isFull()) {
-            await interaction.reply({ content: 'The queue is full' });
+            await interaction.reply({ content: 'The queue is full!' });
             return;
         }
 
