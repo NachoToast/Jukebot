@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, GuildMember } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, GuildMember, TextBasedChannel } from 'discord.js';
 import {
     Spotify,
     SpotifyAlbum,
@@ -15,7 +15,9 @@ import {
 import { JukebotGlobals } from '../global';
 import { errorMessages } from '../messages/errorMessages';
 import { Search } from '../types';
-import { awaitOrTimeout } from '../util';
+import { awaitOrTimeout, capitalize, withPossiblePlural } from '../util';
+import { Hopper } from './Hopper';
+import { Jukebox } from './Jukebox';
 import { MusicDisc } from './MusicDisc';
 
 interface MultipleRetrievedItems {
@@ -40,11 +42,26 @@ interface MultipleRetrievedItems {
  * - Spotify track, playlist, and album URLs (finds similar YouTube videos based on each track's title and artist(s)).
  */
 export class Allay {
+    /** Icon to show in search embed footers. */
+    private static readonly _icon =
+        'https://static.wikia.nocookie.net/minecraft_gamepedia/images/4/45/Allay_JE2.gif/revision/latest';
+
+    /** Icon to show in playlist embeds if they don't have a thumbnail. */
+    private static readonly _playlistIcon =
+        'https://static.wikia.nocookie.net/minecraft_gamepedia/images/0/05/Bookshelf_JE4_BE2.png/revision/latest';
+
+    /** Icon to show in "estimated time" embed footers. */
+    private static readonly _clockIcon =
+        'https://static.wikia.nocookie.net/minecraft_gamepedia/images/3/3e/Clock_JE3_BE3.gif/revision/latest?cb=20201125194053';
+
     /** The interaction to pass to any {@link MusicDisc} instances created by this search. */
     private readonly _origin: ChatInputCommandInteraction;
 
     /** The {@link GuildMember} that did this search. */
     private readonly _member: GuildMember;
+
+    /** The {@link TextBasedChannel} channel that this search was invoked in. */
+    private readonly _channel: TextBasedChannel;
 
     /** The search term given by the member, this can be a URL or just a plaintext search. */
     private readonly _searchTerm: string;
@@ -58,11 +75,13 @@ export class Allay {
     public constructor(
         origin: ChatInputCommandInteraction,
         member: GuildMember,
+        channel: TextBasedChannel,
         searchTerm: string,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {
         this._origin = origin;
         this._member = member;
+        this._channel = channel;
         this._searchTerm = searchTerm;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
         this._maxResultsAllowed = maxResultsAllowed;
@@ -110,44 +129,60 @@ export class Allay {
         return await awaitOrTimeout(fetchPromise, JukebotGlobals.config.timeoutThresholds.fetchResults);
     }
 
-    /** Makes an "Added to Queue" embed. */
-    public makeEmbed(retrievedItems: MusicDisc | MultipleRetrievedItems): EmbedBuilder {
-        if (retrievedItems instanceof MusicDisc) return this.makeSingleItemEmbed(retrievedItems);
-        return this.makeMultipleItemsEmbed(retrievedItems);
-    }
+    private makeTimeEstimateFooter(embed: EmbedBuilder, jukebox: Jukebox): void {
+        const queueDuration = jukebox.upcomingQueue.getDuration();
+        const estimate = Hopper.formatDuration(queueDuration + jukebox.getSecondsLeftInCurrentSong());
+        const numSongs = jukebox.upcomingQueue.getSize();
 
-    private makeSingleItemEmbed(disc: MusicDisc): EmbedBuilder {
-        const { views, channel, title, url, thumbnail } = disc;
-
-        const description = [`Duration: ${disc.durationString}`];
-
-        if (views !== 0) description.push(`Views: ${Intl.NumberFormat('en', { notation: 'compact' }).format(views)}`);
-        description.push(`Channel: ${channel}`);
-
-        if (this._search.source === 'spotify') {
-            description.push(`[View on Spotify](${this._searchTerm})`);
+        let text = `Estimated time till play: ${estimate}`;
+        if (numSongs > 0) {
+            text += ` (${withPossiblePlural(numSongs, 'song')})`;
         }
 
-        const niceSearchSource =
-            this._search.source === 'text'
-                ? 'Discord'
-                : this._search.source[0].toUpperCase() + this._search.source.slice(1);
+        embed.setFooter({
+            text,
+            iconURL: Allay._clockIcon,
+        });
+    }
 
-        const embed = new EmbedBuilder()
-            .setTitle(title)
-            .setColor(JukebotGlobals.config.embedColour)
-            .setURL(url)
-            .setThumbnail(thumbnail)
-            .setDescription(description.join('\n'))
-            .setFooter({
+    /** Makes an "Added to Queue" embed. */
+    public makeEmbed(retrievedItems: MusicDisc | MultipleRetrievedItems, jukebox?: Jukebox): EmbedBuilder {
+        if (retrievedItems instanceof MusicDisc) return this.makeSingleItemEmbed(retrievedItems, jukebox);
+        return this.makeMultipleItemsEmbed(retrievedItems, jukebox);
+    }
+
+    private makeSingleItemEmbed(disc: MusicDisc, jukebox?: Jukebox): EmbedBuilder {
+        const embed = new EmbedBuilder().setColor(JukebotGlobals.config.embedColour);
+
+        disc.makeFullDescription(embed);
+
+        if (this._search.source === 'spotify') {
+            embed.setDescription(embed.data.description! + `\n[View on Spotify](${this._searchTerm})`);
+        }
+
+        const niceSearchSource = this._search.source === 'text' ? 'Discord' : capitalize(this._search.source);
+
+        if (jukebox === undefined) {
+            embed.setFooter({
                 text: `Searched via ${niceSearchSource}`,
-                iconURL: this._member.displayAvatarURL(),
+                iconURL: Allay._icon,
             });
+        } else {
+            embed.setAuthor({
+                name: `Searched via ${niceSearchSource}`,
+                iconURL: Allay._icon,
+            });
+
+            this.makeTimeEstimateFooter(embed, jukebox);
+        }
 
         return embed;
     }
 
-    private makeMultipleItemsEmbed({ items, errors, playlist }: MultipleRetrievedItems): EmbedBuilder {
+    private makeMultipleItemsEmbed(
+        { items, errors, playlist }: MultipleRetrievedItems,
+        jukebox?: Jukebox,
+    ): EmbedBuilder {
         const description = [
             `Fetched ${items.length === playlist.size ? 'all' : `${items.length} /`} ${playlist.size} songs${
                 errors.length !== 0 ? ` (${errors.length} errored)` : ''
@@ -159,13 +194,12 @@ export class Allay {
         let numSongsSummarized = 0;
 
         for (let i = 0, len = Math.min(items.length, 10); i < len; i++) {
-            const { title, durationString, url } = items[i];
-            const str = `${i + 1}. [${title}](${url}) (${durationString})`;
+            const descLine = items[i].getShortDescription(i + 1);
 
-            if (songSummaryLength + str.length + 2 > 1024) break;
+            if (songSummaryLength + descLine.length + 2 > 1024) break;
 
-            songSummary.push(str);
-            songSummaryLength += str.length + 2;
+            songSummary.push(descLine);
+            songSummaryLength += descLine.length + 2;
             numSongsSummarized++;
         }
 
@@ -173,10 +207,7 @@ export class Allay {
             songSummary.push(`${items.length - numSongsSummarized} more...`);
         }
 
-        const niceSearchSource =
-            this._search.source === 'text'
-                ? 'Discord'
-                : this._search.source[0].toUpperCase() + this._search.source.slice(1);
+        const niceSearchSource = this._search.source === 'text' ? 'Discord' : capitalize(this._search.source);
 
         const embed = new EmbedBuilder()
             .setTitle(playlist.name)
@@ -184,14 +215,24 @@ export class Allay {
             .setURL(playlist.url)
             .setThumbnail(playlist.thumbnail)
             .setDescription(description.join('\n'))
-            .setFooter({
-                text: `Searched via ${niceSearchSource}`,
-                iconURL: this._member.displayAvatarURL(),
-            })
             .addFields({
                 name: 'Songs Preview',
                 value: songSummary.join('\n'),
             });
+
+        if (jukebox === undefined) {
+            embed.setFooter({
+                text: `Searched via ${niceSearchSource}`,
+                iconURL: Allay._icon,
+            });
+        } else {
+            embed.setAuthor({
+                name: `Searched via ${niceSearchSource}`,
+                iconURL: Allay._icon,
+            });
+
+            this.makeTimeEstimateFooter(embed, jukebox);
+        }
 
         return embed;
     }
@@ -354,7 +395,7 @@ export class Allay {
             errors,
             playlist: {
                 name: playlist.title ?? 'Unknown Playlist',
-                thumbnail: playlist.thumbnail?.url ?? MusicDisc.chooseRandomDiscThumbnail(),
+                thumbnail: playlist.thumbnail?.url ?? Allay._playlistIcon,
                 size: playlist.videoCount,
                 url: playlist.url ?? this._searchTerm,
                 createdBy: playlist.channel?.name ?? 'Unknown Channel',
@@ -385,7 +426,7 @@ export class Allay {
         if (video.private) throw new Error(errorMessages.badVideoPrivate(video));
         if (video.upcoming !== undefined) throw new Error(errorMessages.badVideoUpcoming(video));
         if (video.type !== 'video') throw new Error(errorMessages.badVideoType(video));
-        return new MusicDisc(this._origin, video);
+        return new MusicDisc(this._member, this._channel, video);
     }
 
     /**

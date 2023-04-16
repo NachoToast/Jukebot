@@ -1,7 +1,6 @@
 import {
     ChatInputCommandInteraction,
     Client,
-    Guild,
     GuildMember,
     GuildTextBasedChannel,
     SlashCommandBuilder,

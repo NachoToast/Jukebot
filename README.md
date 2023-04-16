@@ -40,13 +40,15 @@ See the [installation guide](.github/docs/installationGuide.md).
 -   `build` Compiles bot into JavaScript.
 -   `lint` Makes sure code follows style rules.
 -   `typecheck` Makes sure there are no type errors in the code.
--   `check-all` Does linting and typechecking, note that this requires pnpm.
+-   `test` Runs tests.
+-   `check-all` Does linting, typechecking, and testing. Note that this requires pnpm.
 -   `auth` Initiates YouTube/Spotify login process.
 
 #### Dependency Reference
 
--   `discord.js` Discord API wrapper.
+-   `@discordjs/opus` Opus bindings for Node.
 -   `@discordjs/voice` Discord voice API wrapper.
 -   `dayjs` Helps displaying relative times.
+-   `discord.js` Discord API wrapper.
 -   `play-dl` Searching, downloading, and streaming of music.
-  
+-   `sodium-native` Audio encryption library, improves performance.

@@ -8,6 +8,6 @@ export const debugCommand: Command = {
         const instance = EntityManager.getGuildInstance(member.guild.id);
 
         if (instance === undefined) await interaction.reply({ content: 'No instance found' });
-        else await interaction.reply({ content: instance.toString() });
+        else await interaction.reply(instance.toString());
     },
 };

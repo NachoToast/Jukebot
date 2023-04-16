@@ -91,19 +91,61 @@ async function main() {
         // this guard clause ignores other reasons, e.g. a user muting themselves
         if (oldState.channel?.id === newState.channel?.id) return;
 
-        // I'm not sure when this is ever true
-        if (oldState.member === null) return;
+        // ignore join events
+        if (oldState.channel === null) return;
 
-        const wasBotInvolved = oldState.member.user.id === client.user.id;
+        // ignore voice events from servers the bot is not active in
+        const jukebox = EntityManager.getGuildInstance(oldState.guild.id);
+        if (jukebox === undefined) return;
 
-        // Jukebot was moved to another channel
-        if (wasBotInvolved && oldState.channel !== null && newState.channel !== null) {
-            // so update the target voice channel
+        const isBot = oldState.member?.user.id === client.user.id;
 
-            const jukebox = EntityManager.getGuildInstance(oldState.guild.id);
-            if (jukebox === undefined) return;
-            jukebox.handleChannelDrag(newState.channel);
+        // user left the bot's voice channel
+        if (!isBot && oldState.channel.id === jukebox.targetVoiceChannel.id) {
+            if (JukebotGlobals.devmode) {
+                console.log(
+                    `${oldState.member?.user.username} left ${oldState.channel.name} (target: ${jukebox.targetVoiceChannel.name})`,
+                );
+            }
+            if (!jukebox.hasAudioListeners()) jukebox.pauseDueToNoListeners();
+            return;
         }
+
+        // bot was moved to another voice channel
+        if (isBot && newState.channel !== null) {
+            if (JukebotGlobals.devmode) {
+                console.log(
+                    `Bot was moved from ${oldState.channel.name} to ${newState.channel.name} (target: ${jukebox.targetVoiceChannel.name})`,
+                );
+            }
+            jukebox.handleChannelDrag(newState.channel);
+            return;
+        }
+
+        // bot was disconnected from it's current voice channel
+        if (isBot && newState.channel === null) {
+            if (JukebotGlobals.devmode) {
+                console.log(
+                    `Bot was disconnected from ${oldState.channel.name} (target: ${jukebox.targetVoiceChannel.name})`,
+                );
+            }
+            jukebox.destroyInstance();
+            return;
+        }
+
+        // // I'm not sure when this is ever true
+        // if (oldState.member === null) return;
+
+        // const wasBotInvolved = oldState.member.user.id === client.user.id;
+
+        // // Jukebot was moved to another channel
+        // if (wasBotInvolved && oldState.channel !== null && newState.channel !== null) {
+        //     // so update the target voice channel
+
+        //     const jukebox = EntityManager.getGuildInstance(oldState.guild.id);
+        //     if (jukebox === undefined) return;
+        //     jukebox.handleChannelDrag(newState.channel);
+        // }
     });
 }
 

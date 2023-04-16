@@ -1,4 +1,4 @@
-import { EntityManager } from '../../classes';
+import { EntityManager, Hopper } from '../../classes';
 import { Command } from '../../types';
 
 export const skipCommand: Command = {
@@ -12,15 +12,18 @@ export const skipCommand: Command = {
             return;
         }
 
-        const currentlyPlaying = jukebox.state.currentlyPlaying;
+        const secondsElapsed = Math.floor((Date.now() - jukebox.state.playingSince) / 1_000);
 
-        const secondsLeft =
-            currentlyPlaying.durationSeconds - Math.floor((Date.now() - jukebox.state.playingSince) / 1000);
+        const currentlyPlaying = jukebox.state.currentlyPlaying;
 
         await interaction.reply({ content: 'Skipping...' });
 
         await jukebox.playNextInQueue(interaction);
 
-        await interaction.editReply({ content: `Skipped **${currentlyPlaying.title}** (${secondsLeft} seconds left)` });
+        await interaction.editReply({
+            content: `Skipped **${currentlyPlaying.title}** (${Hopper.formatDuration(secondsElapsed)} / ${
+                currentlyPlaying.durationString
+            })`,
+        });
     },
 };

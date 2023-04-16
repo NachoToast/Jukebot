@@ -8,21 +8,36 @@ import {
     createAudioPlayer,
     joinVoiceChannel,
 } from '@discordjs/voice';
-import { ChatInputCommandInteraction, TextBasedChannel, VoiceBasedChannel, channelMention } from 'discord.js';
+import dayjs, { extend } from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import {
+    ChatInputCommandInteraction,
+    EmbedBuilder,
+    InteractionReplyOptions,
+    TextBasedChannel,
+    VoiceBasedChannel,
+    channelMention,
+    userMention,
+} from 'discord.js';
 import { JukebotGlobals } from '../global';
 import { timeoutMessage } from '../messages';
-import { JukeboxState } from '../types';
+import { Colours, JukeboxState, JukeboxStateActive } from '../types';
 import { TimeoutError, capitalize, connectionEntersState, playerEntersState, withPossiblePlural } from '../util';
 import { Hopper } from './Hopper';
 import { MusicDisc } from './MusicDisc';
 
+extend(relativeTime);
+
 export class Jukebox {
+    private static readonly _icon =
+        'https://static.wikia.nocookie.net/minecraft_gamepedia/images/e/ee/Jukebox_JE2_BE2.png/revision/latest';
+
     public readonly upcomingQueue: Hopper = new Hopper(JukebotGlobals.config.maxQueueSize);
 
     public readonly historyQueue: Hopper = new Hopper(JukebotGlobals.config.previousQueueSize);
 
     /** Text channel to send messages in. */
-    private readonly _textChannel: TextBasedChannel;
+    public readonly textChannel: TextBasedChannel;
 
     /** Voice channel to play audio in. */
     private _voiceChannel: VoiceBasedChannel;
@@ -48,7 +63,7 @@ export class Jukebox {
         targetVoiceChannel: VoiceBasedChannel,
         onDestroy: (guildId: string) => void,
     ) {
-        this._textChannel = channel;
+        this.textChannel = channel;
         this._voiceChannel = targetVoiceChannel;
         this._onDestroy = onDestroy;
 
@@ -79,7 +94,7 @@ export class Jukebox {
                 JukebotGlobals.config.timeoutThresholds.inactivity === Infinity
                     ? undefined
                     : setTimeout(() => {
-                          this._textChannel.send({ content: 'Left due to inactivity' }).catch(this.logError);
+                          this.textChannel.send({ content: 'Left due to inactivity' }).catch(this.logError);
                           this.destroyInstance();
                       }, JukebotGlobals.config.timeoutThresholds.inactivity * 1_000),
             wasPlaying:
@@ -92,23 +107,37 @@ export class Jukebox {
         };
     }
 
-    private createActiveState(currentlyPlaying: MusicDisc): void {
-        if (this._state?.status === 'idle') clearTimeout(this._state.timeout);
+    private createActiveState(currentlyPlaying: MusicDisc, createEmbed: boolean): void {
+        let playingPreviouslyFor = 0;
+
+        if (this._state?.status === 'idle') {
+            clearTimeout(this._state.timeout);
+            playingPreviouslyFor = this._state.wasPlaying?.for ?? 0;
+        }
 
         if (JukebotGlobals.devmode) console.log('[Jukebox:State]: Now active');
 
         this._state = {
             status: 'active',
-            playingSince: Date.now(),
+            playingSince: Date.now() - playingPreviouslyFor,
             currentlyPlaying,
         };
 
-        this._textChannel.send({ content: `Now playing: ${currentlyPlaying.url}` }).catch(this.logError);
+        if (createEmbed) {
+            this.textChannel.send({ embeds: [this.makeImmediateNowPlayingEmbed(this._state)] }).catch(this.logError);
+        }
     }
 
     /** Returns whether there are non-bot non-deafened users in the target voice channel. */
     public hasAudioListeners(): boolean {
         return this._voiceChannel.members.some(({ user, voice }) => !user.bot && !voice.selfDeaf && !voice.serverDeaf);
+    }
+
+    public pauseDueToNoListeners(): void {
+        this._player.pause();
+        this.textChannel
+            .send({ content: `Paused due to no listeners in ${channelMention(this._voiceChannel.id)}` })
+            .catch(this.logError);
     }
 
     /** Creates a connection to the target voice channel, does not ensure the connection becomes ready. */
@@ -131,20 +160,15 @@ export class Jukebox {
             this._connection.on('stateChange', (oldState, newState) => {
                 if (oldState.status === newState.status) return;
 
-                console.log(`[Jukebox:VoiceConnection] ${oldState.status} -> ${newState.status}`);
+                console.log(
+                    `[Jukebox:${Colours.FgCyan}VoiceConnection${Colours.Reset}] ${capitalize(
+                        oldState.status,
+                    )} -> ${capitalize(newState.status)}`,
+                );
             });
         }
 
-        this._connection.on(VoiceConnectionStatus.Disconnected, async () => {
-            try {
-                await connectionEntersState(this._connection, VoiceConnectionStatus.Ready);
-            } catch (error) {
-                this.logError(error);
-                this.destroyInstance();
-            }
-        });
-
-        this._connection.on(VoiceConnectionStatus.Destroyed, () => this.destroyInstance());
+        if (this._player !== undefined) this._connection.subscribe(this._player);
     }
 
     /** Creates a player to the target connection, does not ensure the player becomes idle. */
@@ -162,11 +186,23 @@ export class Jukebox {
             this._player.on('stateChange', (oldState, newState) => {
                 if (oldState.status === newState.status) return;
 
-                console.log(`[Jukebox:AudioPlayer] ${oldState.status} -> ${newState.status}`);
+                console.log(
+                    `[Jukebox:${Colours.FgMagenta}AudioPlayer${Colours.Reset}] ${capitalize(
+                        oldState.status,
+                    )} -> ${capitalize(newState.status)}`,
+                );
             });
         }
 
-        this._player.on(AudioPlayerStatus.Idle, () => this.createIdleState());
+        this._player.on(AudioPlayerStatus.AutoPaused, () => this.createIdleState());
+        this._player.on(AudioPlayerStatus.Paused, () => this.createIdleState());
+        this._player.on(AudioPlayerStatus.Idle, () => this.playNextInQueue());
+        this._player.on(AudioPlayerStatus.Playing, () => {
+            if (!this.hasAudioListeners()) this.pauseDueToNoListeners();
+            else if (this._state.status === 'idle' && this._state.wasPlaying !== undefined) {
+                this.createActiveState(this._state.wasPlaying.item, false);
+            }
+        });
 
         this._connection.subscribe(this._player);
     }
@@ -175,30 +211,32 @@ export class Jukebox {
         return void (await connectionEntersState(this._connection, VoiceConnectionStatus.Ready));
     }
 
-    public updateTargetVoiceChannel(newVoiceChannel: VoiceBasedChannel): void {
-        this._voiceChannel = newVoiceChannel;
-        this.createConnection();
-    }
-
     public handleChannelDrag(newVoiceChannel: VoiceBasedChannel): void {
         this._voiceChannel = newVoiceChannel;
+    }
+
+    public pause(): boolean {
+        return this._player.pause(true);
+    }
+
+    public unpause(): boolean {
+        return this._player.unpause();
     }
 
     /**
      * Attempts to play the next song in the queue (if it exists).
      *
-     * @param {ChatInputCommandInteraction} [requester] An interaction to log the result to, this interaction should
-     * already have been replied to.
+     * @param {ChatInputCommandInteraction} [requester] An interaction to edit state updates onto, this interaction
+     * should already have been replied to.
      * @returns {Promise<JukeboxState>} The new state of the Jukebox.
      */
     public async playNextInQueue(requester?: ChatInputCommandInteraction): Promise<JukeboxState> {
         const logToRequesterOrChannel: (content: string) => void =
             requester === undefined
-                ? (content) => this._textChannel.send({ content }).catch(this.logError)
+                ? (content) => this.textChannel.send({ content }).catch(this.logError)
                 : (content) => requester.editReply({ content }).catch(this.logError);
 
-        if (JukebotGlobals.devmode)
-            console.log(`[Jukebox] Playing next in queue (${this.upcomingQueue.getLength().totalItems})`);
+        if (JukebotGlobals.devmode) console.log(`[Jukebox] Playing next in queue (${this.upcomingQueue.getSize()})`);
 
         const nextItem = this.upcomingQueue.getNext();
 
@@ -254,7 +292,7 @@ export class Jukebox {
             return await this.playNextInQueue(requester);
         }
 
-        this.createActiveState(nextItem);
+        this.createActiveState(nextItem, true);
 
         return this._state;
     }
@@ -262,10 +300,67 @@ export class Jukebox {
     /** Cleans up the player and connection, and executes the `onDestroy` callback function. */
     public destroyInstance(): void {
         if (JukebotGlobals.devmode) console.log('[Jukebox] Instance destroyed');
-
+        this._onDestroy(this._voiceChannel.guild.id);
         this.cleanupPlayer();
         this.cleanupConnection();
-        this._onDestroy(this._voiceChannel.guild.id);
+    }
+
+    /** Adds current song elapsed/time left information to a field of an embed. */
+    public addCurrentSongDurationToEmbed(embed: EmbedBuilder): void {
+        if (this._state.status !== 'active') return;
+
+        const totalDuration = this._state.currentlyPlaying.durationSeconds;
+
+        const elapsed = this.getSecondsElapsedInCurrentSong();
+        const remaining = this.getSecondsLeftInCurrentSong();
+        const percentage = Math.floor((100 * elapsed) / totalDuration);
+
+        embed.addFields({
+            name: `Time Elapsed (${percentage}%)`,
+            value: `${Hopper.formatDuration(elapsed)} (${Hopper.formatDuration(remaining)} left)`,
+        });
+    }
+
+    public getSecondsElapsedInCurrentSong(): number {
+        if (this._state.status !== 'active') return 0;
+
+        return Math.floor((Date.now() - this._state.playingSince) / 1_000);
+    }
+
+    public getSecondsLeftInCurrentSong(): number {
+        if (this._state.status !== 'active') return 0;
+
+        const playingFor = Math.floor((Date.now() - this._state.playingSince) / 1_000);
+        const playingLeft = this._state.currentlyPlaying.durationSeconds - playingFor;
+        return playingLeft;
+    }
+
+    private makeImmediateNowPlayingEmbed(state: JukeboxStateActive): EmbedBuilder {
+        const { currentlyPlaying } = state;
+
+        const embed = new EmbedBuilder()
+            .setAuthor({ name: 'Now Playing', iconURL: Jukebox._icon })
+            .addFields({
+                name: 'Requested By',
+                value: `${userMention(currentlyPlaying.requestedById)} ${dayjs(
+                    currentlyPlaying.requestedAt,
+                ).fromNow()}`,
+            })
+            .setColor(JukebotGlobals.config.embedColour);
+
+        this.upcomingQueue.addQueueInformationToEmbed(embed);
+
+        currentlyPlaying.makeFullDescription(embed);
+
+        return embed;
+    }
+
+    public makeNowPlayingEmbed(state: JukeboxStateActive): EmbedBuilder {
+        const embed = this.makeImmediateNowPlayingEmbed(state);
+
+        this.addCurrentSongDurationToEmbed(embed);
+
+        return embed;
     }
 
     /**
@@ -280,7 +375,7 @@ export class Jukebox {
         }
 
         try {
-            await this._textChannel.send({ content: `Error: ${error.message}` });
+            await this.textChannel.send({ content: `Error: ${error.message}` });
         } catch (anotherError) {
             // an error occurred trying to follow up the interaction
             // this is likely due to the interaction being deleted
@@ -289,7 +384,9 @@ export class Jukebox {
         }
     }
 
-    public toString(): string {
+    public toString(): InteractionReplyOptions {
+        const outputEmbeds: EmbedBuilder[] = [];
+
         const output: string[] = [
             `Jukebox(${this._voiceChannel.guild.name})`,
             `Connection(${channelMention(this._voiceChannel.id)}): ${capitalize(this._connection.state.status)}`,
@@ -299,7 +396,8 @@ export class Jukebox {
         if (this._state.status === 'active') {
             const playingFor = Math.floor((Date.now() - this._state.playingSince) / 1_000);
 
-            output.push(`State: Active (${withPossiblePlural(playingFor)} ${this._state.currentlyPlaying.url})`);
+            output.push(`State: Active (${withPossiblePlural(playingFor)})`);
+            outputEmbeds.push(this.makeNowPlayingEmbed(this._state));
         } else {
             const inactiveTimeRemaining =
                 JukebotGlobals.config.timeoutThresholds.inactivity -
@@ -308,6 +406,9 @@ export class Jukebox {
             output.push(`State: Inactive (${withPossiblePlural(inactiveTimeRemaining)} left)`);
         }
 
-        return output.join('\n');
+        return {
+            content: output.join('\n'),
+            embeds: outputEmbeds,
+        };
     }
 }

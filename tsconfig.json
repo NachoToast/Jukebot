@@ -3,7 +3,7 @@
         "target": "ES2022",
         "useDefineForClassFields": true,
         "module": "CommonJS",
-        "types": ["node"],
+        "types": ["node", "jest"],
         "resolveJsonModule": true,
         "sourceMap": true,
         "outDir": "build",
