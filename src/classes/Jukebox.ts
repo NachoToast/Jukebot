@@ -245,6 +245,7 @@ export class Jukebox {
             return this._state;
         }
 
+        if (this.historyQueue.isFull()) this.historyQueue.removeItems(0, 1);
         this.historyQueue.addItems([nextItem]);
 
         let resource: AudioResource<MusicDisc>;
