@@ -1,9 +1,10 @@
 import { Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
-import { CommandDeployer, Jukebox } from './classes';
+import { CommandDeployer, EntityManager } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
+import { timeoutMessage } from './messages';
 import { Colours } from './types';
-import { awaitOrTimeout } from './util';
+import { TimeoutError, awaitOrTimeout } from './util';
 
 process.on('uncaughtException', (error) => {
     console.log('Uncaught exception:', error);
@@ -24,10 +25,10 @@ async function main() {
         await awaitOrTimeout(
             client.login(JukebotGlobals.config.discordToken),
             JukebotGlobals.config.timeoutThresholds.discordLogin,
-            `Took too long to login (max ${JukebotGlobals.config.timeoutThresholds.discordLogin}s), exiting...`,
         );
     } catch (error) {
-        console.log(error);
+        if (error instanceof TimeoutError) console.log(timeoutMessage.discordLogin);
+        else console.log(error);
         process.exit(1);
     }
 
@@ -70,12 +71,15 @@ async function main() {
                 client,
                 interaction,
                 channel: interaction.channel,
-                guild: interaction.guild,
                 member: interaction.member,
             });
         } catch (error) {
+            console.log(
+                `${Colours.FgMagenta}${interaction.member.user.username}${Colours.Reset} encountered an error while using the ${Colours.FgMagenta}/${interaction.commandName}${Colours.Reset} command in ${Colours.FgMagenta}${interaction.guild.name}${Colours.Reset}:`,
+                error,
+            );
             if (interaction.replied) {
-                await interaction.followUp({ content: 'Something went while running this command' });
+                await interaction.editReply({ content: 'Something went while running this command' });
             } else {
                 await interaction.reply({ content: 'Something went while running this command' });
             }
@@ -95,9 +99,10 @@ async function main() {
         // Jukebot was moved to another channel
         if (wasBotInvolved && oldState.channel !== null && newState.channel !== null) {
             // so update the target voice channel
-            const jukebox = Jukebox.getJukebox(newState.guild.id);
+
+            const jukebox = EntityManager.getGuildInstance(oldState.guild.id);
             if (jukebox === undefined) return;
-            jukebox.handleDragged(newState.channel);
+            jukebox.handleChannelDrag(newState.channel);
         }
     });
 }
