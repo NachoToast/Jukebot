@@ -2,19 +2,6 @@ import { channelMention } from 'discord.js';
 import { EntityManager } from '../../classes';
 import { Command } from '../../types';
 
-function randomNotInVoiceResponse(): string {
-    const choices = [
-        'I am not in a voice channel',
-        "Please point out the voice channel I am in, I'll wait",
-        "It's truly incredible that you think I'm in a voice channel",
-        'Do you have eyes lmao',
-        '<:2021:794405448266154005>',
-        "Why don't you leave instead?",
-    ];
-
-    return choices[Math.floor(Math.random() * choices.length)];
-}
-
 export const leaveCommand: Command = {
     name: 'leave',
     description: 'Makes the bot leave the voice channel it is currently in',
@@ -22,7 +9,7 @@ export const leaveCommand: Command = {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
         if (jukebox === undefined) {
-            await interaction.reply({ content: randomNotInVoiceResponse() });
+            await interaction.reply({ content: 'Not in a voice channel' });
             return;
         }
 
