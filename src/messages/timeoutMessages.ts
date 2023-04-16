@@ -27,7 +27,7 @@ export const timeoutMessage = {
             timeoutThresholds.connect,
         )})`,
 
-    play: `Unable to play in a reasonable amount of time (${withPossiblePlural(timeoutThresholds.play)}`,
+    play: `Unable to play in a reasonable amount of time (${withPossiblePlural(timeoutThresholds.play)})`,
 
     inactivity: '',
 
