@@ -54,6 +54,6 @@ export class Hopper {
             }
         }
 
-        return { totalDuration, durationTillFirstLive, numLiveVideos };
+        return { totalItems: this._inventory.length, totalDuration, durationTillFirstLive, numLiveVideos };
     }
 }
