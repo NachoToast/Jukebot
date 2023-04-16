@@ -82,7 +82,6 @@ export class MusicDisc {
         this._resource = await awaitOrTimeout(
             resourcePromise,
             JukebotGlobals.config.timeoutThresholds.generateResource,
-            `Unable to load "${this.title}" (${this.durationString}) in a reasonable amount of time (${JukebotGlobals.config.timeoutThresholds.generateResource} seconds)`,
         );
 
         return this._resource;
@@ -90,6 +89,10 @@ export class MusicDisc {
 
     public destroyResource(): void {
         return void delete this._resource;
+    }
+
+    public hasResource(): boolean {
+        return this._resource !== undefined;
     }
 
     public static chooseRandomDiscThumbnail(): string {
