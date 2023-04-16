@@ -12,14 +12,19 @@ export async function awaitOrTimeout<T>(promise: Promise<T>, timeoutSeconds: num
         timeout = setTimeout(resolve, timeoutSeconds * 1_000);
     });
 
-    const race = await Promise.race([promise, timeoutPromise]);
+    try {
+        const race = await Promise.race([promise, timeoutPromise]);
 
-    clearTimeout(timeout);
+        clearTimeout(timeout);
 
-    // the timeout promise resolved before the supplied one did
-    if (race === undefined) throw new TimeoutError();
+        // the timeout promise resolved before the supplied one did
+        if (race === undefined) throw new TimeoutError();
 
-    return race;
+        return race;
+    } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') throw new TimeoutError();
+        throw error;
+    }
 }
 
 /**
