@@ -11,7 +11,6 @@ interface CommandParams {
     client: Client<true>;
     interaction: ChatInputCommandInteraction;
     channel: GuildTextBasedChannel;
-    guild: Guild;
     member: GuildMember;
 }
 
