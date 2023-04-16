@@ -1,3 +1,4 @@
+import { JukebotGlobals } from '../../global';
 import { leaveCommand } from './leave';
 import { nowPlayingCommand } from './nowPlaying';
 import { pauseCommand } from './pause';
@@ -9,7 +10,6 @@ import { skipCommand } from './skip';
 
 export const musicCommands = [
     leaveCommand,
-    searchCommand,
     playCommand,
     skipCommand,
     resumeCommand,
@@ -17,3 +17,5 @@ export const musicCommands = [
     nowPlayingCommand,
     queueCommand,
 ];
+
+if (JukebotGlobals.devmode) musicCommands.push(searchCommand);
