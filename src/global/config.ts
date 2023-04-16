@@ -1,6 +1,7 @@
+import { existsSync } from 'fs';
 import { Config } from '../types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const rawConfig: Partial<Config> = require('../../config.json');
+const rawConfig: Partial<Config> = existsSync('config.json') ? require('../../config.json') : undefined;
 
 if (rawConfig.discordToken === undefined) {
     throw new Error('Missing discordToken in config.json');
