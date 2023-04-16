@@ -13,7 +13,6 @@ import {
     video_basic_info,
 } from 'play-dl';
 import { JukebotGlobals } from '../global';
-import { timeoutMessages } from '../messages';
 import { errorMessages } from '../messages/errorMessages';
 import { Search } from '../types';
 import { awaitOrTimeout } from '../util';
@@ -31,12 +30,29 @@ interface MultipleRetrievedItems {
     };
 }
 
-/** Fetches search results for the user. */
+/**
+ * Fetches search results for the user.
+ *
+ * Handles:
+ *
+ * - Text searches (finds similar-titled YouTube videos).
+ * - YouTube video and playlist URLs (direct fetch).
+ * - Spotify track, playlist, and album URLs (finds similar YouTube videos based on each track's title and artist(s)).
+ */
 export class Allay {
+    /** The interaction to pass to any {@link MusicDisc} instances created by this search. */
     private readonly _origin: ChatInputCommandInteraction;
+
+    /** The {@link GuildMember} that did this search. */
     private readonly _member: GuildMember;
+
+    /** The search term given by the member, this can be a URL or just a plaintext search. */
     private readonly _searchTerm: string;
+
+    /** The source (YouTube, Spotify, text) and type (playlist, video, track, ...) of the given search term. */
     private readonly _search: Search;
+
+    /** Maximum number of results that are allowed to be returned, this is only respected for playlists and albums */
     private readonly _maxResultsAllowed: number;
 
     public constructor(
@@ -53,7 +69,7 @@ export class Allay {
     }
 
     public async retrieveItems(): Promise<MusicDisc | MultipleRetrievedItems> {
-        if (Allay.isExpired()) {
+        if (Allay.isSpotifyExpired()) {
             if (this._search.source === 'spotify') {
                 // wait for refresh if we need it
                 const didRefresh = await refreshToken();
@@ -65,7 +81,7 @@ export class Allay {
                         .followUp({
                             content: errorMessages.failedSpotifyRefreshBackground(e),
                         })
-                        .catch(() => null);
+                        .catch(console.log);
                 });
             }
         }
@@ -91,11 +107,7 @@ export class Allay {
                 break;
         }
 
-        return await awaitOrTimeout(
-            fetchPromise,
-            JukebotGlobals.config.timeoutThresholds.fetchResults,
-            timeoutMessages.searchTimeout(this._search.source, this._searchTerm),
-        );
+        return await awaitOrTimeout(fetchPromise, JukebotGlobals.config.timeoutThresholds.fetchResults);
     }
 
     /** Makes an "Added to Queue" embed. */
@@ -136,21 +148,29 @@ export class Allay {
     }
 
     private makeMultipleItemsEmbed({ items, errors, playlist }: MultipleRetrievedItems): EmbedBuilder {
-        const songSummary: string[] = [];
-
         const description = [
             `Fetched ${items.length === playlist.size ? 'all' : `${items.length} /`} ${playlist.size} songs${
                 errors.length !== 0 ? ` (${errors.length} errored)` : ''
             }.`,
         ];
 
+        const songSummary: string[] = [];
+        let songSummaryLength = 0;
+        let numSongsSummarized = 0;
+
         for (let i = 0, len = Math.min(items.length, 10); i < len; i++) {
             const { title, durationString, url } = items[i];
-            songSummary.push(`${i + 1}. [${title}](${url}) (${durationString})`);
+            const str = `${i + 1}. [${title}](${url}) (${durationString})`;
+
+            if (songSummaryLength + str.length + 2 > 1024) break;
+
+            songSummary.push(str);
+            songSummaryLength += str.length + 2;
+            numSongsSummarized++;
         }
 
-        if (items.length > 10) {
-            songSummary.push(`${items.length - 10} more...`);
+        if (items.length > numSongsSummarized) {
+            songSummary.push(`${items.length - numSongsSummarized} more...`);
         }
 
         const niceSearchSource =
@@ -200,21 +220,26 @@ export class Allay {
 
         if (Allay.isTrack(spotifyResult)) return await this.handleSpotifyTrack(spotifyResult);
 
-        const items: MusicDisc[] = [];
-        const errors: Error[] = [];
-
         const allTracks = (await spotifyResult.all_tracks()).slice(0, this._maxResultsAllowed);
 
-        await Promise.all(
+        const fetchedTracks = await Promise.all(
             allTracks.map(async (track) => {
                 try {
                     const disc = await this.handleSpotifyTrack(track);
-                    items.push(disc);
+                    return disc;
                 } catch (error) {
-                    errors.push(error instanceof Error ? error : new Error(errorMessages.unknownTrackError(track)));
+                    return error instanceof Error ? error : new Error(errorMessages.unknownTrackError(track));
                 }
             }),
         );
+
+        const items: MusicDisc[] = [];
+        const errors: Error[] = [];
+
+        for (const track of fetchedTracks) {
+            if (track instanceof MusicDisc) items.push(track);
+            else errors.push(track);
+        }
 
         return {
             items,
@@ -263,11 +288,19 @@ export class Allay {
             );
         });
 
-        const highestSimilarity = Math.max(...levenshteinData);
-        const bestIndex = levenshteinData.indexOf(highestSimilarity);
-        const bestResult = results[bestIndex];
+        let bestResult = results[0];
+        let bestResultLevenshtein = levenshteinData[0];
 
-        if (highestSimilarity < JukebotGlobals.config.levenshteinThreshold) {
+        for (let i = 1, len = results.length; i < len; i++) {
+            const levenshtein = levenshteinData[i];
+
+            if (levenshtein > bestResultLevenshtein) {
+                bestResult = results[i];
+                bestResultLevenshtein = levenshtein;
+            }
+        }
+
+        if (bestResultLevenshtein < JukebotGlobals.config.levenshteinThreshold) {
             throw new Error(errorMessages.noAcceptableResultsFound);
         }
 
@@ -521,7 +554,7 @@ export class Allay {
         return playlist.type === 'album';
     }
 
-    private static isExpired(): boolean {
+    private static isSpotifyExpired(): boolean {
         try {
             return is_expired();
         } catch (error) {
