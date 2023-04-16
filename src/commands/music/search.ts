@@ -8,19 +8,14 @@ export const searchCommand: Command = {
         await interaction.reply({ content: 'Searching...' });
         const searchTerm = interaction.options.getString('song', true);
 
-        try {
-            const allay = new Allay(interaction, member, searchTerm);
-            const result = await allay.retrieveItems();
+        const allay = new Allay(interaction, member, searchTerm);
+        const result = await allay.retrieveItems();
 
-            await interaction.editReply({ content: '', embeds: [allay.makeEmbed(result)] });
-        } catch (error) {
-            if (!(error instanceof Error)) throw error;
-            await interaction.editReply({ content: error.message });
-        }
+        await interaction.editReply({ content: '', embeds: [allay.makeEmbed(result)] });
     },
     build: function (baseCommand) {
         baseCommand.addStringOption((option) =>
-            option.setName('song').setDescription('The song name of YouTube/Spotify URL').setRequired(true),
+            option.setName('song').setDescription('The song name or YouTube/Spotify URL').setRequired(true),
         );
     },
 };

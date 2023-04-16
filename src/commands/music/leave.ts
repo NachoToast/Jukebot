@@ -1,23 +1,24 @@
 import { channelMention } from 'discord.js';
-import { Jukebox } from '../../classes';
+import { EntityManager } from '../../classes';
 import { Command } from '../../types';
 
 export const leaveCommand: Command = {
     name: 'leave',
     description: 'Makes the bot leave the voice channel it is currently in',
-    execute: async function ({ interaction, member, guild }): Promise<void> {
-        const jukebox = Jukebox.getJukebox(guild.id);
-        const jukeboxChannel = jukebox?.getTargetVoiceChannel();
+    execute: async function ({ interaction, member }): Promise<void> {
+        const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
-        if (jukebox === undefined || jukeboxChannel === undefined) {
+        if (jukebox === undefined) {
             await interaction.reply({ content: 'I am not in a voice channel' });
             return;
         }
 
-        if (
-            jukebox.getHasListenersInVoice() &&
-            !(jukeboxChannel.members.size === 2 && jukeboxChannel.id === member.voice.channel?.id)
-        ) {
+        const jukeboxChannel = jukebox.targetVoiceChannel;
+
+        const onlyOtherListenerIsMe =
+            jukeboxChannel.members.size === 2 && jukeboxChannel.id === member.voice.channel?.id;
+
+        if (!onlyOtherListenerIsMe && jukebox.hasAudioListeners()) {
             // if people other than the bot in VC, don't leave
             // unless the only other person is the invoking user
             await interaction.reply({
@@ -26,7 +27,7 @@ export const leaveCommand: Command = {
             return;
         }
 
-        jukebox.destroyConnection();
+        jukebox.destroyInstance();
         await interaction.reply({ content: `Left ${channelMention(jukeboxChannel.id)}` });
     },
 };
