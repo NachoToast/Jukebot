@@ -26,6 +26,7 @@ export const playCommand: Command = {
         const result = await allay.retrieveItems();
         jukebox ??= EntityManager.makeGuildInstance(channel, member.voice.channel);
         const embed = allay.makeEmbed(result, jukebox);
+        await interaction.editReply({ embeds: [embed] });
 
         if (result instanceof MusicDisc) jukebox.upcomingQueue.addItems([result]);
         else {
@@ -43,9 +44,9 @@ export const playCommand: Command = {
                 await interaction.editReply({ content: 'Immediately playing result ⬇️' });
                 return;
             }
+        } else {
+            await interaction.editReply({ content: '' });
         }
-
-        await interaction.editReply({ content: '', embeds: [embed] });
     },
     build: function (baseCommand) {
         baseCommand
