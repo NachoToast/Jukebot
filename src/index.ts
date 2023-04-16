@@ -70,10 +70,17 @@ async function main() {
                 member: interaction.member,
             });
         } catch (error) {
+            if (error instanceof Error) {
+                if (interaction.replied) await interaction.editReply({ content: error.message });
+                else await interaction.reply({ content: error.message });
+                return;
+            }
+
             console.log(
-                `${Colours.FgMagenta}${interaction.member.user.username}${Colours.Reset} encountered an error while using the ${Colours.FgMagenta}/${interaction.commandName}${Colours.Reset} command in ${Colours.FgMagenta}${interaction.guild.name}${Colours.Reset}:`,
+                `${Colours.FgMagenta}${interaction.member.user.username}${Colours.Reset} encountered an unknown error while using the ${Colours.FgMagenta}/${interaction.commandName}${Colours.Reset} command in ${Colours.FgMagenta}${interaction.guild.name}${Colours.Reset}:`,
                 error,
             );
+
             if (interaction.replied) {
                 await interaction.editReply({ content: 'Something went while running this command' });
             } else {
