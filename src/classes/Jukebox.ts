@@ -290,6 +290,8 @@ export class Jukebox {
             if (error instanceof TimeoutError) logToRequesterOrChannel(timeoutMessage.play);
             else this.logError(error);
 
+            this._player.stop();
+
             return await this.playNextInQueue(requester);
         }
 
