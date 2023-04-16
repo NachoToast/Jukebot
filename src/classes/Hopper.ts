@@ -43,10 +43,9 @@ export class Hopper {
         return this._inventory.shift();
     }
 
-    /** Be sure to check {@link getFreeSlots} and/or {@link isFull} before calling this method. */
     public addItems(items: MusicDisc[], startIndex?: number): void {
-        if (startIndex !== undefined) this._inventory.splice(startIndex, 0, ...items.slice(0, this.getFreeSlots()));
-        else this._inventory.push(...items.slice(0, this.getFreeSlots()));
+        if (startIndex !== undefined) this._inventory.splice(startIndex, 0, ...items);
+        else this._inventory.push(...items);
     }
 
     public removeItems(startIndex: number, deleteCount?: number): MusicDisc[] {
