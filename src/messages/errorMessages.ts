@@ -54,4 +54,7 @@ export const errorMessages = {
     /** Sent when a Spotify session request that was running in the background fails. */
     failedSpotifyRefreshBackground: (error: unknown) =>
         `Failed to refresh Spotify session${error instanceof Error ? `: ${error.message}` : ''}`,
+
+    /** Sent when a user who is not in voice uses a command that requires it. */
+    notInVoice: 'You must be in a voice channel to use this command',
 };
