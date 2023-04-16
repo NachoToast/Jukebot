@@ -15,7 +15,6 @@ export interface Config {
         connect: number;
         play: number;
         inactivity: number;
-        clearQueue: number;
         stopMessageListeners: number;
     };
 }

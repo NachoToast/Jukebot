@@ -18,7 +18,7 @@ function convertTimeoutThreshold(key: keyof Config['timeoutThresholds'], fallbac
 
 export const config: Config = {
     discordToken: rawConfig.discordToken,
-    maxQueueSize: rawConfig.maxQueueSize ?? 1000,
+    maxQueueSize: rawConfig.maxQueueSize ?? 1_000,
     previousQueueSize: rawConfig.previousQueueSize ?? 20,
     statusTimePeriod: rawConfig.statusTimePeriod ?? 120,
     levenshteinThreshold: rawConfig.levenshteinThreshold ?? 0.1,
@@ -31,7 +31,6 @@ export const config: Config = {
         connect: convertTimeoutThreshold('connect', 10),
         play: convertTimeoutThreshold('play', 10),
         inactivity: convertTimeoutThreshold('inactivity', 300),
-        clearQueue: convertTimeoutThreshold('clearQueue', 300),
         stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 300),
     },
 };
