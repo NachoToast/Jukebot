@@ -36,10 +36,6 @@ async function main() {
         `${client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - JukebotGlobals.startTime}ms${Colours.Reset})`,
     );
 
-    const commandDeployer = new CommandDeployer(client);
-
-    await commandDeployer.autoDeploy();
-
     client.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isCommand()) return;
         if (!interaction.inGuild()) {
@@ -132,21 +128,11 @@ async function main() {
             jukebox.destroyInstance();
             return;
         }
-
-        // // I'm not sure when this is ever true
-        // if (oldState.member === null) return;
-
-        // const wasBotInvolved = oldState.member.user.id === client.user.id;
-
-        // // Jukebot was moved to another channel
-        // if (wasBotInvolved && oldState.channel !== null && newState.channel !== null) {
-        //     // so update the target voice channel
-
-        //     const jukebox = EntityManager.getGuildInstance(oldState.guild.id);
-        //     if (jukebox === undefined) return;
-        //     jukebox.handleChannelDrag(newState.channel);
-        // }
     });
+
+    const commandDeployer = new CommandDeployer(client);
+
+    await commandDeployer.autoDeploy();
 }
 
 main();
