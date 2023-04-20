@@ -12,6 +12,11 @@ export const skipCommand: Command = {
             return;
         }
 
+        if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
+            await interaction.reply({ content: 'You must be in the same voice channel as me to resume playback' });
+            return;
+        }
+
         const secondsElapsed = Math.floor((Date.now() - jukebox.state.playingSince) / 1_000);
 
         const currentlyPlaying = jukebox.state.currentlyPlaying;
