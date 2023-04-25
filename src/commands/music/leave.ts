@@ -1,5 +1,6 @@
 import { channelMention } from 'discord.js';
 import { EntityManager } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const leaveCommand: Command = {
@@ -9,7 +10,7 @@ export const leaveCommand: Command = {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
         if (jukebox === undefined) {
-            await interaction.reply({ content: 'Not in a voice channel' });
+            await interaction.reply({ content: errorMessages.notInVoice });
             return;
         }
 

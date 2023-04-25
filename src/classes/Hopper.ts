@@ -11,7 +11,7 @@ import {
     GuildTextBasedChannel,
 } from 'discord.js';
 import { JukebotGlobals } from '../global';
-import { generalMessages } from '../messages';
+import { errorMessages } from '../messages';
 import { withPossiblePlural } from '../util';
 import { MusicDisc } from './MusicDisc';
 
@@ -90,9 +90,10 @@ export class Hopper {
     ): BaseMessageOptions {
         let page = 1;
 
-        const nextPageId = interaction.id + '-next';
-        const previousPageId = interaction.id + '-previous';
         const firstPageId = interaction.id + '-first';
+        const previousPageId = interaction.id + '-previous';
+        const currentPageId = interaction.id + '-current';
+        const nextPageId = interaction.id + '-next';
         const lastPageId = interaction.id + '-last';
 
         const validIds = new Set([nextPageId, previousPageId, firstPageId, lastPageId]);
@@ -109,7 +110,10 @@ export class Hopper {
             .setLabel('<')
             .setStyle(ButtonStyle.Primary);
 
-        const currentPageButton = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setDisabled(true);
+        const currentPageButton = new ButtonBuilder()
+            .setCustomId(currentPageId)
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true);
 
         const nextPageButton = new ButtonBuilder().setCustomId(nextPageId).setLabel('>').setStyle(ButtonStyle.Primary);
 
@@ -119,7 +123,7 @@ export class Hopper {
             const size = this.getSize();
             const numPages = Math.ceil(size / 10);
 
-            if (size === 0) return { content: generalMessages.emptyQueue, embeds: [], components: [] };
+            if (size === 0) return { content: errorMessages.emptyQueue, embeds: [], components: [] };
 
             if (page > numPages) page = numPages;
 

@@ -1,4 +1,5 @@
 import { EntityManager } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const pauseCommand: Command = {
@@ -18,7 +19,9 @@ export const pauseCommand: Command = {
         }
 
         if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
-            await interaction.reply({ content: 'You must be in the same voice channel as me to pause playback' });
+            await interaction.reply({
+                content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'pause playback'),
+            });
             return;
         }
 

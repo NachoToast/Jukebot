@@ -1,5 +1,5 @@
 import { EntityManager } from '../../classes';
-import { generalMessages } from '../../messages';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const queueCommand: Command = {
@@ -9,7 +9,7 @@ export const queueCommand: Command = {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
         if (jukebox === undefined) {
-            await interaction.reply({ content: generalMessages.emptyQueue });
+            await interaction.reply({ content: errorMessages.emptyQueue });
             return;
         }
 

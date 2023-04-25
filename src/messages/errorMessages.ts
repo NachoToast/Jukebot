@@ -1,3 +1,4 @@
+import { channelMention } from 'discord.js';
 import { SpotifyTrack, YouTubeVideo } from 'play-dl';
 import { Search } from '../types';
 
@@ -48,13 +49,19 @@ export const errorMessages = {
     /** Sent when a non-video is returned from a search, this shouldn't really happen at all. */
     badVideoType: (video: YouTubeVideo) => `<${video.url}> is not a video`,
 
-    /** Sent when a Spotify session request fails. */
+    /** Sent when a Spotify session refresh fails. */
     failedSpotifyRefresh: 'Failed to refresh Spotify session',
 
-    /** Sent when a Spotify session request that was running in the background fails. */
+    /** Sent when a Spotify session refresh that was running in the background fails. */
     failedSpotifyRefreshBackground: (error: unknown) =>
         `Failed to refresh Spotify session${error instanceof Error ? `: ${error.message}` : ''}`,
 
     /** Sent when a user who is not in voice uses a command that requires it. */
     notInVoice: 'You must be in a voice channel to use this command',
+
+    /** Send when an interaction that requires a queue of length > 0 is called while the queue is empty. */
+    emptyQueue: 'Nothing is currently queued',
+
+    notInSameVoiceChannel: (targetVoiceChannelId: string, action: string) =>
+        `You must be in the same voice channel as me (${channelMention(targetVoiceChannelId)}) to ${action}`,
 };

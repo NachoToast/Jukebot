@@ -1,4 +1,5 @@
 import { EntityManager } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 import { withPossiblePlural } from '../../util';
 
@@ -11,12 +12,14 @@ export const clearCommand: Command = {
         const size = jukebox?.upcomingQueue.getSize() ?? 0;
 
         if (jukebox === undefined || size === 0) {
-            await interaction.reply({ content: 'Nothing is currently queued' });
+            await interaction.reply({ content: errorMessages.emptyQueue });
             return;
         }
 
         if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
-            await interaction.reply({ content: 'You must be in the same voice channel as me to clear the queue' });
+            await interaction.reply({
+                content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'clear the queue'),
+            });
             return;
         }
 

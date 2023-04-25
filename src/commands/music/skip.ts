@@ -1,4 +1,5 @@
 import { EntityManager, Hopper } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const skipCommand: Command = {
@@ -13,7 +14,9 @@ export const skipCommand: Command = {
         }
 
         if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
-            await interaction.reply({ content: 'You must be in the same voice channel as me to resume playback' });
+            await interaction.reply({
+                content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'skip the current song'),
+            });
             return;
         }
 

@@ -1,4 +1,5 @@
 import { EntityManager } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const resumeCommand: Command = {
@@ -13,11 +14,13 @@ export const resumeCommand: Command = {
         }
 
         if (jukebox.state.status === 'active') {
-            await interaction.reply({ content: 'Already playing' });
+            await interaction.reply({ content: 'Already resumed' });
         }
 
         if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
-            await interaction.reply({ content: 'You must be in the same voice channel as me to resume playback' });
+            await interaction.reply({
+                content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'resume playback'),
+            });
             return;
         }
 

@@ -1,4 +1,5 @@
 import { Allay, EntityManager, MusicDisc } from '../../classes';
+import { errorMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const playCommand: Command = {
@@ -6,7 +7,7 @@ export const playCommand: Command = {
     description: 'Adds a song to the queue and starts playback',
     execute: async function ({ interaction, channel, member }): Promise<void> {
         if (member.voice.channel === null) {
-            await interaction.reply({ content: 'You must be in a voice channel to use this command' });
+            await interaction.reply({ content: errorMessages.notInVoice });
             return;
         }
 
