@@ -8,6 +8,7 @@ import { queueCommand } from './queue';
 import { removeCommand } from './remove';
 import { resumeCommand } from './resume';
 import { searchCommand } from './search';
+import { shuffleCommand } from './shuffle';
 import { skipCommand } from './skip';
 
 export const musicCommands = [
@@ -20,6 +21,7 @@ export const musicCommands = [
     queueCommand,
     clearCommand,
     removeCommand,
+    shuffleCommand,
 ];
 
 if (JukebotGlobals.devmode) musicCommands.push(searchCommand);
