@@ -1,3 +1,4 @@
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionReplyOptions } from 'discord.js';
 import { Config } from '../types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const rawConfig: Partial<Config> = require('../../config.json');
@@ -35,3 +36,20 @@ export const config: Config = {
         stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 180),
     },
 };
+
+export function configToString(): InteractionReplyOptions {
+    const safeConfig: Partial<Config> = { ...config };
+    delete safeConfig.discordToken;
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+            .setLabel('View Schema')
+            .setStyle(ButtonStyle.Link)
+            .setURL('https://github.com/NachoToast/Jukebot/blob/main/.github/config-schema.json'),
+    );
+
+    return {
+        content: '```json\n' + JSON.stringify(safeConfig, null, 4) + '\n```',
+        components: [row],
+    };
+}
