@@ -23,6 +23,7 @@
     },
     "plugins": ["@typescript-eslint"],
     "rules": {
+        "eqeqeq": ["error", "always"],
         "no-unused-vars": "warn",
         "linebreak-style": "off",
         "quotes": ["error", "single", { "avoidEscape": true }],

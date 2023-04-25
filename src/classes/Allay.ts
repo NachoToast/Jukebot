@@ -560,7 +560,7 @@ export class Allay {
             for (let j = 0, jLen = s2.length; j <= jLen; j++) {
                 // since we look at (i - 1) and (j - 1) later,
                 // these checks make sure they're both > 0;
-                if (i == 0) costs[j] = j;
+                if (i === 0) costs[j] = j;
                 else if (j > 0) {
                     let newValue = costs[j - 1];
 
