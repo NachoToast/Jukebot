@@ -90,7 +90,7 @@
                     "type": "integer",
                     "minimum": 0,
                     "description": "Stops responding to button presses and other interactions on sent messages after this many seconds.\nSetting to 0 may have unexpected behaviour.",
-                    "default": 300
+                    "default": 180
                 }
             },
             "additionalProperties": false

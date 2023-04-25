@@ -16,6 +16,7 @@ function convertTimeoutThreshold(key: keyof Config['timeoutThresholds'], fallbac
     return fallback;
 }
 
+// these default values must match those in the config schema file (`.github/config.schema.json`)
 export const config: Config = {
     discordToken: rawConfig.discordToken,
     maxQueueSize: rawConfig.maxQueueSize ?? 1_000,
@@ -31,6 +32,6 @@ export const config: Config = {
         connect: convertTimeoutThreshold('connect', 10),
         play: convertTimeoutThreshold('play', 10),
         inactivity: convertTimeoutThreshold('inactivity', 300),
-        stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 300),
+        stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 180),
     },
 };
