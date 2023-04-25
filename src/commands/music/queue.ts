@@ -1,17 +1,20 @@
 import { EntityManager } from '../../classes';
+import { generalMessages } from '../../messages';
 import { Command } from '../../types';
 
 export const queueCommand: Command = {
     name: 'queue',
     description: 'Shows the current queue',
-    execute: async function ({ interaction, member }): Promise<void> {
+    execute: async function ({ interaction, channel, member }): Promise<void> {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
-        if (jukebox === undefined || jukebox.upcomingQueue.getSize() === 0) {
-            await interaction.reply({ content: 'Nothing is currently queued' });
+        if (jukebox === undefined) {
+            await interaction.reply({ content: generalMessages.emptyQueue });
             return;
         }
 
-        await jukebox.upcomingQueue.makeQueueEmbed(interaction, member);
+        const response = jukebox.upcomingQueue.makeQueueEmbed(interaction, channel, member);
+
+        await interaction.reply(response);
     },
 };

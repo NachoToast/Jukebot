@@ -8,8 +8,10 @@ import {
     GuildMember,
     MessageComponentInteraction,
     BaseMessageOptions,
+    GuildTextBasedChannel,
 } from 'discord.js';
 import { JukebotGlobals } from '../global';
+import { generalMessages } from '../messages';
 import { withPossiblePlural } from '../util';
 import { MusicDisc } from './MusicDisc';
 
@@ -81,56 +83,52 @@ export class Hopper {
         });
     }
 
-    public async makeQueueEmbed(interaction: ChatInputCommandInteraction, member: GuildMember): Promise<void> {
-        const size = this.getSize();
-        const title = `${withPossiblePlural(size, 'Song')} Queued (Total Length: ${Hopper.formatDuration(
-            this.getDuration(),
-        )})`;
-
+    public makeQueueEmbed(
+        interaction: ChatInputCommandInteraction,
+        channel: GuildTextBasedChannel,
+        member: GuildMember,
+    ): BaseMessageOptions {
         let page = 1;
-        const numPages = Math.ceil(size / 10);
 
         const nextPageId = interaction.id + '-next';
         const previousPageId = interaction.id + '-previous';
         const firstPageId = interaction.id + '-first';
         const lastPageId = interaction.id + '-last';
-        const currentPageId = interaction.id + '-current';
 
-        const validIds = new Set([nextPageId, previousPageId, firstPageId, lastPageId, currentPageId]);
+        const validIds = new Set([nextPageId, previousPageId, firstPageId, lastPageId]);
 
-        const firstPageButton = () =>
-            new ButtonBuilder()
-                .setCustomId(firstPageId)
-                .setLabel('<<')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(page === 1);
-        const previousPageButton = () =>
-            new ButtonBuilder()
-                .setCustomId(previousPageId)
-                .setLabel('<')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(page === 1);
-        const currentPageButton = () =>
-            new ButtonBuilder()
-                .setCustomId(currentPageId)
-                .setLabel(`Page ${page}/${numPages}`)
-                .setStyle(ButtonStyle.Secondary)
-                .setDisabled(true);
-        const nextPageButton = () =>
-            new ButtonBuilder()
-                .setCustomId(nextPageId)
-                .setLabel('>')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(page === numPages);
-        const lastPageButton = () =>
-            new ButtonBuilder()
-                .setCustomId(lastPageId)
-                .setLabel('>>')
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(page === numPages);
+        const embed = new EmbedBuilder().setColor(JukebotGlobals.config.embedColour);
 
-        const regenerateResponse = (): BaseMessageOptions => {
-            const embed = new EmbedBuilder().setColor(JukebotGlobals.config.embedColour).setTitle(title);
+        const firstPageButton = new ButtonBuilder()
+            .setCustomId(firstPageId)
+            .setLabel('<<')
+            .setStyle(ButtonStyle.Primary);
+
+        const previousPageButton = new ButtonBuilder()
+            .setCustomId(previousPageId)
+            .setLabel('<')
+            .setStyle(ButtonStyle.Primary);
+
+        const currentPageButton = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setDisabled(true);
+
+        const nextPageButton = new ButtonBuilder().setCustomId(nextPageId).setLabel('>').setStyle(ButtonStyle.Primary);
+
+        const lastPageButton = new ButtonBuilder().setCustomId(lastPageId).setLabel('>>').setStyle(ButtonStyle.Primary);
+
+        const editOrCreateResponse = (): BaseMessageOptions => {
+            const size = this.getSize();
+            const numPages = Math.ceil(size / 10);
+
+            if (size === 0) return { content: generalMessages.emptyQueue, embeds: [], components: [] };
+
+            if (page > numPages) page = numPages;
+
+            embed.setTitle(
+                `${withPossiblePlural(size, 'Song')} Queued (Total Length: ${Hopper.formatDuration(
+                    this.getDuration(),
+                )})`,
+            );
+
             const songs = this._inventory.slice((page - 1) * 10, page * 10);
             const description = songs
                 .map((disc, index) => disc.getShortDescription((page - 1) * 10 + index + 1))
@@ -149,43 +147,65 @@ export class Hopper {
             const row = new ActionRowBuilder<ButtonBuilder>();
 
             if (numPages > 1) {
-                if (numPages > 3) row.addComponents(firstPageButton());
-                row.addComponents(previousPageButton(), currentPageButton(), nextPageButton());
-                if (numPages > 3) row.addComponents(lastPageButton());
+                // first page
+                if (numPages > 3) {
+                    row.addComponents(firstPageButton);
+                    firstPageButton.setDisabled(page === 1);
+                }
+
+                // previous, current, and next page
+                row.addComponents(previousPageButton, currentPageButton, nextPageButton);
+                previousPageButton.setDisabled(page === 1);
+                currentPageButton.setLabel(`Page ${page}/${numPages}`);
+                nextPageButton.setDisabled(page === numPages);
+
+                // last page
+                if (numPages > 3) {
+                    row.addComponents(lastPageButton);
+                    lastPageButton.setDisabled(page === numPages);
+                }
             }
 
             return { embeds: [embed], components: [row] };
-            // if (row.components.length > 0)
-            // else return { embeds: [embed], components: [] };
         };
 
         const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) => validIds.has(i.customId);
 
-        const collector = interaction.channel?.createMessageComponentCollector({
+        const collector = channel.createMessageComponentCollector({
             filter,
             time: JukebotGlobals.config.timeoutThresholds.stopMessageListeners * 1_000,
         });
 
-        collector?.on('collect', async (i) => {
+        collector.on('collect', async (i) => {
             if (i.user.id !== member.id) {
                 await i.reply({ content: 'You can only use your own queue buttons!', ephemeral: true });
                 return;
             }
 
-            if (i.customId === nextPageId) page++;
-            else if (i.customId === previousPageId) page--;
-            else if (i.customId === firstPageId) page = 1;
-            else if (i.customId === lastPageId) page = numPages;
+            switch (i.customId) {
+                case nextPageId:
+                    page++;
+                    break;
+                case previousPageId:
+                    page--;
+                    break;
+                case firstPageId:
+                    page = 1;
+                    break;
+                case lastPageId:
+                    page = Math.ceil(this.getSize() / 10);
+                    break;
+            }
 
-            const response = regenerateResponse();
+            const response = editOrCreateResponse();
             await i.update(response);
         });
 
-        collector?.on('end', async () => {
+        collector.on('end', async () => {
             await interaction.editReply({ components: [] });
         });
 
-        await interaction.reply(regenerateResponse());
+        return editOrCreateResponse();
     }
 
     public static formatDuration(durationSeconds: number): string {
