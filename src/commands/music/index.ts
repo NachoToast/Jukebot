@@ -4,6 +4,7 @@ import { leaveCommand } from './leave';
 import { nowPlayingCommand } from './nowPlaying';
 import { pauseCommand } from './pause';
 import { playCommand } from './play';
+import { previousCommand } from './previous';
 import { queueCommand } from './queue';
 import { removeCommand } from './remove';
 import { resumeCommand } from './resume';
@@ -22,6 +23,7 @@ export const musicCommands = [
     clearCommand,
     removeCommand,
     shuffleCommand,
+    previousCommand,
 ];
 
 if (JukebotGlobals.devmode) musicCommands.push(searchCommand);

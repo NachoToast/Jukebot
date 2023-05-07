@@ -62,6 +62,8 @@ export const errorMessages = {
     /** Send when an interaction that requires a queue of length > 0 is called while the queue is empty. */
     emptyQueue: 'Nothing is currently queued',
 
+    emptyPreviousQueue: 'Nothing has been played yet',
+
     notInSameVoiceChannel: (targetVoiceChannelId: string, action: string) =>
         `You must be in the same voice channel as me (${channelMention(targetVoiceChannelId)}) to ${action}`,
 };
