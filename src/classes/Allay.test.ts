@@ -103,7 +103,7 @@ describe(Allay.name, () => {
             expect(levenshtein('pog', 'champ')).toBe(0);
         });
 
-        it('eturns some expected values', () => {
+        it('returns some expected values', () => {
             expect(levenshtein('faded', 'fded')).toBe(0.8);
             expect(levenshtein('louder', 'faster')).toBe(1 / 3);
             expect(levenshtein('monday', 'sunday')).toBe(2 / 3);
