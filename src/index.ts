@@ -1,5 +1,5 @@
 import { Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
-import { CommandDeployer, EntityManager } from './classes';
+import { CommandDeployer, EntityManager, Observer } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
 import { timeoutMessage } from './messages';
@@ -36,6 +36,8 @@ async function main() {
         `${client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - JukebotGlobals.startTime}ms${Colours.Reset})`,
     );
 
+    const observer = new Observer();
+
     client.on(Events.InteractionCreate, async (interaction) => {
         if (!interaction.isCommand()) return;
         if (!interaction.inGuild()) {
@@ -68,6 +70,7 @@ async function main() {
                 interaction,
                 channel: interaction.channel,
                 member: interaction.member,
+                observer,
             });
         } catch (error) {
             if (error instanceof Error) {

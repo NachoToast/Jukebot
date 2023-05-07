@@ -16,7 +16,7 @@ function pingHint(ping: number): string {
 export const statusCommand: Command = {
     name: 'status',
     description: "Sends information about the bot's status",
-    execute: async function ({ client, interaction }): Promise<void> {
+    execute: async function ({ client, interaction, observer }): Promise<void> {
         const ping = Math.abs(Date.now() - interaction.createdTimestamp);
         const apiLatency = Math.round(client.ws.ping);
 
@@ -25,9 +25,7 @@ export const statusCommand: Command = {
         const utilizedMemory = process.memoryUsage().heapUsed / 1024 ** 2;
 
         const output: string[] = [
-            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${JukebotGlobals.version}${
-                Colours.Reset
-            } ${'amongus'}`,
+            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${JukebotGlobals.version}${Colours.Reset} ${observer.currentVersionTip}`,
             `Uptime: ${Colours.FgGreen}${uptime[0].toUpperCase() + uptime.slice(1)}${Colours.Reset} ${
                 Colours.FgBlack
             }${new Date(client.readyAt).toLocaleString('en-NZ')} NZT${Colours.Reset}`,

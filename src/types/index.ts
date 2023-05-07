@@ -4,4 +4,5 @@ export * from './Config';
 export * from './DiscImage';
 export * from './JukeboxState';
 export * from './QueueLengthInfo';
+export * from './Release';
 export * from './Search';
