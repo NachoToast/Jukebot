@@ -65,9 +65,9 @@ export const patchNotesCommand: Command = {
                     iconURL: release.author.avatar_url,
                 });
 
-            const row = new ActionRowBuilder<ButtonBuilder>();
-
             if (size > 1) {
+                const row = new ActionRowBuilder<ButtonBuilder>();
+
                 // oldest release
                 if (size > 3) {
                     row.addComponents(oldestReleaseButton);
@@ -89,9 +89,11 @@ export const patchNotesCommand: Command = {
                     row.addComponents(latestReleaseButton);
                     latestReleaseButton.setDisabled(tagIndex === 0).setLabel(observer.tags[0]);
                 }
+
+                return { embeds: [embed], components: [row] };
             }
 
-            return { embeds: [embed], components: [row] };
+            return { embeds: [embed], components: [] };
         };
 
         const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) => validIds.has(i.customId);

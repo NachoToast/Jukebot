@@ -148,9 +148,9 @@ export class Hopper {
                 iconURL: Hopper._icon,
             });
 
-            const row = new ActionRowBuilder<ButtonBuilder>();
-
             if (numPages > 1) {
+                const row = new ActionRowBuilder<ButtonBuilder>();
+
                 // first page
                 if (numPages > 3) {
                     row.addComponents(firstPageButton);
@@ -168,9 +168,11 @@ export class Hopper {
                     row.addComponents(lastPageButton);
                     lastPageButton.setDisabled(page === numPages);
                 }
+
+                return { embeds: [embed], components: [row] };
             }
 
-            return { embeds: [embed], components: [row] };
+            return { embeds: [embed], components: [] };
         };
 
         const filter: CollectorFilter<[MessageComponentInteraction<'cached'>]> = (i) => validIds.has(i.customId);
