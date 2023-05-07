@@ -100,7 +100,7 @@ export class Allay {
                         .followUp({
                             content: errorMessages.failedSpotifyRefreshBackground(e),
                         })
-                        .catch(console.log);
+                        .catch(() => console.log(e));
                 });
             }
         }
