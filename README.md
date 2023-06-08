@@ -9,6 +9,7 @@ A Minecraft-themed music streaming Discord bot.
 ## Table of Contents <!-- omit in toc -->
 
 - [Technologies](#technologies)
+- [Reviews](#reviews)
 - [Installation](#installation)
 - [Documentation](#documentation)
   - [Script Reference](#script-reference)
@@ -27,6 +28,11 @@ A Minecraft-themed music streaming Discord bot.
   </a>
 
 </div>
+
+### Reviews
+
+![image](./.github/docs/Review0.png)
+
 
 ### Installation
 
