@@ -29,9 +29,9 @@ export const config: Config = {
     timeoutThresholds: {
         discordLogin: convertTimeoutThreshold('discordLogin', 30),
         fetchResults: convertTimeoutThreshold('fetchResults', 30),
-        generateResource: convertTimeoutThreshold('generateResource', 10),
-        connect: convertTimeoutThreshold('connect', 10),
-        play: convertTimeoutThreshold('play', 10),
+        generateResource: convertTimeoutThreshold('generateResource', 15),
+        connect: convertTimeoutThreshold('connect', 15),
+        play: convertTimeoutThreshold('play', 15),
         inactivity: convertTimeoutThreshold('inactivity', 300),
         stopMessageListeners: convertTimeoutThreshold('stopMessageListeners', 180),
     },
