@@ -33,6 +33,8 @@ A Minecraft-themed music streaming Discord bot.
 
 ![image](./.github/docs/Review0.png)
 
+![image](./.github/docs/Review1.png)
+
 
 ### Installation
 
