@@ -1,6 +1,7 @@
 import dayjs, { extend } from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { JukebotGlobals } from '../../global';
+import { commitHash } from '../../global/commitHash';
 import { Colours, Command } from '../../types';
 
 extend(relativeTime);
@@ -25,12 +26,10 @@ export const statusCommand: Command = {
         const utilizedMemory = process.memoryUsage().heapUsed / 1024 ** 2;
 
         const output: string[] = [
-            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${JukebotGlobals.version}${Colours.Reset} ${observer.currentVersionTip}`,
-            `Uptime: ${Colours.FgGreen}${uptime[0].toUpperCase() + uptime.slice(1)}${Colours.Reset} ${
-                Colours.FgBlack
+            `${Colours.Bright}Jukebot ${Colours.Reset}${Colours.FgRed}${JukebotGlobals.version}${Colours.Reset} ${observer.currentVersionTip} ${Colours.FgBlack}${commitHash.slice(0, 7)}${Colours.Reset}`,
+            `Uptime: ${Colours.FgGreen}${uptime[0].toUpperCase() + uptime.slice(1)}${Colours.Reset} ${Colours.FgBlack
             }${new Date(client.readyAt).toLocaleString('en-NZ')} NZT${Colours.Reset}`,
-            `Latency: ${Colours.FgYellow}${ping}ms (${pingHint(ping)})${Colours.Reset} API Latency: ${
-                Colours.FgBlue
+            `Latency: ${Colours.FgYellow}${ping}ms (${pingHint(ping)})${Colours.Reset} API Latency: ${Colours.FgBlue
             }${apiLatency}ms${Colours.Reset}`,
             `Memory: ${Colours.FgCyan}${Math.ceil(utilizedMemory)}${Colours.Reset} MB`,
         ];
