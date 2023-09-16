@@ -1,8 +1,8 @@
 import dayjs, { extend } from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { JukebotGlobals } from '../../global';
-import { Colours, Command } from '../../types';
 import { commitHash } from '../../global/commitHash';
+import { Colours, Command } from '../../types';
 
 extend(relativeTime);
 
