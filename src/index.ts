@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
+import { ActivityType, Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
 import { CommandDeployer, EntityManager, Observer } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
@@ -35,6 +35,8 @@ async function main() {
     console.log(
         `${client.user.tag} logged in (${Colours.FgMagenta}${Date.now() - JukebotGlobals.startTime}ms${Colours.Reset})`,
     );
+
+    client.user.setActivity({ name: 'lethal company', type: ActivityType.Playing });
 
     const observer = new Observer();
 
