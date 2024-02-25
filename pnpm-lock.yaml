@@ -13,7 +13,7 @@ dependencies:
     version: 0.16.0(@discordjs/opus@0.9.0)
   dayjs:
     specifier: ^1.11.9
-    version: 1.11.9
+    version: 1.11.10
   discord.js:
     specifier: ^14.13.0
     version: 14.13.0
@@ -1672,8 +1672,8 @@ packages:
       which: 2.0.2
     dev: true
 
-  /dayjs@1.11.9:
-    resolution: {integrity: sha512-QvzAURSbQ0pKdIye2txOzNaHmxtUBXerpY0FJsFXUMKbIZeFm5ht1LS/jFsrncjnmtv8HsG0W2g6c0zUjZWmpA==}
+  /dayjs@1.11.10:
+    resolution: {integrity: sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==}
     dev: false
 
   /debug@3.2.7(supports-color@5.5.0):
