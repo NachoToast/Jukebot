@@ -1,9 +1,10 @@
-import { AudioResource, createAudioResource } from '@discordjs/voice';
+import { AudioResource } from '@discordjs/voice';
 import { EmbedBuilder, GuildMember, TextBasedChannel } from 'discord.js';
-import { stream, YouTubeVideo } from 'play-dl';
+import { YouTubeVideo } from 'play-dl';
 import { JukebotGlobals } from '../global';
 import { DiscImage } from '../types';
 import { awaitOrTimeout } from '../util';
+import { Cobalt } from './Cobalt';
 
 /** A track that is ready to be prepared and then played. */
 export class MusicDisc {
@@ -11,7 +12,7 @@ export class MusicDisc {
 
     public readonly requestedAt: number = Date.now();
 
-    private readonly _requestedIn: TextBasedChannel;
+    public readonly _requestedIn: TextBasedChannel;
 
     /** YouTube video URL.*/
     public readonly _url: string;
@@ -64,23 +65,15 @@ export class MusicDisc {
     public async getResource(): Promise<AudioResource<MusicDisc>> {
         if (this._resource !== undefined) return this._resource;
 
-        const resourcePromise = new Promise<AudioResource<MusicDisc>>((resolve) => {
-            stream(this._url).then(({ stream, type }) => {
-                const res = createAudioResource<MusicDisc>(stream, {
-                    inputType: type,
-                    metadata: this,
-                    inlineVolume: JukebotGlobals.config.volumeModifier !== 1,
-                });
+        const controller = new AbortController();
 
-                if (JukebotGlobals.config.volumeModifier !== -1) {
-                    if (res.volume === undefined) {
-                        this._requestedIn
-                            ?.send({ content: `Unable to create volume transformer for ${this._url}` })
-                            .catch(() => null);
-                    } else res.volume.setVolume(JukebotGlobals.config.volumeModifier);
+        const resourcePromise = new Promise<AudioResource<MusicDisc>>((resolve, reject) => {
+            new Cobalt(this).getResource(controller).then((res) => {
+                if (res !== null) {
+                    resolve(res);
+                } else {
+                    reject();
                 }
-
-                resolve(res);
             });
         });
 

@@ -22,5 +22,8 @@ jobs:
                   port: ${{ secrets.PORT }}
                   script: |
                       cd services_v2/Jukebot
-                      chmod +x scripts/deploy.sh
-                      ./scripts/deploy.sh
+                      git reset --hard --quiet
+                      git clean -d --force --quiet
+                      git pull --quiet
+                      docker compose up --build --detach
+                      docker image prune --force
