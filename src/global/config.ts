@@ -24,7 +24,7 @@ export const config: Config = {
     previousQueueSize: rawConfig.previousQueueSize ?? 20,
     statusTimePeriod: rawConfig.statusTimePeriod ?? 120,
     levenshteinThreshold: rawConfig.levenshteinThreshold ?? 0.1,
-    volumeModifier: rawConfig.volumeModifier ?? 0.1,
+    volumeModifier: rawConfig.volumeModifier ?? 0.3,
     embedColour: rawConfig.embedColour ?? '#794C36',
     timeoutThresholds: {
         discordLogin: convertTimeoutThreshold('discordLogin', 30),
