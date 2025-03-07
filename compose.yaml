@@ -16,6 +16,8 @@ services:
 
         environment:
             API_URL: 'http:/localhost:9000/'
+            TUNNEL_LIFESPAN: 14400
+            DURATION_LIMIT: 14400
 
         labels:
             - com.centurylinklabs.watchtower.scope=cobalt
