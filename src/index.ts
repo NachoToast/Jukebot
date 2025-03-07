@@ -1,4 +1,4 @@
-import { ActivityType, Client, Events, GatewayIntentBits, GuildMember } from 'discord.js';
+import { ActivityType, Client, Events, GatewayIntentBits, GuildMember, TextChannel } from 'discord.js';
 import { CommandDeployer, EntityManager, Observer } from './classes';
 import { commands } from './commands';
 import { JukebotGlobals } from './global';
@@ -59,9 +59,9 @@ async function main() {
         }
 
         if (
-            interaction.channel === null ||
             interaction.guild === null ||
-            !(interaction.member instanceof GuildMember)
+            !(interaction.member instanceof GuildMember) ||
+            !(interaction.channel instanceof TextChannel)
         ) {
             return;
         }

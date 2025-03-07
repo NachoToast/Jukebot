@@ -8,7 +8,7 @@ import {
     GuildMember,
     MessageComponentInteraction,
     BaseMessageOptions,
-    GuildTextBasedChannel,
+    TextChannel,
 } from 'discord.js';
 import { JukebotGlobals } from '../global';
 import { errorMessages } from '../messages';
@@ -85,7 +85,7 @@ export class Hopper {
 
     public makeQueueEmbed(
         interaction: ChatInputCommandInteraction,
-        channel: GuildTextBasedChannel,
+        channel: TextChannel,
         member: GuildMember,
     ): BaseMessageOptions {
         let page = 1;

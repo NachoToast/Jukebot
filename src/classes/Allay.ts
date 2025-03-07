@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, GuildMember, TextBasedChannel } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, GuildMember, TextChannel } from 'discord.js';
 import {
     Spotify,
     SpotifyAlbum,
@@ -60,8 +60,8 @@ export class Allay {
     /** The {@link GuildMember} that did this search. */
     private readonly _member: GuildMember;
 
-    /** The {@link TextBasedChannel} channel that this search was invoked in. */
-    private readonly _channel: TextBasedChannel;
+    /** The {@link TextChannel} channel that this search was invoked in. */
+    private readonly _channel: TextChannel;
 
     /** The search term given by the member, this can be a URL or just a plaintext search. */
     private readonly _searchTerm: string;
@@ -75,7 +75,7 @@ export class Allay {
     public constructor(
         origin: ChatInputCommandInteraction,
         member: GuildMember,
-        channel: TextBasedChannel,
+        channel: TextChannel,
         searchTerm: string,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {

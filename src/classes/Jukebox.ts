@@ -14,7 +14,7 @@ import {
     ChatInputCommandInteraction,
     EmbedBuilder,
     InteractionReplyOptions,
-    TextBasedChannel,
+    TextChannel,
     VoiceBasedChannel,
     channelMention,
     userMention,
@@ -37,7 +37,7 @@ export class Jukebox {
     public readonly historyQueue: Hopper = new Hopper(JukebotGlobals.config.previousQueueSize);
 
     /** Text channel to send messages in. */
-    public readonly textChannel: TextBasedChannel;
+    public readonly textChannel: TextChannel;
 
     /** Voice channel to play audio in. */
     private _voiceChannel: VoiceBasedChannel;
@@ -59,7 +59,7 @@ export class Jukebox {
     }
 
     public constructor(
-        channel: TextBasedChannel,
+        channel: TextChannel,
         targetVoiceChannel: VoiceBasedChannel,
         onDestroy: (guildId: string) => void,
     ) {

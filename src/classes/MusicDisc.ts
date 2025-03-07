@@ -1,5 +1,5 @@
 import { AudioResource } from '@discordjs/voice';
-import { EmbedBuilder, GuildMember, TextBasedChannel } from 'discord.js';
+import { EmbedBuilder, GuildMember, TextChannel } from 'discord.js';
 import { YouTubeVideo } from 'play-dl';
 import { JukebotGlobals } from '../global';
 import { DiscImage } from '../types';
@@ -12,7 +12,7 @@ export class MusicDisc {
 
     public readonly requestedAt: number = Date.now();
 
-    public readonly _requestedIn: TextBasedChannel;
+    public readonly _requestedIn: TextChannel;
 
     /** YouTube video URL.*/
     public readonly _url: string;
@@ -41,7 +41,7 @@ export class MusicDisc {
 
     private _resource?: AudioResource<MusicDisc>;
 
-    public constructor(member: GuildMember, channel: TextBasedChannel, video: YouTubeVideo) {
+    public constructor(member: GuildMember, channel: TextChannel, video: YouTubeVideo) {
         this.requestedById = member.id;
         this._requestedIn = channel;
         this._url = video.url;

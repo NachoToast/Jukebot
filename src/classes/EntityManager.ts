@@ -1,4 +1,4 @@
-import { TextBasedChannel, VoiceBasedChannel, channelMention } from 'discord.js';
+import { TextChannel, VoiceBasedChannel, channelMention } from 'discord.js';
 import { Jukebox } from './Jukebox';
 
 /** Manages Jukebox instances per guild. */
@@ -9,7 +9,7 @@ export abstract class EntityManager {
         return EntityManager._instances.get(guildId);
     }
 
-    public static makeGuildInstance(textChannel: TextBasedChannel, voiceChannel: VoiceBasedChannel): Jukebox {
+    public static makeGuildInstance(textChannel: TextChannel, voiceChannel: VoiceBasedChannel): Jukebox {
         if (!voiceChannel.joinable) {
             throw new Error(`Cannot join ${channelMention(voiceChannel.id)}`);
         }
@@ -19,7 +19,7 @@ export abstract class EntityManager {
         return instance;
     }
 
-    public static getOrMakeGuildInstance(textChannel: TextBasedChannel, voiceChannel: VoiceBasedChannel): Jukebox {
+    public static getOrMakeGuildInstance(textChannel: TextChannel, voiceChannel: VoiceBasedChannel): Jukebox {
         return (
             EntityManager.getGuildInstance(voiceChannel.guild.id) ??
             EntityManager.makeGuildInstance(textChannel, voiceChannel)

@@ -1,16 +1,10 @@
-import {
-    ChatInputCommandInteraction,
-    Client,
-    GuildMember,
-    GuildTextBasedChannel,
-    SlashCommandBuilder,
-} from 'discord.js';
+import { ChatInputCommandInteraction, Client, GuildMember, SlashCommandBuilder, TextChannel } from 'discord.js';
 import { Observer } from '../classes';
 
 interface CommandParams {
     client: Client<true>;
     interaction: ChatInputCommandInteraction;
-    channel: GuildTextBasedChannel;
+    channel: TextChannel;
     member: GuildMember;
     observer: Observer;
 }
