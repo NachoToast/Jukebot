@@ -11,7 +11,7 @@ export class FFmpegProcessor {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
 
         const playbackSpeed = isPitchChangedOnPlaybackSpeed
-            ? `asetrate=${(48000 * speed).toFixed(2)}`
+            ? `asetrate=${(44100 * speed).toFixed(2)}`
             : `atempo=${speed.toFixed(2)}`;
 
         const ffmpeg = spawn(
