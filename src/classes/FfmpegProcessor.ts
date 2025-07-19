@@ -2,10 +2,17 @@ import { spawn } from 'child_process';
 import { Readable } from 'stream';
 
 export class FFmpegProcessor {
-    public static process(input: Readable, speed: number = 1, controller?: AbortController): Readable {
+    public static process(
+        input: Readable,
+        speed: number = 1,
+        isPitchChangedOnPlaybackSpeed: boolean = false,
+        controller?: AbortController,
+    ): Readable {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
 
-        const atempo = `atempo=${speed.toFixed(2)}`;
+        const playbackSpeed = isPitchChangedOnPlaybackSpeed
+            ? `asetrate=${speed.toFixed(2)}`
+            : `atempo=${speed.toFixed(2)}`;
 
         const ffmpeg = spawn(
             'ffmpeg',
@@ -13,7 +20,7 @@ export class FFmpegProcessor {
                 '-i',
                 'pipe:0',
                 '-filter:a',
-                atempo,
+                playbackSpeed,
                 '-f',
                 'wav',
                 '-acodec',

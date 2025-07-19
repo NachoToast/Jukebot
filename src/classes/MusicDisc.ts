@@ -29,6 +29,9 @@ export class MusicDisc {
     /** The playback speed of which the song will play at, from 0.5-2 */
     public readonly playbackSpeed?: number;
 
+    /** If pitch is changed on playback speed */
+    public readonly isPitchChangedOnPlaybackSpeed?: boolean;
+
     /**
      * The duration of this song in string form.
      *
@@ -44,7 +47,13 @@ export class MusicDisc {
 
     private _resource?: AudioResource<MusicDisc>;
 
-    public constructor(member: GuildMember, channel: TextChannel, video: YouTubeVideo, playbackSpeed: number) {
+    public constructor(
+        member: GuildMember,
+        channel: TextChannel,
+        video: YouTubeVideo,
+        playbackSpeed: number,
+        isPitchChangedOnPlaybackSpeed: boolean,
+    ) {
         this.requestedById = member.id;
         this._requestedIn = channel;
         this._url = video.url;
@@ -56,6 +65,7 @@ export class MusicDisc {
         this._channelName = video.channel?.name;
         this._channelUrl = video.channel?.url;
         this.playbackSpeed = playbackSpeed;
+        this.isPitchChangedOnPlaybackSpeed = isPitchChangedOnPlaybackSpeed;
     }
 
     /**
