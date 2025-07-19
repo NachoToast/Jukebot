@@ -9,7 +9,6 @@ yarn.lock
 # user generated
 build/
 *.log
-.vscode/settings.json
 config.json
 
 # dependency generated
