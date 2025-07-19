@@ -164,13 +164,13 @@ export class Cobalt {
 
             const stream = await Cobalt.createReadStream(res, controller.signal);
 
-            const { stream: probedStream, type } = await demuxProbe(stream)
+            const { stream: probedStream, type } = await demuxProbe(stream);
 
             const resource = createAudioResource<MusicDisc>(probedStream, {
                 inputType: type,
                 metadata: this._disc,
                 inlineVolume: JukebotGlobals.config.volumeModifier !== 1,
-            })
+            });
 
             if (JukebotGlobals.config.volumeModifier !== 1) {
                 if (resource.volume === undefined) {
