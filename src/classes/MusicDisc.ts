@@ -35,6 +35,9 @@ export class MusicDisc {
     /** If the song is reversed */
     public readonly isReversed?: boolean;
 
+    /** If the song echoes */
+    public readonly isEcho?: boolean;
+
     /**
      * The duration of this song in string form.
      *
@@ -57,6 +60,7 @@ export class MusicDisc {
         playbackSpeed: number,
         isPitchChangedOnPlaybackSpeed: boolean,
         isReversed: boolean,
+        isEcho: boolean,
     ) {
         this.requestedById = member.id;
         this._requestedIn = channel;
@@ -71,6 +75,7 @@ export class MusicDisc {
         this.playbackSpeed = playbackSpeed;
         this.isPitchChangedOnPlaybackSpeed = isPitchChangedOnPlaybackSpeed;
         this.isReversed = isReversed;
+        this.isEcho = isEcho;
     }
 
     /**
