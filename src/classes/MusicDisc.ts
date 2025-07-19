@@ -32,6 +32,9 @@ export class MusicDisc {
     /** If pitch is changed on playback speed */
     public readonly isPitchChangedOnPlaybackSpeed?: boolean;
 
+    /** If the song is reversed */
+    public readonly isReversed?: boolean;
+
     /**
      * The duration of this song in string form.
      *
@@ -53,6 +56,7 @@ export class MusicDisc {
         video: YouTubeVideo,
         playbackSpeed: number,
         isPitchChangedOnPlaybackSpeed: boolean,
+        isReversed: boolean,
     ) {
         this.requestedById = member.id;
         this._requestedIn = channel;
@@ -66,6 +70,7 @@ export class MusicDisc {
         this._channelUrl = video.channel?.url;
         this.playbackSpeed = playbackSpeed;
         this.isPitchChangedOnPlaybackSpeed = isPitchChangedOnPlaybackSpeed;
+        this.isReversed = isReversed;
     }
 
     /**

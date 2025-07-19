@@ -222,6 +222,7 @@ export class Cobalt {
                 stream,
                 this._disc.playbackSpeed,
                 this._disc.isPitchChangedOnPlaybackSpeed,
+                this._disc.isReversed,
                 controller,
             );
 

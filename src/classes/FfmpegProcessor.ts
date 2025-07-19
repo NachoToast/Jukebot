@@ -6,13 +6,22 @@ export class FFmpegProcessor {
         input: Readable,
         speed: number = 1,
         isPitchChangedOnPlaybackSpeed: boolean = false,
+        isReversed: boolean = false,
         controller?: AbortController,
     ): Readable {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
 
+        const filters: string[] = [];
+
         const playbackSpeed = isPitchChangedOnPlaybackSpeed
             ? `asetrate=${(44100 * speed).toFixed(2)}` // 44100 is the WAV khz
             : `atempo=${speed.toFixed(2)}`;
+
+        filters.push(playbackSpeed);
+
+        if (isReversed) {
+            filters.push(`areverse`);
+        }
 
         const ffmpeg = spawn(
             'ffmpeg',
@@ -20,7 +29,7 @@ export class FFmpegProcessor {
                 '-i',
                 'pipe:0',
                 '-filter:a',
-                playbackSpeed + ',areverse',
+                filters.join(','),
                 '-f',
                 'wav',
                 '-acodec',
