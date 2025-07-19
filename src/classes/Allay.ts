@@ -66,6 +66,9 @@ export class Allay {
     /** The search term given by the member, this can be a URL or just a plaintext search. */
     private readonly _searchTerm: string;
 
+    /** The playback speed given by the member, this can be a number between 0.5 and 2 */
+    private readonly _playbackSpeed: number;
+
     /** The source (YouTube, Spotify, text) and type (playlist, video, track, ...) of the given search term. */
     private readonly _search: Search;
 
@@ -77,12 +80,14 @@ export class Allay {
         member: GuildMember,
         channel: TextChannel,
         searchTerm: string,
+        playbackSpeed: number = 1,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {
         this._origin = origin;
         this._member = member;
         this._channel = channel;
         this._searchTerm = searchTerm;
+        this._playbackSpeed = playbackSpeed;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
         this._maxResultsAllowed = maxResultsAllowed;
     }
@@ -426,7 +431,7 @@ export class Allay {
         if (video.private) throw new Error(errorMessages.badVideoPrivate(video));
         if (video.upcoming !== undefined) throw new Error(errorMessages.badVideoUpcoming(video));
         if (video.type !== 'video') throw new Error(errorMessages.badVideoType(video));
-        return new MusicDisc(this._member, this._channel, video);
+        return new MusicDisc(this._member, this._channel, video, this._playbackSpeed);
     }
 
     /**

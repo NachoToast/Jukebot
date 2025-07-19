@@ -26,6 +26,9 @@ export class MusicDisc {
     /** The duration of this second in seconds. For live videos this will be {@link Infinity infinite}. */
     public readonly durationSeconds: number;
 
+    /** The playback speed of which the song will play at, from 0.5-2 */
+    public readonly playbackSpeed?: number;
+
     /**
      * The duration of this song in string form.
      *
@@ -41,7 +44,7 @@ export class MusicDisc {
 
     private _resource?: AudioResource<MusicDisc>;
 
-    public constructor(member: GuildMember, channel: TextChannel, video: YouTubeVideo) {
+    public constructor(member: GuildMember, channel: TextChannel, video: YouTubeVideo, playbackSpeed: number) {
         this.requestedById = member.id;
         this._requestedIn = channel;
         this._url = video.url;
@@ -52,6 +55,7 @@ export class MusicDisc {
         this.durationString = video.live ? 'Unknown' : video.durationRaw;
         this._channelName = video.channel?.name;
         this._channelUrl = video.channel?.url;
+        this.playbackSpeed = playbackSpeed;
     }
 
     /**
