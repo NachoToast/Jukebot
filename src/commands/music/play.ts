@@ -24,7 +24,14 @@ export const playCommand: Command = {
         const shuffle = !!interaction.options.get('shuffle');
         const playbackSpeed = interaction.options.getNumber('playback speed') ?? 1;
 
-        const allay = new Allay(interaction, member, channel, searchTerm, playbackSpeed, jukebox?.upcomingQueue.getFreeSlots());
+        const allay = new Allay(
+            interaction,
+            member,
+            channel,
+            searchTerm,
+            playbackSpeed,
+            jukebox?.upcomingQueue.getFreeSlots(),
+        );
         const result = await allay.retrieveItems();
         jukebox ??= EntityManager.makeGuildInstance(channel, member.voice.channel);
         const embed = allay.makeEmbed(result, jukebox);
