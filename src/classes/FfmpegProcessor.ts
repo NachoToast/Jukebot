@@ -25,7 +25,7 @@ export class FFmpegProcessor {
         }
 
         if (isEcho) {
-            filters.push('aecho=0.8:0.9:1000:0.3');
+            filters.push('aecho=0.8:0.88:60:0.4');
         }
 
         const ffmpeg = spawn(
