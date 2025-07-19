@@ -70,7 +70,11 @@ export const playCommand: Command = {
                     ),
             )
             .addNumberOption((option) =>
-                option.setName('playback-speed').setDescription('Choose the playback speed of the selected song'),
+                option
+                    .setName('playback-speed')
+                    .setDescription('Choose the playback speed of the selected song')
+                    .setMinValue(0.5)
+                    .setMaxValue(10),
             );
     },
 };
