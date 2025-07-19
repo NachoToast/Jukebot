@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import { AudioResource, createAudioResource, StreamType } from '@discordjs/voice';
+import { AudioResource, createAudioResource, demuxProbe, StreamType } from '@discordjs/voice';
 import { JukebotGlobals } from '../global';
 import { MusicDisc } from './MusicDisc';
 
@@ -106,7 +106,7 @@ export class Cobalt {
             body: JSON.stringify({
                 url,
                 downloadMode: 'audio',
-                audioFormat: 'wav',
+                audioFormat: 'mp3',
             }),
         });
 
@@ -164,11 +164,13 @@ export class Cobalt {
 
             const stream = await Cobalt.createReadStream(res, controller.signal);
 
-            const resource = createAudioResource<MusicDisc>(stream, {
-                inputType: StreamType.Raw,
+            const { stream: probedStream, type } = await demuxProbe(stream)
+
+            const resource = createAudioResource<MusicDisc>(probedStream, {
+                inputType: type,
                 metadata: this._disc,
                 inlineVolume: JukebotGlobals.config.volumeModifier !== 1,
-            });
+            })
 
             if (JukebotGlobals.config.volumeModifier !== 1) {
                 if (resource.volume === undefined) {
