@@ -23,6 +23,7 @@ export const playCommand: Command = {
         const searchTerm = interaction.options.getString('song', true);
         const shuffle = !!interaction.options.get('shuffle');
         const playbackSpeed = interaction.options.getNumber('playback-speed') ?? 1;
+        const isPitchChangedOnPlaybackSpeed = interaction.options.getBoolean('change-pitch-aswell') ?? false;
 
         const allay = new Allay(
             interaction,
@@ -30,6 +31,7 @@ export const playCommand: Command = {
             channel,
             searchTerm,
             playbackSpeed,
+            isPitchChangedOnPlaybackSpeed,
             jukebox?.upcomingQueue.getFreeSlots(),
         );
         const result = await allay.retrieveItems();
@@ -75,6 +77,11 @@ export const playCommand: Command = {
                     .setDescription('Choose the playback speed of the selected song')
                     .setMinValue(0.5)
                     .setMaxValue(10),
+            )
+            .addBooleanOption((option) =>
+                option
+                    .setName('change-pitch-aswell')
+                    .setDescription('Should the pitch be changed with the respective playback speed change'),
             );
     },
 };
