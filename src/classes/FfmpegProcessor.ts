@@ -20,6 +20,7 @@ export class FFmpegProcessor {
                 '-i',
                 'pipe:0',
                 '-filter:a',
+                'areverse',
                 playbackSpeed,
                 '-f',
                 'wav',
