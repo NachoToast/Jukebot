@@ -20,7 +20,7 @@ export class FFmpegProcessor {
         filters.push(playbackSpeed);
 
         if (isReversed) {
-            filters.push(`areverse`);
+            filters.push('areverse');
         }
 
         const ffmpeg = spawn(
