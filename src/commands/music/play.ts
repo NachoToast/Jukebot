@@ -22,7 +22,7 @@ export const playCommand: Command = {
 
         const searchTerm = interaction.options.getString('song', true);
         const shuffle = !!interaction.options.get('shuffle');
-        const playbackSpeed = interaction.options.getNumber('playback speed') ?? 1;
+        const playbackSpeed = interaction.options.getNumber('playback-speed') ?? 1;
 
         const allay = new Allay(
             interaction,
@@ -70,7 +70,7 @@ export const playCommand: Command = {
                     ),
             )
             .addNumberOption((option) =>
-                option.setName('playback speed').setDescription('Choose the playback speed of the selected song'),
+                option.setName('playback-speed').setDescription('Choose the playback speed of the selected song'),
             );
     },
 };

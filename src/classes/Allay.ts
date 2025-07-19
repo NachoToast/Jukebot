@@ -80,7 +80,7 @@ export class Allay {
         member: GuildMember,
         channel: TextChannel,
         searchTerm: string,
-        playbackSpeed: number,
+        playbackSpeed: number = 1,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {
         this._origin = origin;
