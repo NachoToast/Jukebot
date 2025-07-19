@@ -223,6 +223,7 @@ export class Cobalt {
                 this._disc.playbackSpeed,
                 this._disc.isPitchChangedOnPlaybackSpeed,
                 this._disc.isReversed,
+                this._disc.isEcho,
                 controller,
             );
 

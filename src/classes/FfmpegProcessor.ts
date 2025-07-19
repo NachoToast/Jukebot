@@ -7,6 +7,7 @@ export class FFmpegProcessor {
         speed: number = 1,
         isPitchChangedOnPlaybackSpeed: boolean = false,
         isReversed: boolean = false,
+        isEcho: boolean = false,
         controller?: AbortController,
     ): Readable {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
@@ -21,6 +22,10 @@ export class FFmpegProcessor {
 
         if (isReversed) {
             filters.push('areverse');
+        }
+
+        if (isEcho) {
+            filters.push('aecho=0.8:0.88:60:0.4');
         }
 
         const ffmpeg = spawn(
