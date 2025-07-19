@@ -24,6 +24,7 @@ export const playCommand: Command = {
         const shuffle = !!interaction.options.get('shuffle');
         const playbackSpeed = interaction.options.getNumber('playback-speed') ?? 1;
         const isPitchChangedOnPlaybackSpeed = interaction.options.getBoolean('change-pitch-aswell') ?? false;
+        const isReversed = interaction.options.getBoolean('is-reversed') ?? false;
 
         const allay = new Allay(
             interaction,
@@ -32,6 +33,7 @@ export const playCommand: Command = {
             searchTerm,
             playbackSpeed,
             isPitchChangedOnPlaybackSpeed,
+            isReversed,
             jukebox?.upcomingQueue.getFreeSlots(),
         );
         const result = await allay.retrieveItems();
@@ -82,6 +84,7 @@ export const playCommand: Command = {
                 option
                     .setName('change-pitch-aswell')
                     .setDescription('Should the pitch be changed with the respective playback speed change'),
-            );
+            )
+            .addBooleanOption((option) => option.setName('is-reversed').setDescription('Should the song be reversed'));
     },
 };

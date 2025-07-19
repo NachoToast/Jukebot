@@ -72,6 +72,9 @@ export class Allay {
     /** If the pitch will change on playback speed */
     private readonly _isPitchChangedOnPlaybackSpeed: boolean;
 
+    /** If the song is reversed */
+    private readonly _isReversed: boolean;
+
     /** The source (YouTube, Spotify, text) and type (playlist, video, track, ...) of the given search term. */
     private readonly _search: Search;
 
@@ -85,6 +88,7 @@ export class Allay {
         searchTerm: string,
         playbackSpeed: number = 1,
         isPitchChangedOnPlaybackSpeed: boolean = false,
+        isReversed: boolean = false,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {
         this._origin = origin;
@@ -93,6 +97,7 @@ export class Allay {
         this._searchTerm = searchTerm;
         this._playbackSpeed = playbackSpeed;
         this._isPitchChangedOnPlaybackSpeed = isPitchChangedOnPlaybackSpeed;
+        this._isReversed = isReversed;
         this._search = Allay.discernSearchSource(searchTerm.toLowerCase());
         this._maxResultsAllowed = maxResultsAllowed;
     }
@@ -442,6 +447,7 @@ export class Allay {
             video,
             this._playbackSpeed,
             this._isPitchChangedOnPlaybackSpeed,
+            this._isReversed,
         );
     }
 
