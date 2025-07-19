@@ -218,7 +218,7 @@ export class Cobalt {
 
             const stream = await Cobalt.createReadStream(res, controller.signal);
 
-            const processedStream = FFmpegProcessor.process(stream, this._disc._playbackSpeed, controller);
+            const processedStream = FFmpegProcessor.process(stream, this._disc.playbackSpeed, controller);
 
             const { stream: probedStream, type } = await demuxProbe(processedStream);
 

@@ -27,7 +27,7 @@ export class MusicDisc {
     public readonly durationSeconds: number;
 
     /** The playback speed of which the song will play at, from 0.5-2 */
-    public readonly _playbackSpeed?: number;
+    public readonly playbackSpeed?: number;
 
     /**
      * The duration of this song in string form.
@@ -55,7 +55,7 @@ export class MusicDisc {
         this.durationString = video.live ? 'Unknown' : video.durationRaw;
         this._channelName = video.channel?.name;
         this._channelUrl = video.channel?.url;
-        this._playbackSpeed = playbackSpeed;
+        this.playbackSpeed = playbackSpeed;
     }
 
     /**
