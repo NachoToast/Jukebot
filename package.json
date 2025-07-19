@@ -22,26 +22,26 @@
         "auth": "ts-node scripts/login.ts"
     },
     "devDependencies": {
-        "@types/jest": "^29.5.12",
-        "@types/node": "^20.12.7",
-        "@typescript-eslint/eslint-plugin": "^7.6.0",
-        "@typescript-eslint/parser": "^7.6.0",
-        "eslint": "^8.57.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-import-resolver-typescript": "^3.6.1",
-        "eslint-plugin-import": "^2.29.1",
+        "@types/jest": "^29.5.14",
+        "@types/node": "^20.19.9",
+        "@typescript-eslint/eslint-plugin": "^7.18.0",
+        "@typescript-eslint/parser": "^7.18.0",
+        "eslint": "^8.57.1",
+        "eslint-config-prettier": "^9.1.2",
+        "eslint-import-resolver-typescript": "^3.10.1",
+        "eslint-plugin-import": "^2.32.0",
         "jest": "^29.7.0",
-        "nodemon": "^3.1.0",
-        "prettier": "^3.2.5",
-        "ts-jest": "^29.1.2",
+        "nodemon": "^3.1.10",
+        "prettier": "^3.6.2",
+        "ts-jest": "^29.4.0",
         "ts-node": "^10.9.2",
-        "typescript": "^5.4.5"
+        "typescript": "^5.8.3"
     },
     "dependencies": {
         "@discordjs/opus": "^0.10.0",
         "@discordjs/voice": "^0.18.0",
         "dayjs": "^1.11.13",
-        "discord.js": "^14.18.0",
+        "discord.js": "^14.21.0",
         "play-dl": "^1.9.7",
         "sodium-native": "^4.3.3"
     }
