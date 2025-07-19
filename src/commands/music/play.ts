@@ -22,8 +22,9 @@ export const playCommand: Command = {
 
         const searchTerm = interaction.options.getString('song', true);
         const shuffle = !!interaction.options.get('shuffle');
+        const playbackSpeed = interaction.options.getNumber('playback speed') ?? 1;
 
-        const allay = new Allay(interaction, member, channel, searchTerm, jukebox?.upcomingQueue.getFreeSlots());
+        const allay = new Allay(interaction, member, channel, searchTerm, playbackSpeed, jukebox?.upcomingQueue.getFreeSlots());
         const result = await allay.retrieveItems();
         jukebox ??= EntityManager.makeGuildInstance(channel, member.voice.channel);
         const embed = allay.makeEmbed(result, jukebox);
@@ -60,6 +61,9 @@ export const playCommand: Command = {
                     .setDescription(
                         'Shuffle the results before adding them to the queue, only applicable for playlists',
                     ),
+            )
+            .addNumberOption((option) =>
+                option.setName('playback speed').setDescription('Choose the playback speed of the selected song'),
             );
     },
 };

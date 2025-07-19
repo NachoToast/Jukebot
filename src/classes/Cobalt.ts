@@ -2,6 +2,7 @@ import { Readable } from 'stream';
 import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
 import { JukebotGlobals } from '../global';
 import { MusicDisc } from './MusicDisc';
+import { FFmpegProcessor } from './FfmpegProcessor';
 
 /**
  * Response when cobalt is proxying the download for us.
@@ -164,7 +165,9 @@ export class Cobalt {
 
             const stream = await Cobalt.createReadStream(res, controller.signal);
 
-            const { stream: probedStream, type } = await demuxProbe(stream);
+            const processedStream = FFmpegProcessor.process(stream, this._disc._playbackSpeed);
+
+            const { stream: probedStream, type } = await demuxProbe(processedStream);
 
             const resource = createAudioResource<MusicDisc>(probedStream, {
                 inputType: type,
