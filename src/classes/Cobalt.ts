@@ -107,7 +107,6 @@ export class Cobalt {
                 url,
                 downloadMode: 'audio',
                 audioFormat: 'opus',
-                audioBitrate: '320',
             }),
         });
 
