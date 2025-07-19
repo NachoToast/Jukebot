@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import { AudioResource, createAudioResource, demuxProbe, StreamType } from '@discordjs/voice';
+import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
 import { JukebotGlobals } from '../global';
 import { MusicDisc } from './MusicDisc';
 
