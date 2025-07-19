@@ -23,8 +23,7 @@ export const playCommand: Command = {
         const searchTerm = interaction.options.getString('song', true);
         const shuffle = !!interaction.options.get('shuffle');
         const playbackSpeed = interaction.options.getNumber('playback-speed') ?? 1;
-        const isPitchChangedOnPlaybackSpeed =
-            interaction.options.getBoolean('is-pitch-changed-on-playback-speed') ?? false;
+        const isPitchChangedOnPlaybackSpeed = interaction.options.getBoolean('change-pitch-aswell') ?? false;
 
         const allay = new Allay(
             interaction,
@@ -81,7 +80,7 @@ export const playCommand: Command = {
             )
             .addBooleanOption((option) =>
                 option
-                    .setName('is-pitch-changed-on-playback-speed')
+                    .setName('change-pitch-aswell')
                     .setDescription('Should the pitch be changed with the respective playback speed change'),
             );
     },
