@@ -11,7 +11,7 @@ export class FFmpegProcessor {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
 
         const playbackSpeed = isPitchChangedOnPlaybackSpeed
-            ? `asetrate=${(44100 * speed).toFixed(2)}`
+            ? `asetrate=${(44100 * speed).toFixed(2)}` // 44100 is the WAV khz
             : `atempo=${speed.toFixed(2)}`;
 
         const ffmpeg = spawn(
