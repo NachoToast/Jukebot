@@ -106,7 +106,7 @@ export class Cobalt {
             body: JSON.stringify({
                 url,
                 downloadMode: 'audio',
-                audioFormat: 'm4a',
+                audioFormat: 'opus',
             }),
         });
 
