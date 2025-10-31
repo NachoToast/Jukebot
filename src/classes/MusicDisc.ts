@@ -4,7 +4,7 @@ import { YouTubeVideo } from 'play-dl';
 import { JukebotGlobals } from '../global';
 import { DiscImage } from '../types';
 import { awaitOrTimeout } from '../util';
-import { Cobalt } from './Cobalt';
+import { DirectDownloader } from './DirectDownloader';
 
 /** A track that is ready to be prepared and then played. */
 export class MusicDisc {
@@ -91,15 +91,13 @@ export class MusicDisc {
 
         const controller = new AbortController();
 
-        const resourcePromise = new Promise<AudioResource<MusicDisc>>((resolve, reject) => {
-            new Cobalt(this).getResource(controller).then((res) => {
-                if (res !== null) {
-                    resolve(res);
-                } else {
-                    reject();
-                }
-            });
-        });
+        // Use the direct downloader (play-dl) exclusively — cobalt has a hard
+        // 1-minute limit for some YouTube sources in your environment.
+        const resourcePromise = (async (): Promise<AudioResource<MusicDisc>> => {
+            const direct = await new DirectDownloader(this).getResource(controller);
+            if (direct !== null) return direct;
+            throw new Error('Unable to create audio resource via direct downloader');
+        })();
 
         this._resource = await awaitOrTimeout(
             resourcePromise,
