@@ -49,7 +49,7 @@ export class Cobalt {
                     '--quiet',
                     '--no-warnings',
                     '--no-progress',
-                    '--buffer-size', '16K', // Increased buffer to reduce stutter
+                    '--buffer-size', '512K',
                     '--output', '-',
                 ], {
                     stdio: ['ignore', 'pipe', 'pipe'],
