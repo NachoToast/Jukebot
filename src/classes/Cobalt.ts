@@ -1,7 +1,6 @@
 import { Readable } from 'stream';
 import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
 import { JukebotGlobals } from '../global';
-import { FFmpegProcessor } from './FfmpegProcessor';
 import { MusicDisc } from './MusicDisc';
 
 /**
@@ -77,9 +76,6 @@ interface CobaltErrorContextObject {
 }
 
 type CobaltResponse = CobaltTunnelOrRedirectResponse | CobaltPickerResponse | CobaltErrorResponse;
-interface ExtendedReadable extends Readable {
-    readFromSource(): Promise<void>;
-}
 
 const IN_DOCKER = process.env.IN_DOCKER === 'true';
 
@@ -110,7 +106,7 @@ export class Cobalt {
             body: JSON.stringify({
                 url,
                 downloadMode: 'audio',
-                audioFormat: 'wav',
+                audioFormat: 'mp3',
             }),
         });
 
@@ -131,85 +127,35 @@ export class Cobalt {
         initialResponse: CobaltTunnelOrRedirectResponse,
         signal: AbortSignal,
     ): Promise<Readable> {
-        let inputStreamReader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-        let isReading = false;
-        let streamEnded = false;
+        const outputStream = new Readable({ read: () => {}, signal });
 
-        const outputStream = new Readable({
-            read() {
-                if (!isReading && inputStreamReader && !streamEnded) {
-                    isReading = true;
-                    (this as ExtendedReadable).readFromSource().catch((error: Error) => {
-                        this.destroy(error);
-                    });
-                }
-            },
-            signal,
-        }) as ExtendedReadable;
+        const res = await fetch(
+            IN_DOCKER ? initialResponse.url.replace('localhost', 'cobalt-api') : initialResponse.url,
+            { signal },
+        );
 
-        outputStream.readFromSource = async function (this: ExtendedReadable): Promise<void> {
-            try {
-                while (inputStreamReader && !signal.aborted && !streamEnded) {
-                    const { value, done } = await inputStreamReader.read();
-
-                    if (done) {
-                        streamEnded = true;
-                        this.push(null);
-                        return;
-                    }
-
-                    if (!this.push(value)) {
-                        isReading = false;
-                        return;
-                    }
-                }
-            } catch (error) {
-                streamEnded = true;
-                this.destroy(error instanceof Error ? error : new Error(String(error)));
-            }
-        };
-
-        try {
-            const res = await fetch(
-                IN_DOCKER ? initialResponse.url.replace('localhost', 'cobalt-api') : initialResponse.url,
-                { signal },
-            );
-
-            if (!res.ok) {
-                throw new Error(`Failed to fetch raw data: ${res.status} ${res.statusText}`);
-            }
-
-            if (res.body === null) {
-                throw new Error('Response body is null');
-            }
-
-            inputStreamReader = res.body.getReader();
-
-            // Handle abort signal
-            const abortHandler = (): void => {
-                streamEnded = true;
-                if (inputStreamReader) {
-                    inputStreamReader.cancel().catch(() => {});
-                }
-                outputStream.destroy();
-            };
-
-            if (signal.aborted) {
-                abortHandler();
-                return outputStream;
-            }
-
-            signal.addEventListener('abort', abortHandler);
-        } catch (error) {
-            streamEnded = true;
-            if (inputStreamReader) {
-                inputStreamReader.cancel().catch(() => {});
-            }
-            outputStream.destroy(error instanceof Error ? error : new Error(String(error)));
-            throw error;
+        if (!res.ok) {
+            throw new Error(`Failed to fetch raw data: ${res.status} ${res.statusText}`);
         }
 
-        return outputStream;
+        if (res.body === null) {
+            throw new Error('Response body is null');
+        }
+
+        const inputStreamReader = res.body.getReader();
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const { value, done } = await inputStreamReader.read();
+
+            if (done) {
+                break;
+            }
+
+            outputStream.push(value);
+        }
+
+        return outputStream.resume();
     }
 
     public async getResource(controller: AbortController): Promise<AudioResource<MusicDisc> | null> {
@@ -218,16 +164,7 @@ export class Cobalt {
 
             const stream = await Cobalt.createReadStream(res, controller.signal);
 
-            const processedStream = FFmpegProcessor.process(
-                stream,
-                this._disc.playbackSpeed,
-                this._disc.isPitchChangedOnPlaybackSpeed,
-                this._disc.isReversed,
-                this._disc.isEcho,
-                controller,
-            );
-
-            const { stream: probedStream, type } = await demuxProbe(processedStream);
+            const { stream: probedStream, type } = await demuxProbe(stream);
 
             const resource = createAudioResource<MusicDisc>(probedStream, {
                 inputType: type,

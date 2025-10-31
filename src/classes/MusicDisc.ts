@@ -26,18 +26,6 @@ export class MusicDisc {
     /** The duration of this second in seconds. For live videos this will be {@link Infinity infinite}. */
     public readonly durationSeconds: number;
 
-    /** The playback speed of which the song will play at, from 0.5-2 */
-    public readonly playbackSpeed?: number;
-
-    /** If pitch is changed on playback speed */
-    public readonly isPitchChangedOnPlaybackSpeed?: boolean;
-
-    /** If the song is reversed */
-    public readonly isReversed?: boolean;
-
-    /** If the song echoes */
-    public readonly isEcho?: boolean;
-
     /**
      * The duration of this song in string form.
      *
@@ -53,15 +41,7 @@ export class MusicDisc {
 
     private _resource?: AudioResource<MusicDisc>;
 
-    public constructor(
-        member: GuildMember,
-        channel: TextChannel,
-        video: YouTubeVideo,
-        playbackSpeed: number,
-        isPitchChangedOnPlaybackSpeed: boolean,
-        isReversed: boolean,
-        isEcho: boolean,
-    ) {
+    public constructor(member: GuildMember, channel: TextChannel, video: YouTubeVideo) {
         this.requestedById = member.id;
         this._requestedIn = channel;
         this._url = video.url;
@@ -72,10 +52,6 @@ export class MusicDisc {
         this.durationString = video.live ? 'Unknown' : video.durationRaw;
         this._channelName = video.channel?.name;
         this._channelUrl = video.channel?.url;
-        this.playbackSpeed = playbackSpeed;
-        this.isPitchChangedOnPlaybackSpeed = isPitchChangedOnPlaybackSpeed;
-        this.isReversed = isReversed;
-        this.isEcho = isEcho;
     }
 
     /**
