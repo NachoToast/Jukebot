@@ -1,3 +1,4 @@
+import '@discordjs/opus';
 import { ActivityType, Client, Events, GatewayIntentBits, GuildMember, TextChannel } from 'discord.js';
 import { CommandDeployer, EntityManager, Observer } from './classes';
 import { commands } from './commands';
