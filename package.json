@@ -40,7 +40,6 @@
     "dependencies": {
         "@discordjs/opus": "^0.10.0",
         "@discordjs/voice": "^0.18.0",
-        "@distube/ytdl-core": "^4.16.12",
         "yt-dlp-wrap": "^2.3.12",
         "dayjs": "^1.11.13",
         "discord.js": "^14.21.0",
