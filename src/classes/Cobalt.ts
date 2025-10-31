@@ -1,19 +1,27 @@
 import { Readable } from 'stream';
 import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
-import ytdl from '@distube/ytdl-core';
+import YTDlpWrap from 'yt-dlp-wrap';
 import { JukebotGlobals } from '../global';
 import { FFmpegProcessor } from './FfmpegProcessor';
 import { MusicDisc } from './MusicDisc';
 
 /**
- * Handles audio resource creation from YouTube URLs using @distube/ytdl-core.
+ * Handles audio resource creation from YouTube URLs using yt-dlp.
  * This class name is kept for backward compatibility, but it no longer uses Cobalt API.
  */
 export class Cobalt {
     private readonly _disc: MusicDisc;
+    private static _ytDlpWrap: YTDlpWrap | null = null;
 
     public constructor(disc: MusicDisc) {
         this._disc = disc;
+    }
+
+    private static getYtDlpWrap(): YTDlpWrap {
+        if (!Cobalt._ytDlpWrap) {
+            Cobalt._ytDlpWrap = new YTDlpWrap();
+        }
+        return Cobalt._ytDlpWrap;
     }
 
     private log(message: string): void {
@@ -27,26 +35,78 @@ export class Cobalt {
 
     public async getResource(controller: AbortController): Promise<AudioResource<MusicDisc> | null> {
         try {
-            // Use @distube/ytdl-core to stream the YouTube URL directly
+            // Use yt-dlp for reliable YouTube streaming
             let audioStream: Readable;
             
             try {
-                // Get audio stream directly from ytdl-core
-                audioStream = ytdl(this._disc._url, {
-                    filter: 'audioonly',
-                    quality: 'highestaudio',
-                    highWaterMark: 1 << 25, // 32 MB buffer
+                const ytDlpWrap = Cobalt.getYtDlpWrap();
+                
+                // Get stream URL using yt-dlp (most reliable method)
+                const streamUrl = await ytDlpWrap.execPromise([
+                    this._disc._url,
+                    '--format', 'bestaudio/best',
+                    '--get-url',
+                    '--no-playlist',
+                ]);
+                
+                if (!streamUrl || streamUrl.trim() === '') {
+                    throw new Error('Failed to get stream URL from yt-dlp');
+                }
+                
+                const url = streamUrl.trim();
+                
+                // Fetch the stream using Node.js fetch
+                const response = await fetch(url, {
+                    signal: controller.signal,
                 });
                 
-                if (!audioStream) {
-                    throw new Error('Failed to get stream from ytdl-core - stream is null');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch audio stream: ${response.status} ${response.statusText}`);
                 }
+                
+                if (!response.body) {
+                    throw new Error('Response body is null');
+                }
+                
+                // Convert ReadableStream to Node.js Readable
+                const reader = response.body.getReader();
+                let isReading = false;
+                let streamEnded = false;
+                
+                audioStream = new Readable({
+                    read() {
+                        if (isReading || streamEnded) return;
+                        isReading = true;
+                        
+                        reader.read().then(({ done, value }) => {
+                            isReading = false;
+                            if (done) {
+                                streamEnded = true;
+                                this.push(null);
+                            } else {
+                                this.push(Buffer.from(value));
+                            }
+                        }).catch((error) => {
+                            streamEnded = true;
+                            this.destroy(error instanceof Error ? error : new Error(String(error)));
+                        });
+                    },
+                });
+                
+                // Handle abort signal
+                controller.signal.addEventListener('abort', () => {
+                    if (!streamEnded) {
+                        reader.cancel();
+                        audioStream.destroy();
+                    }
+                });
+                
             } catch (error) {
                 // Log the full error for debugging
                 console.error('[Cobalt] Error getting stream:', error);
                 
                 if (error instanceof Error) {
-                    // Handle common ytdl-core errors
+                    // Handle common errors
                     if (error.message.includes('Sign in to confirm your age') || error.message.includes('age-restricted')) {
                         throw new Error('This video is age-restricted. YouTube age restricted content integration may need to be configured.');
                     }
@@ -58,6 +118,12 @@ export class Cobalt {
                     }
                     if (error.message.includes('Invalid URL') || error.message.includes('No video id found')) {
                         throw new Error(`Invalid YouTube URL: ${this._disc._url}`);
+                    }
+                    if (error.message.includes('spawn yt-dlp ENOENT') || error.message.includes('yt-dlp')) {
+                        throw new Error('yt-dlp is not installed or not found in PATH. Please install yt-dlp from https://github.com/yt-dlp/yt-dlp/releases');
+                    }
+                    if (error.message.includes('403') || error.message.includes('Status code: 403')) {
+                        throw new Error('YouTube returned 403 Forbidden. This may be due to YouTube blocking requests. Try again later.');
                     }
                     throw new Error(`Failed to stream video: ${error.message}`);
                 }
