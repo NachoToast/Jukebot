@@ -1,3 +1,4 @@
+import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
 import YTDlpWrap from 'yt-dlp-wrap';
@@ -35,73 +36,74 @@ export class Cobalt {
 
     public async getResource(controller: AbortController): Promise<AudioResource<MusicDisc> | null> {
         try {
-            // Use yt-dlp for reliable YouTube streaming
+            // Use yt-dlp to stream directly to stdout for better buffering and reduced stutter
             let audioStream: Readable;
+            let ytDlpProcess: ReturnType<typeof spawn> | null = null;
             
             try {
-                const ytDlpWrap = Cobalt.getYtDlpWrap();
-                
-                // Get stream URL using yt-dlp (most reliable method)
-                const streamUrl = await ytDlpWrap.execPromise([
+                ytDlpProcess = spawn('yt-dlp', [
                     this._disc._url,
                     '--format', 'bestaudio/best',
-                    '--get-url',
                     '--no-playlist',
-                ]);
-                
-                if (!streamUrl || streamUrl.trim() === '') {
-                    throw new Error('Failed to get stream URL from yt-dlp');
-                }
-                
-                const url = streamUrl.trim();
-                
-                // Fetch the stream using Node.js fetch
-                const response = await fetch(url, {
-                    signal: controller.signal,
+                    '--no-mtime',
+                    '--quiet',
+                    '--no-warnings',
+                    '--no-progress',
+                    '--buffer-size', '16K', // Increased buffer to reduce stutter
+                    '--output', '-',
+                ], {
+                    stdio: ['ignore', 'pipe', 'pipe'],
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch audio stream: ${response.status} ${response.statusText}`);
-                }
+                audioStream = ytDlpProcess.stdout!;
                 
-                if (!response.body) {
-                    throw new Error('Response body is null');
-                }
-                
-                // Convert ReadableStream to Node.js Readable
-                const reader = response.body.getReader();
-                let isReading = false;
-                let streamEnded = false;
-                
-                audioStream = new Readable({
-                    read() {
-                        if (isReading || streamEnded) return;
-                        isReading = true;
-                        
-                        reader.read().then(({ done, value }) => {
-                            isReading = false;
-                            if (done) {
-                                streamEnded = true;
-                                this.push(null);
-                            } else {
-                                this.push(Buffer.from(value));
-                            }
-                        }).catch((error) => {
-                            streamEnded = true;
-                            this.destroy(error instanceof Error ? error : new Error(String(error)));
-                        });
-                    },
+                // Handle stderr for error messages
+                let stderrOutput = '';
+                ytDlpProcess.stderr?.on('data', (data: Buffer) => {
+                    stderrOutput += data.toString();
                 });
                 
-                // Handle abort signal
+                // Handle process errors
+                ytDlpProcess.on('error', (error: Error) => {
+                    console.error('[Cobalt] yt-dlp process error:', error);
+                    if (error.message.includes('ENOENT')) {
+                        throw new Error('yt-dlp is not installed or not found in PATH. Please install yt-dlp from https://github.com/yt-dlp/yt-dlp/releases');
+                    }
+                    throw error;
+                });
+                
+                // Handle process exit
+                ytDlpProcess.on('exit', (code) => {
+                    if (code !== 0 && code !== null) {
+                        const errorMsg = stderrOutput || `yt-dlp exited with code ${code}`;
+                        console.error('[Cobalt] yt-dlp exited with error:', errorMsg);
+                        if (audioStream && !audioStream.destroyed) {
+                            audioStream.destroy(new Error(errorMsg));
+                        }
+                    }
+                });
+                
+                // Handle abort signal - kill the yt-dlp process
                 controller.signal.addEventListener('abort', () => {
-                    if (!streamEnded) {
-                        reader.cancel();
+                    if (ytDlpProcess && !ytDlpProcess.killed) {
+                        ytDlpProcess.kill('SIGTERM');
+                        setTimeout(() => {
+                            if (ytDlpProcess && !ytDlpProcess.killed) {
+                                ytDlpProcess.kill('SIGKILL');
+                            }
+                        }, 5000);
+                    }
+                    if (audioStream && !audioStream.destroyed) {
                         audioStream.destroy();
                     }
                 });
                 
             } catch (error) {
+                // Clean up process on error
+                if (ytDlpProcess && !ytDlpProcess.killed) {
+                    ytDlpProcess.kill('SIGTERM');
+                }
+                
                 // Log the full error for debugging
                 console.error('[Cobalt] Error getting stream:', error);
                 
@@ -119,7 +121,7 @@ export class Cobalt {
                     if (error.message.includes('Invalid URL') || error.message.includes('No video id found')) {
                         throw new Error(`Invalid YouTube URL: ${this._disc._url}`);
                     }
-                    if (error.message.includes('spawn yt-dlp ENOENT') || error.message.includes('yt-dlp')) {
+                    if (error.message.includes('spawn') || error.message.includes('ENOENT') || error.message.includes('yt-dlp')) {
                         throw new Error('yt-dlp is not installed or not found in PATH. Please install yt-dlp from https://github.com/yt-dlp/yt-dlp/releases');
                     }
                     if (error.message.includes('403') || error.message.includes('Status code: 403')) {
@@ -142,21 +144,16 @@ export class Cobalt {
                 }
             });
 
-            // Handle abort signal by destroying the stream
+            // Handle abort signal by destroying the stream and process
             if (controller.signal.aborted) {
+                if (ytDlpProcess && !ytDlpProcess.killed) {
+                    ytDlpProcess.kill('SIGTERM');
+                }
                 if (audioStream && !audioStream.destroyed) {
                     audioStream.destroy();
                 }
                 throw new Error('Stream request was aborted');
             }
-
-            const abortHandler = (): void => {
-                if (audioStream && !audioStream.destroyed) {
-                    audioStream.destroy();
-                }
-            };
-
-            controller.signal.addEventListener('abort', abortHandler);
 
             // Process the stream through FFmpeg for playback speed, reversal, echo, etc.
             const processedStream = FFmpegProcessor.process(
