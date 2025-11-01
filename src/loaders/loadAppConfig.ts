@@ -6,6 +6,8 @@ import { readFromEnv } from '@env-module';
 import type { AppConfig } from '@types';
 
 export function loadAppConfig(): AppConfig {
+    const startTime = new Date();
+
     const discordToken = readFromEnv('DISCORD_BOT_TOKEN', (token) =>
         token.isRequired().cannotBe('abcdefg', 'this is the example value'),
     );
@@ -28,5 +30,5 @@ export function loadAppConfig(): AppConfig {
                 .minValue(1),
     );
 
-    return { discordToken, maxQueueSize, discordLoginTimeout };
+    return { startTime, discordToken, maxQueueSize, discordLoginTimeout };
 }

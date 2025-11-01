@@ -1,4 +1,6 @@
 export interface AppConfig {
+    readonly startTime: Date;
+
     /**
      * Discord Bot API Token.
      *
