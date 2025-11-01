@@ -6,15 +6,20 @@ on:
         types: [completed]
         branches: [main]
 
+concurrency:
+    group: bot-deploy
+    cancel-in-progress: true
+
 jobs:
-    production-deploy:
+    deploy:
         name: Deploy to Production
-        if: ${{ github.repository == 'NachoToast/Jukebot' && github.event.workflow_run.conclusion == 'success' }}
+        if: github.event.workflow_run.conclusion == 'success'
         runs-on: ubuntu-latest
-        concurrency: production_environment
+        timeout-minutes: 2
+
         steps:
             - name: Execute remote build process
-              uses: appleboy/ssh-action@v1.0.3
+              uses: appleboy/ssh-action@v1.2.2
               with:
                   host: ${{ secrets.HOST }}
                   username: ${{ secrets.USERNAME }}
@@ -26,4 +31,3 @@ jobs:
                       git clean -d --force --quiet
                       git pull --quiet
                       docker compose up --build --detach
-                      docker image prune --force

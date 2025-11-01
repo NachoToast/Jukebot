@@ -1,15 +1,34 @@
-# dependencies
-node_modules/
+# dependencies (bun install)
+node_modules
 
-# package managers
-package-lock.json
-yarn.lock
-.yarn-integrity
+# output
+out
+dist
+*.tgz
 
-# user generated
-build/
-*.log
-config.json
+# code coverage
+coverage
+*.lcov
 
-# dependency generated
-.data/
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store

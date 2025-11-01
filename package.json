@@ -1,48 +1,25 @@
 {
     "name": "jukebot",
-    "version": "3.2.0",
     "private": true,
-    "main": "build/index.js",
-    "license": "MIT",
-    "author": {
-        "name": "NachoToast",
-        "url": "https://github.com/NachoToast"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/NachoToast/Jukebot.git"
-    },
+    "module": "src/index.ts",
+    "type": "module",
     "scripts": {
-        "start": "nodemon src/index.ts --devmode",
-        "build": "tsc --project tsconfig.build.json",
-        "lint": "eslint --ext .ts src --max-warnings=0",
-        "typecheck": "tsc --noEmit",
-        "test": "jest",
-        "check-all": "pnpm lint && pnpm typecheck && pnpm test",
-        "auth": "ts-node scripts/login.ts"
+        "start": "bun --watch run src/index.ts",
+        "lint": "eslint src --max-warnings=0",
+        "typecheck": "bun run tsc --project tsconfig.strict.json",
+        "test": "bun test --concurrent"
     },
     "devDependencies": {
-        "@types/jest": "^29.5.14",
-        "@types/node": "^20.19.9",
-        "@typescript-eslint/eslint-plugin": "^7.18.0",
-        "@typescript-eslint/parser": "^7.18.0",
-        "eslint": "^8.57.1",
-        "eslint-config-prettier": "^9.1.2",
-        "eslint-import-resolver-typescript": "^3.10.1",
-        "eslint-plugin-import": "^2.32.0",
-        "jest": "^29.7.0",
-        "nodemon": "^3.1.10",
-        "prettier": "^3.6.2",
-        "ts-jest": "^29.4.0",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.8.3"
+        "@types/bun": "latest",
+        "@types/pg": "^8.15.5",
+        "eslint": "^9.38.0",
+        "typescript-eslint": "^8.46.1"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
     },
     "dependencies": {
-        "@discordjs/opus": "^0.10.0",
-        "@discordjs/voice": "^0.18.0",
-        "dayjs": "^1.11.13",
-        "discord.js": "^14.21.0",
-        "play-dl": "^1.9.7",
-        "sodium-native": "^4.3.3"
+        "discord.js": "^14.23.2",
+        "pg": "^8.16.3"
     }
 }

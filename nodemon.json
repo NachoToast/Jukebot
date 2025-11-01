@@ -1,4 +1,0 @@
-{
-    "watch": ["src", "scripts", "config.json"],
-    "ext": "ts,json"
-}
