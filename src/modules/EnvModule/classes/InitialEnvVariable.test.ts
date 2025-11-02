@@ -50,9 +50,7 @@ describe(InitialEnvVariable.name, () => {
 
             const defaultValue = 'default value';
 
-            const result = new InitialEnvVariable(
-                'TEST_ENV_VAR',
-            ).hasDefaultValueOf(defaultValue);
+            const result = new InitialEnvVariable('TEST_ENV_VAR').hasDefaultValueOf(defaultValue);
 
             expect(result.value).toBe(defaultValue);
         });
@@ -62,9 +60,9 @@ describe(InitialEnvVariable.name, () => {
 
             process.env['TEST_ENV_VAR'] = text;
 
-            const result = new InitialEnvVariable(
-                'TEST_ENV_VAR',
-            ).hasDefaultValueOf('default value');
+            const result = new InitialEnvVariable('TEST_ENV_VAR').hasDefaultValueOf(
+                'default value',
+            );
 
             expect(result.value).toBe(text);
         });

@@ -17,8 +17,7 @@ export class InitialEnvVariable extends BaseEnvVariable {
     /**
      * Mark this value as being required.
      *
-     * This will throw an error if the environment variable is missing or
-     * empty.
+     * This will throw an error if the environment variable is missing or empty.
      */
     public isRequired(): StringEnvVariable {
         if (this.value === undefined) {
@@ -35,8 +34,7 @@ export class InitialEnvVariable extends BaseEnvVariable {
     /**
      * Mark this value as not being required.
      *
-     * This will use the provided default value if the environment variable is
-     * missing.
+     * This will use the provided default value if the environment variable is missing.
      */
     public hasDefaultValueOf(defaultValue: string): StringEnvVariable {
         if (this.value === undefined) {

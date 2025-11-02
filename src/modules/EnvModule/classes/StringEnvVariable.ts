@@ -8,9 +8,7 @@ export class StringEnvVariable extends KnownEnvVariable<string> {
         if (this.value === forbiddenValue) {
             const thisValue = colorize(forbiddenValue, Color.FgRed);
 
-            throw new Error(
-                `${this.named()} cannot be ${thisValue} - ${errorMessage}`,
-            );
+            throw new Error(`${this.named()} cannot be ${thisValue} - ${errorMessage}`);
         }
 
         return this;
@@ -20,9 +18,7 @@ export class StringEnvVariable extends KnownEnvVariable<string> {
         if (this.value.length < length) {
             const xCharacters = pluralize(length, 'character');
 
-            throw new Error(
-                `${this.named()} cannot be less than ${xCharacters} long`,
-            );
+            throw new Error(`${this.named()} cannot be less than ${xCharacters} long`);
         }
 
         return this;
@@ -32,9 +28,7 @@ export class StringEnvVariable extends KnownEnvVariable<string> {
         if (this.value.length > length) {
             const xCharacters = pluralize(length, 'character');
 
-            throw new Error(
-                `${this.named()} cannot be more than ${xCharacters} long`,
-            );
+            throw new Error(`${this.named()} cannot be more than ${xCharacters} long`);
         }
 
         return this;
@@ -48,5 +42,15 @@ export class StringEnvVariable extends KnownEnvVariable<string> {
         }
 
         return new NumericEnvVariable(this.key, parsed);
+    }
+
+    public customTransform(transformFn: (value: string) => string): this {
+        this.value = transformFn(this.value);
+
+        return this;
+    }
+
+    public isNullable(): KnownEnvVariable<string | null> {
+        return new KnownEnvVariable(this.key, this.value || null);
     }
 }

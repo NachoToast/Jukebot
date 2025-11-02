@@ -11,7 +11,6 @@
     },
     "devDependencies": {
         "@types/bun": "latest",
-        "@types/pg": "^8.15.5",
         "eslint": "^9.38.0",
         "typescript-eslint": "^8.46.1"
     },
@@ -19,7 +18,9 @@
         "typescript": "^5"
     },
     "dependencies": {
-        "discord.js": "^14.23.2",
-        "pg": "^8.16.3"
+        "@discordjs/opus": "^0.10.0",
+        "@discordjs/voice": "^0.19.0",
+        "@snazzah/davey": "^0.1.7",
+        "discord.js": "^14.23.2"
     }
 }

@@ -1,5 +1,7 @@
-import { connectToDiscord, loadAppConfig } from './loaders';
+import { DatabaseService, DiscordService } from '@services';
+import { Color } from '@types';
+import { colorize, log } from '@utils';
 
-const appConfig = loadAppConfig();
+await Promise.all([DiscordService.initialise(), DatabaseService.initialise()]);
 
-await connectToDiscord(appConfig);
+log(colorize(`Jukebot is now running!`, Color.FgGreen));

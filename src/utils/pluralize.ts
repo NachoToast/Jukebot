@@ -16,8 +16,7 @@ export function pluralize(count: number, singular: string): string {
 /**
  * Creates a string of the number and pluralized word if necessary.
  *
- * This is for irregular plural nouns, for regular plural nouns see
- * {@link pluralize}.
+ * This is for irregular plural nouns, for regular plural nouns see {@link pluralize}.
  *
  * @example
  * ```ts
@@ -25,10 +24,6 @@ export function pluralize(count: number, singular: string): string {
  * irregularPluralize(5, 'person', 'people'); // "5 people"
  * ```
  */
-export function irregularPluralize(
-    count: number,
-    singular: string,
-    plural: string,
-): string {
+export function irregularPluralize(count: number, singular: string, plural: string): string {
     return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }

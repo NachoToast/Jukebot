@@ -42,7 +42,7 @@ export default defineConfig(
                 "error",
                 {
                     "selector": "default",
-                    "format": ["camelCase", "PascalCase", "UPPER_CASE"],
+                    "format": ["camelCase", "PascalCase", "UPPER_CASE", "snake_case"],
                     "leadingUnderscore": "allow",
                 },
                 {
