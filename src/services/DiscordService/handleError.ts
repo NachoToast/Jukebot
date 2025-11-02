@@ -5,6 +5,7 @@ import {
     bold,
     channelMention,
     InteractionType,
+    MessageFlags,
     roleMention,
     userMention,
     type Interaction,
@@ -77,7 +78,7 @@ export function handleError(error: unknown, interaction?: Interaction): void {
         mainInfo.push(`Type: ${error.name}`);
     }
 
-    mainInfo.push(`Message: ${error.message}`);
+    mainInfo.push(`Error Message: ${error.message}`);
 
     if (error.stack !== undefined) {
         mainInfo.push(...parseErrorStack(error.stack));
@@ -85,8 +86,15 @@ export function handleError(error: unknown, interaction?: Interaction): void {
 
     if (config.developerRoleId !== null) {
         mainInfo.push(roleMention(config.developerRoleId));
+        delete allowedMentions.parse;
         allowedMentions.roles = [config.developerRoleId];
     }
 
-    errorChannel.send({ content: mainInfo.join('\n'), allowedMentions }).catch(console.error);
+    errorChannel
+        .send({
+            content: mainInfo.join('\n'),
+            allowedMentions,
+            flags: MessageFlags.SuppressNotifications,
+        })
+        .catch(console.error);
 }

@@ -1,7 +1,7 @@
 import { config } from '@config';
 import { Color } from '@types';
 import { colorize } from '@utils';
-import type { SendableChannels } from 'discord.js';
+import type { Channel, SendableChannels } from 'discord.js';
 import { client } from '../state';
 
 export async function fetchErrorChannel(): Promise<SendableChannels | null> {
@@ -9,7 +9,13 @@ export async function fetchErrorChannel(): Promise<SendableChannels | null> {
         return null;
     }
 
-    const channel = await client.channels.fetch(config.errorChannelId);
+    let channel: Channel | null;
+
+    try {
+        channel = await client.channels.fetch(config.errorChannelId);
+    } catch {
+        channel = null;
+    }
 
     if (channel === null) {
         const channelId = colorize(config.errorChannelId, Color.FgMagenta);

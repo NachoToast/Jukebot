@@ -16,7 +16,7 @@ export class KnownEnvVariable<T> extends BaseEnvVariable {
     }
 
     public reliesOn(otherKey: string): this {
-        if (!process.env[otherKey]) {
+        if (this.value && !process.env[otherKey]) {
             throw new Error(
                 `${this.named()} cannot be set without ${colorize(
                     otherKey,
