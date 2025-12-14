@@ -21,7 +21,7 @@ jobs:
               run: bun run typecheck
 
             - name: Lint
-              run: bun run lint --changed
+              run: bunx biome ci --changed
 
             - name: Test
               run: bun run test --coverage --coverage-reporter=lcov
