@@ -1,0 +1,119 @@
+
+h1, h2, p, div, body, html {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #261912;
+
+    color: white;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    height: 100svh;
+    width: 100svw;
+
+    overflow: hidden;
+
+    border: none;
+    box-sizing: border-box;
+
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+h1 {
+    font-size: 28px;
+}
+
+header {
+    background-color: #b07656;
+    width: 100%;
+    padding: 0.5em 0.5em;
+    box-sizing: border-box;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+    justify-items: center;
+}
+
+main {
+    width: 100%;
+    height: 100%;
+
+    flex-grow: 1;
+    box-sizing: border-box;
+
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+}
+
+.jukebot-container {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.jukebot-container > img {
+    width: 64px;
+    height: 64px;
+
+    animation: bob 1s infinite ease-in-out alternate;
+}
+
+.discord-user-container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.25em;
+}
+
+.discord-user-container > img {
+    border-radius: 100%;
+    height: 64px;
+    width: 64px;
+
+    animation: rotate infinite linear 120s;
+}
+
+@keyframes bob {
+    from {
+        transform: translateY(-1px);
+    }
+
+    to {
+        transform: translateY(1px);
+    }
+
+}
+
+@keyframes rotate {
+    from {
+        rotate: 0deg;
+    }
+
+    to {
+        rotate: 360deg;
+    }
+}
+
+.queue {
+    background-color: rgba(159, 105, 36, 0.5);
+    padding: 0.25em;
+}
+
+.search {
+    padding: 0.25em;
+
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
