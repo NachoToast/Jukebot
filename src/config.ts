@@ -93,4 +93,19 @@ export const config = {
 
 		password: readFromEnv("DB_PASSWORD", (password) => password.isRequired()),
 	},
+
+	/** Express web API settings. */
+	api: {
+		port: readFromEnv("API_PORT", (port) =>
+			port.hasDefaultValueOf("5000").mustBeInteger().withinValidPortRange(),
+		),
+
+		numProxies: readFromEnv("API_NUM_PROXIES", (num) =>
+			num.hasDefaultValueOf("0").mustBeInteger().minValue(0),
+		),
+
+		maxRequestsPerMinute: readFromEnv("API_MAX_REQUESTS_PER_MINUTE", (max) =>
+			max.hasDefaultValueOf("30").mustBeInteger().zeroMeansInfinity().minValue(1),
+		),
+	},
 } as const;
