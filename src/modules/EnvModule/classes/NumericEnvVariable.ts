@@ -1,33 +1,33 @@
-import { KnownEnvVariable } from './KnownEnvVariable';
+import { KnownEnvVariable } from "./KnownEnvVariable";
 
-const MAX_VALID_PORT = 2 ** 16 - 1;
+const MAX_VALID_PORT: number = 2 ** 16 - 1;
 
 export class NumericEnvVariable extends KnownEnvVariable<number> {
-    public zeroMeansInfinity(): this {
-        if (this.value === 0) {
-            this.value = Number.POSITIVE_INFINITY;
-        }
+	public zeroMeansInfinity(): this {
+		if (this.value === 0) {
+			this.value = Number.POSITIVE_INFINITY;
+		}
 
-        return this;
-    }
+		return this;
+	}
 
-    public minValue(min: number): this {
-        if (this.value < min) {
-            throw new Error(`${this.named()} cannot be less than ${min.toLocaleString()}`);
-        }
+	public minValue(min: number): this {
+		if (this.value < min) {
+			throw new Error(`${this.named()} cannot be less than ${min.toLocaleString()}`);
+		}
 
-        return this;
-    }
+		return this;
+	}
 
-    public maxValue(max: number): this {
-        if (this.value > max) {
-            throw new Error(`${this.named()} cannot be greater than ${max.toLocaleString()}`);
-        }
+	public maxValue(max: number): this {
+		if (this.value > max) {
+			throw new Error(`${this.named()} cannot be greater than ${max.toLocaleString()}`);
+		}
 
-        return this;
-    }
+		return this;
+	}
 
-    public withinValidPortRange(): this {
-        return this.minValue(0).maxValue(MAX_VALID_PORT);
-    }
+	public withinValidPortRange(): this {
+		return this.minValue(0).maxValue(MAX_VALID_PORT);
+	}
 }

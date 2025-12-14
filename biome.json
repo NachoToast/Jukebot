@@ -1,0 +1,119 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.5/schema.json",
+	"formatter": {
+		"enabled": true,
+		"lineWidth": 100,
+		"indentWidth": 4
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "warn",
+				"noForEach": "warn",
+				"noImplicitCoercions": "warn",
+				"noUselessStringConcat": "warn",
+				"useSimplifiedLogicExpression": "warn",
+				"useWhile": "warn"
+			},
+			"correctness": {
+				"noGlobalDirnameFilename": "warn",
+				"noProcessGlobal": "warn",
+				"noUndeclaredDependencies": "warn",
+				"noUndeclaredVariables": "warn",
+				"useSingleJsDocAsterisk": "warn"
+			},
+			"nursery": {
+				"noFloatingPromises": "warn",
+				"noImportCycles": "warn",
+				"noShadow": "warn",
+				"noUnnecessaryConditions": "warn",
+				"noUnusedExpressions": "warn",
+				"noUselessCatchBinding": "warn",
+				"noUselessUndefined": "warn",
+				"useArraySortCompare": "warn",
+				"useConsistentArrowReturn": "warn",
+				"useExhaustiveSwitchCases": "warn",
+				"useExplicitType": "warn"
+			},
+			"performance": {
+				"noAwaitInLoops": "warn",
+				"noBarrelFile": "warn",
+				"noDelete": "warn",
+				"noNamespaceImport": "warn",
+				"noReExportAll": "warn",
+				"useTopLevelRegex": "warn"
+			},
+			"style": {
+				"noCommonJs": "warn",
+				"noDefaultExport": "warn",
+				"noDoneCallback": "warn",
+				"noExportedImports": "warn",
+				"noInferrableTypes": "warn",
+				"noNamespace": "warn",
+				"noNegationElse": "warn",
+				"noNestedTernary": "warn",
+				"noParameterAssign": "warn",
+				"noParameterProperties": "warn",
+				"noProcessEnv": "warn",
+				"noShoutyConstants": "warn",
+				"noSubstr": "warn",
+				"noUnusedTemplateLiteral": "warn",
+				"noUselessElse": "warn",
+				"noYodaExpression": "warn",
+				"useAsConstAssertion": "warn",
+				"useCollapsedElseIf": "warn",
+				"useCollapsedIf": "warn",
+				"useConsistentMemberAccessibility": {
+					"level": "warn",
+					"options": {
+						"accessibility": "explicit"
+					}
+				},
+				"useConsistentObjectDefinitions": "warn",
+				"useConsistentTypeDefinitions": "warn",
+				"useDefaultParameterLast": "warn",
+				"useDefaultSwitchClause": "warn",
+				"useExplicitLengthCheck": "warn",
+				"useExportsLast": "warn",
+				"useFilenamingConvention": "warn",
+				"useForOf": "warn",
+				"useGroupedAccessorPairs": "warn",
+				"useNamingConvention": "warn",
+				"useNumberNamespace": "warn",
+				"useNumericSeparators": "warn",
+				"useObjectSpread": "warn",
+				"useReadonlyClassProperties": "warn",
+				"useShorthandAssign": "warn",
+				"useSingleVarDeclarator": "warn",
+				"useThrowNewError": "warn",
+				"useThrowOnlyError": "warn",
+				"useTrimStartEnd": "warn",
+				"useUnifiedTypeSignatures": "warn"
+			},
+			"suspicious": {
+				"noDuplicateTestHooks": "warn",
+				"noEvolvingTypes": "warn",
+				"noExportsInTest": "warn",
+				"noFocusedTests": "warn",
+				"noMisplacedAssertion": "warn",
+				"noUnassignedVariables": "warn",
+				"noVar": "warn",
+				"useAwait": "warn",
+				"useErrorMessage": "warn",
+				"useGuardForIn": "warn",
+				"useNumberToFixedDigitsArgument": "warn"
+			}
+		}
+	},
+	"files": {
+		"includes": ["src/**"]
+	},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true,
+		"defaultBranch": "main"
+	}
+}

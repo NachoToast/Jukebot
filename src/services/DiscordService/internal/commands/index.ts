@@ -1,7 +1,11 @@
-import { Collection } from 'discord.js';
-import type { Command } from './Command';
-import { utilCommands } from './util';
+import { Collection } from "discord.js";
+import type { Command } from "./Command";
+import { utilCommands } from "./util";
 
-export const commands = new Collection<string, Command>();
+const commands: Collection<string, Command> = new Collection();
 
-utilCommands.forEach((command) => commands.set(command.name, command));
+for (const command of utilCommands) {
+	commands.set(command.name, command);
+}
+
+export { commands };

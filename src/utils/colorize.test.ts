@@ -1,13 +1,13 @@
-import { describe, expect, test } from 'bun:test';
-import { Color } from '../types';
-import { colorize } from './colorize';
+import { describe, expect, test } from "bun:test";
+import { Color } from "@/types/Color";
+import { colorize } from "./colorize";
 
 describe(colorize.name, () => {
-    test('wraps the string', () => {
-        const text = 'i love minceraft';
+	test("wraps the string", () => {
+		const text = "i love minceraft";
 
-        const coloredText = colorize(text, Color.FgGreen);
+		const coloredText = colorize(text, Color.FgGreen);
 
-        expect(coloredText).toBe(`${Color.FgGreen}${text}${Color.Reset}`);
-    });
+		expect(coloredText).toBe(`${Color.FgGreen}${text}${Color.Reset}`);
+	});
 });

@@ -1,9 +1,12 @@
 {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit"
+        "source.organizeImports.biome": "explicit",
+        "source.fixAll.biome": "explicit",
+        "source.removeUnusedImports": "explicit"
     },
     "[typescript]": {
-        "editor.rulers": [100]
+        "editor.rulers": [100],
+        "editor.defaultFormatter": "biomejs.biome",
     }
 }

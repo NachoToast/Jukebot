@@ -10,7 +10,7 @@
  * ```
  */
 export function pluralize(count: number, singular: string): string {
-    return `${count.toLocaleString()} ${singular}${count === 1 ? '' : 's'}`;
+	return `${count.toLocaleString()} ${singular}${count === 1 ? "" : "s"}`;
 }
 
 /**
@@ -25,5 +25,5 @@ export function pluralize(count: number, singular: string): string {
  * ```
  */
 export function irregularPluralize(count: number, singular: string, plural: string): string {
-    return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+	return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }

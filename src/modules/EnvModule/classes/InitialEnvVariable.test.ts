@@ -1,70 +1,71 @@
-import { describe, expect, test } from 'bun:test';
-import { InitialEnvVariable } from './InitialEnvVariable';
+import { describe, expect, test } from "bun:test";
+import process from "node:process";
+import { InitialEnvVariable } from "./InitialEnvVariable";
 
 describe(InitialEnvVariable.name, () => {
-    describe(InitialEnvVariable.prototype.isRequired.name, () => {
-        test('throws if missing', () => {
-            try {
-                new InitialEnvVariable('MISSING_ENV_VAR').isRequired();
+	const envVarKey = "TEST_ENV_VAR";
 
-                throw new Error('Did not throw');
-            } catch (error) {
-                if (!(error instanceof Error)) {
-                    throw error;
-                }
+	describe(InitialEnvVariable.prototype.isRequired.name, () => {
+		test("throws if missing", () => {
+			try {
+				new InitialEnvVariable("MISSING_ENV_VAR").isRequired();
 
-                expect(error.message).toInclude('missing');
-            }
-        });
+				throw new Error("Did not throw");
+			} catch (error) {
+				if (!(error instanceof Error)) {
+					throw error;
+				}
 
-        test('throws if empty', () => {
-            process.env['TEST_ENV_VAR'] = '';
+				expect(error.message).toInclude("missing");
+			}
+		});
 
-            try {
-                new InitialEnvVariable('TEST_ENV_VAR').isRequired();
+		test("throws if empty", () => {
+			process.env[envVarKey] = "";
 
-                throw new Error('Did not throw');
-            } catch (error) {
-                if (!(error instanceof Error)) {
-                    throw error;
-                }
+			try {
+				new InitialEnvVariable(envVarKey).isRequired();
 
-                expect(error.message).toInclude('empty');
-            }
-        });
+				throw new Error("Did not throw");
+			} catch (error) {
+				if (!(error instanceof Error)) {
+					throw error;
+				}
 
-        test('resolves if present and non-empty', () => {
-            const text = '  some value  ';
+				expect(error.message).toInclude("empty");
+			}
+		});
 
-            process.env['TEST_ENV_VAR'] = text;
+		test("resolves if present and non-empty", () => {
+			const text = "  some value  ";
 
-            const result = new InitialEnvVariable('TEST_ENV_VAR').isRequired();
+			process.env[envVarKey] = text;
 
-            expect(result.value).toBe(text.trim());
-        });
-    });
+			const result = new InitialEnvVariable(envVarKey).isRequired();
 
-    describe(InitialEnvVariable.prototype.hasDefaultValueOf.name, () => {
-        test('uses default if missing', () => {
-            delete process.env['TEST_ENV_VAR'];
+			expect(result.value).toBe(text.trim());
+		});
+	});
 
-            const defaultValue = 'default value';
+	describe(InitialEnvVariable.prototype.hasDefaultValueOf.name, () => {
+		test("uses default if missing", () => {
+			delete process.env[envVarKey];
 
-            const result = new InitialEnvVariable('TEST_ENV_VAR').hasDefaultValueOf(defaultValue);
+			const defaultValue = "default value";
 
-            expect(result.value).toBe(defaultValue);
-        });
+			const result = new InitialEnvVariable(envVarKey).hasDefaultValueOf(defaultValue);
 
-        test('uses existing value if present', () => {
-            const text = 'some value 3';
+			expect(result.value).toBe(defaultValue);
+		});
 
-            process.env['TEST_ENV_VAR'] = text;
+		test("uses existing value if present", () => {
+			const text = "some value 3";
 
-            const result = new InitialEnvVariable('TEST_ENV_VAR').hasDefaultValueOf(
-                'default value',
-            );
+			process.env[envVarKey] = text;
 
-            expect(result.value).toBe(text);
-        });
-    });
+			const result = new InitialEnvVariable(envVarKey).hasDefaultValueOf("default value");
+
+			expect(result.value).toBe(text);
+		});
+	});
 });

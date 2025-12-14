@@ -1,11 +1,11 @@
-import type { ChatInputCommandInteraction, GuildMember, SlashCommandBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction, GuildMember, SlashCommandBuilder } from "discord.js";
 
 export interface Command {
-    name: Lowercase<string>;
+	name: Lowercase<string>;
 
-    description: string;
+	description: string;
 
-    build?(base: SlashCommandBuilder): void;
+	build?(base: SlashCommandBuilder): void;
 
-    execute(interaction: ChatInputCommandInteraction, member: GuildMember): Promise<void>;
+	execute(interaction: ChatInputCommandInteraction, member: GuildMember): Promise<void>;
 }

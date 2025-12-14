@@ -1,4 +1,4 @@
-import type { InteractionReplyOptions, RepliableInteraction } from 'discord.js';
+import type { InteractionReplyOptions, RepliableInteraction } from "discord.js";
 
 /**
  * Sometimes interactions can't be replied to, sometimes they have and you can edit the existing
@@ -56,18 +56,18 @@ import type { InteractionReplyOptions, RepliableInteraction } from 'discord.js';
  *⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠛⠶⠟⠛⠛⠋⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣿⣛⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
  */
 export function tryReplyTo(
-    interaction: RepliableInteraction,
-    content: InteractionReplyOptions,
+	interaction: RepliableInteraction,
+	content: InteractionReplyOptions,
 ): void {
-    let operation: Promise<unknown>;
+	let operation: Promise<unknown>;
 
-    if (interaction.replied) {
-        operation = interaction.followUp(content);
-    } else if (interaction.deferred) {
-        operation = interaction.editReply({ ...content, flags: undefined });
-    } else {
-        operation = interaction.reply(content);
-    }
+	if (interaction.replied) {
+		operation = interaction.followUp(content);
+	} else if (interaction.deferred) {
+		operation = interaction.editReply({ ...content, flags: undefined });
+	} else {
+		operation = interaction.reply(content);
+	}
 
-    operation.catch(console.error);
+	operation.catch(console.error);
 }

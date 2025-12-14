@@ -16,12 +16,7 @@
         "module": "Preserve",
         "moduleResolution": "bundler",
         "paths": {
-            "@errors": ["./src/errors/index.ts"],
-            "@modules": ["./src/modules/index.ts"],
-            "@services": ["./src/services/index.ts"],
-            "@types": ["./src/types/index.ts"],
-            "@utils": ["./src/utils/index.ts"],
-            "@config": ["./src/config.ts"]
+            "@/*": ["./src/*"]
         },
 
         // Emit

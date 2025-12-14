@@ -1,12 +1,9 @@
-/** Special error class thrown by {@link awaitOrTimeout}. */
-export class TimeoutError extends Error {}
-
 /**
  * Unique symbol to identify timeouts.
  *
  * We can't just use `null` or `undefined` because those could be resolved by the original promise.
  */
-const timeoutSymbol = Symbol();
+const timeoutSymbol: unique symbol = Symbol();
 
 /**
  * Waits for a promise to resolve in the given number of seconds, or throws a {@link TimeoutError}.
@@ -15,22 +12,25 @@ const timeoutSymbol = Symbol();
  * `catch` block if necessary.
  */
 export async function awaitOrTimeout<T>(promise: Promise<T>, timeoutSeconds: number): Promise<T> {
-    let timeout: NodeJS.Timeout | undefined;
+	let timeout: NodeJS.Timeout | undefined;
 
-    const timeoutPromise = new Promise<typeof timeoutSymbol>((resolve) => {
-        timeout = setTimeout(() => {
-            resolve(timeoutSymbol);
-        }, timeoutSeconds * 1_000);
-    });
+	const timeoutPromise = new Promise<typeof timeoutSymbol>((resolve) => {
+		timeout = setTimeout(() => {
+			resolve(timeoutSymbol);
+		}, timeoutSeconds * 1000);
+	});
 
-    const race = await Promise.race([promise, timeoutPromise]);
+	const race = await Promise.race([promise, timeoutPromise]);
 
-    clearTimeout(timeout);
+	clearTimeout(timeout);
 
-    // The timeout promise resolved first.
-    if (race === timeoutSymbol) {
-        throw new TimeoutError();
-    }
+	// The timeout promise resolved first.
+	if (race === timeoutSymbol) {
+		throw new TimeoutError();
+	}
 
-    return race;
+	return race;
 }
+
+/** Special error class thrown by {@link awaitOrTimeout}. */
+export class TimeoutError extends Error {}
