@@ -115,5 +115,17 @@
 		"clientKind": "git",
 		"useIgnoreFile": true,
 		"defaultBranch": "main"
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useFilenamingConvention": "off"
+					}
+				}
+			}
+		}
+	]
 }
