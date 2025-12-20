@@ -1,20 +1,26 @@
+import process from "node:process";
 import { SQL } from "bun";
 import { config } from "@/config";
 import { Color } from "@/types/Color";
 import { colorize } from "@/utils/colorize";
 import { log, logWithTimeTaken } from "@/utils/logging";
-import { tryWithBackoff } from "@/utils/tryWithBackoff";
 import { createCommandDeploymentsTable } from "./commandDeployments";
 import { setPg } from "./state";
+
+enum ConnectionStatus {
+	Attempting,
+	Connected,
+	Disconnected,
+}
 
 export async function initialiseDatabaseService(): Promise<void> {
 	const { hostname, port, database, username, password } = config.db;
 
-	let startTime = Date.now();
-
-	let connected = false;
+	const startTime = Date.now();
 
 	// Logging In
+
+	let connectionStatus = ConnectionStatus.Attempting;
 
 	const pg = new SQL({
 		hostname,
@@ -24,29 +30,28 @@ export async function initialiseDatabaseService(): Promise<void> {
 		password,
 
 		onconnect: (): void => {
-			// biome-ignore lint/nursery/noUnnecessaryConditions: LOUD INCORRECT BUZZER
-			if (connected) return;
+			if (connectionStatus === ConnectionStatus.Connected) return;
 
-			connected = true;
+			connectionStatus = ConnectionStatus.Connected;
 
 			logWithTimeTaken("Connected to PostgreSQL", startTime);
 		},
 
 		onclose: (): void => {
-			if (!connected) return;
+			switch (connectionStatus) {
+				case ConnectionStatus.Attempting:
+					log(colorize("Failed to connect to PostgreSQL", Color.FgRed));
+					break;
+				case ConnectionStatus.Connected:
+					log(colorize("Disconnected from PostgreSQL", Color.FgRed));
+					break;
+				default:
+					return;
+			}
 
-			log(colorize("Disconnected from PostgreSQL", Color.FgRed));
+			connectionStatus = ConnectionStatus.Disconnected;
 
-			connected = false;
-
-			tryWithBackoff(
-				pg.connect,
-				(x) => {
-					log(`Attempting to reconnect to PostgreSQL (try #${x.toLocaleString()})`);
-					startTime = Date.now();
-				},
-				() => connected,
-			).catch(console.error);
+			process.exit(1);
 		},
 	});
 
