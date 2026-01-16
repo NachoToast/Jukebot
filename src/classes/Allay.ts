@@ -355,7 +355,7 @@ export class Allay {
 
             for (const word of wordsWeLike) {
                 if (titleLower.includes(word)) {
-                    score += 0.1;
+                    score += 0.25;
                 }
             }
 
