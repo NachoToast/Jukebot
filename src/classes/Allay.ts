@@ -336,6 +336,8 @@ export class Allay {
 
         if (results.length === 0) throw new Error(errorMessages.noResultsFound);
 
+        const wordsWeLike = new Set(['official', 'lyric']);
+
         const levenshteinData = results.map((e) => {
             if (e.title === undefined) return 0;
 
@@ -343,10 +345,21 @@ export class Allay {
             // this attempts to account for these differences by getting the greatest levenshtein
             // distance out of both the reversed and non-reversed title
             const reversedTitle = e.title.split(' ').reverse().join(' ');
-            return Math.max(
+
+            let score = Math.max(
                 Allay.levenshteinDistance(e.title, searchTerm),
                 Allay.levenshteinDistance(reversedTitle, searchTerm),
             );
+
+            const titleLower = e.title.toLowerCase();
+
+            for (const word of wordsWeLike) {
+                if (titleLower.includes(word)) {
+                    score += 0.1;
+                }
+            }
+
+            return score;
         });
 
         let bestResult = results[0];
