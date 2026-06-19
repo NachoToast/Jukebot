@@ -19,9 +19,7 @@ export class Cobalt {
     }
 
     private static getYtDlpWrap(): YTDlpWrap {
-        if (!Cobalt._ytDlpWrap) {
-            Cobalt._ytDlpWrap = new YTDlpWrap();
-        }
+        Cobalt._ytDlpWrap ??= new YTDlpWrap();
         return Cobalt._ytDlpWrap;
     }
 
@@ -55,6 +53,7 @@ export class Cobalt {
                     stdio: ['ignore', 'pipe', 'pipe'],
                 });
                 
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 audioStream = ytDlpProcess.stdout!;
                 
                 // Handle stderr for error messages

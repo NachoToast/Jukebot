@@ -3,7 +3,7 @@ import { Jukebox } from './Jukebox';
 
 /** Manages Jukebox instances per guild. */
 export abstract class EntityManager {
-    private static readonly _instances: Map<string, Jukebox> = new Map();
+    private static readonly _instances = new Map<string, Jukebox>();
 
     public static getGuildInstance(guildId: string): Jukebox | undefined {
         return EntityManager._instances.get(guildId);
@@ -14,7 +14,7 @@ export abstract class EntityManager {
             throw new Error(`Cannot join ${channelMention(voiceChannel.id)}`);
         }
 
-        const instance = new Jukebox(textChannel, voiceChannel, (guildId) => this.handleInstanceDestroy(guildId));
+        const instance = new Jukebox(textChannel, voiceChannel, (guildId) => { this.handleInstanceDestroy(guildId); });
         EntityManager._instances.set(voiceChannel.guild.id, instance);
         return instance;
     }

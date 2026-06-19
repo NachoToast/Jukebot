@@ -34,7 +34,7 @@ export async function awaitOrTimeout<T>(promise: Promise<T>, timeoutSeconds: num
  * @example withPossiblePlural(1, 'die', 'dice') // '1 die'
  * @example withPossiblePlural(2, 'die', 'dice') // '2 dice'
  */
-export function withPossiblePlural(n: number, word: string = 'second', plural: string = `${word}s`): string {
+export function withPossiblePlural(n: number, word = 'second', plural = `${word}s`): string {
     return `${n} ${n === 1 ? word : plural}`;
 }
 

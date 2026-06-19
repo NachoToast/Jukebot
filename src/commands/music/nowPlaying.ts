@@ -7,7 +7,7 @@ export const nowPlayingCommand: Command = {
     execute: async function ({ interaction, member }): Promise<void> {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
-        if (jukebox === undefined || jukebox.state.status !== 'active') {
+        if (jukebox?.state.status !== 'active') {
             await interaction.reply({ content: 'Nothing is currently playing' });
             return;
         }

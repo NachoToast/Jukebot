@@ -17,7 +17,7 @@ export const resumeCommand: Command = {
             await interaction.reply({ content: 'Already resumed' });
         }
 
-        if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
+        if (member.voice.channel?.id !== jukebox.targetVoiceChannel.id) {
             await interaction.reply({
                 content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'resume playback'),
             });

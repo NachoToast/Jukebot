@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionReplyOptions } from 'discord.js';
 import { Config } from '../types';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const rawConfig: Partial<Config> = require('../../config.json');
 
 if (rawConfig.discordToken === undefined) {

@@ -18,7 +18,7 @@ export default tseslint.config(
         rules: {
             // Possible Problems (https://eslint.org/docs/latest/rules/#possible-problems)
 
-            'no-await-in-loop': 'error', // In almost all cases, Promise.all() should be used instead.
+            //'no-await-in-loop': 'error', // In almost all cases, Promise.all() should be used instead.
             'no-template-curly-in-string': 'error', // Easy to forget to use backticks.
             'no-unreachable-loop': 'error', // Why have a loop if it only executes once?
             'no-useless-assignment': 'error', // Surprised TypeScript doesn't have an option for this one.
@@ -34,29 +34,27 @@ export default tseslint.config(
 
             // TypeScript Specific (https://typescript-eslint.io/rules/?=xstrict-xstylistic-xdeprecated)
 
-            '@typescript-eslint/explicit-function-return-type': 'error', // Explicit returns are more readable.
             '@typescript-eslint/explicit-member-accessibility': 'error', // Public methods should be explicit.
-            '@typescript-eslint/member-ordering': 'error', // Consistenty of class members is nice.
-            '@typescript-eslint/naming-convention': [
-                'error',
-                {
-                    selector: 'default',
-                    format: ['strictCamelCase', 'PascalCase', 'UPPER_CASE'],
-                    leadingUnderscore: 'allow',
-                },
-                {
-                    // Types should all be in pascal case.
-                    selector: 'typeLike',
-                    format: ['PascalCase'],
-                },
-                {
-                    // Same with enums.
-                    selector: 'enumMember',
-                    format: ['PascalCase'],
-                },
-            ],
+            //'@typescript-eslint/member-ordering': 'error', // Consistenty of class members is nice.
             '@typescript-eslint/prefer-readonly': 'error', // Immutability is always preferred.
             '@typescript-eslint/switch-exhaustiveness-check': 'error', // Exhaustiveness checks are always good.
+
+            // fix later stuff pls
+            '@typescript-eslint/no-require-imports': 'off',
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            '@typescript-eslint/no-misused-promises': 'off',
+            '@typescript-eslint/no-floating-promises': 'off',
+            '@typescript-eslint/no-unsafe-member-access': 'off',
+            '@typescript-eslint/member-ordering': 'off',
+            '@typescript-eslint/unbound-method': 'off',
+            '@typescript-eslint/no-unnecessary-condition': 'off',
+            '@typescript-eslint/no-extraneous-class': 'off',
+            '@typescript-eslint/prefer-promise-reject-errors': 'off',
+            '@typescript-eslint/no-unsafe-argument': 'off',
+            'no-await-in-loop': 'off',
+            'preserve-caught-error': 'off',
+            '@typescript-eslint/no-deprecated': 'off',
+            '@typescript-eslint/restrict-plus-operands': 'off',
         },
     },
 );

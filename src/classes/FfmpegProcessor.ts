@@ -4,10 +4,10 @@ import { Readable } from 'stream';
 export class FFmpegProcessor {
     public static process(
         input: Readable,
-        speed: number = 1,
-        isPitchChangedOnPlaybackSpeed: boolean = false,
-        isReversed: boolean = false,
-        isEcho: boolean = false,
+        speed = 1,
+        isPitchChangedOnPlaybackSpeed = false,
+        isReversed = false,
+        isEcho = false,
         controller?: AbortController,
     ): Readable {
         console.log(`[FFmpeg] Starting processing with speed: ${speed}`);
@@ -76,7 +76,7 @@ export class FFmpegProcessor {
 
             if (controller.signal.aborted) {
                 cleanup();
-                return ffmpeg.stdout!;
+                return ffmpeg.stdout;
             }
 
             controller.signal.addEventListener('abort', abortHandler);
@@ -108,6 +108,6 @@ export class FFmpegProcessor {
             input.pipe(ffmpeg.stdin, { end: true });
         }
 
-        return ffmpeg.stdout!;
+        return ffmpeg.stdout;
     }
 }

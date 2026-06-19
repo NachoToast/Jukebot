@@ -89,10 +89,10 @@ export class Allay {
         member: GuildMember,
         channel: TextChannel,
         searchTerm: string,
-        playbackSpeed: number = 1,
-        isPitchChangedOnPlaybackSpeed: boolean = false,
-        isReversed: boolean = false,
-        isEcho: boolean = false,
+        playbackSpeed = 1,
+        isPitchChangedOnPlaybackSpeed = false,
+        isReversed = false,
+        isEcho = false,
         maxResultsAllowed: number = JukebotGlobals.config.maxQueueSize,
     ) {
         this._origin = origin;
@@ -115,12 +115,12 @@ export class Allay {
                 if (!didRefresh) throw new Error(errorMessages.failedSpotifyRefresh);
             } else {
                 // don't wait for refresh if we don't need it
-                refreshToken().catch((e) => {
+                refreshToken().catch((e: unknown) => {
                     this._origin
                         .followUp({
                             content: errorMessages.failedSpotifyRefreshBackground(e),
                         })
-                        .catch(() => console.log(e));
+                        .catch(() => { console.log(e); });
                 });
             }
         }
@@ -177,6 +177,7 @@ export class Allay {
         disc.makeFullDescription(embed);
 
         if (this._search.source === 'spotify') {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             embed.setDescription(embed.data.description! + `\n[View on Spotify](${this._searchTerm})`);
         }
 
@@ -322,7 +323,7 @@ export class Allay {
         return await this.handleTextSearch(searchTerm);
     }
 
-    private async handleTextSearch(searchTerm: string, limit: number = 3): Promise<MusicDisc> {
+    private async handleTextSearch(searchTerm: string, limit = 3): Promise<MusicDisc> {
         let results = await search(searchTerm, { source: { youtube: 'video' }, limit });
 
         const searchTermLower = searchTerm.toLowerCase();
@@ -546,6 +547,7 @@ export class Allay {
             }
 
             throw new Error('Unrecognized URL');
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             // url creation error, so probably not a url
             if (searchTerm.startsWith('http') || searchTerm.endsWith('.com')) throw new Error('Invalid URL');
@@ -639,6 +641,7 @@ export class Allay {
     private static isSpotifyExpired(): boolean {
         try {
             return is_expired();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             // will error when Spotify is not set up
             return false;

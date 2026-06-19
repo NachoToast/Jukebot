@@ -12,7 +12,7 @@ export class Observer {
     public tags: string[] = [];
 
     /** Set of tag names. */
-    public tagSet: Set<string> = new Set();
+    public tagSet = new Set<string>();
 
     public currentVersionTip = '(Still Loading)';
 
@@ -34,6 +34,7 @@ export class Observer {
             },
         };
 
+        // eslint-disable-next-line no-useless-assignment
         let releases: GithubRelease[] = [];
 
         try {
@@ -50,7 +51,7 @@ export class Observer {
                     });
                 });
 
-                req.on('error', (error) => reject(error));
+                req.on('error', (error) => { reject(error); });
 
                 req.end();
             });

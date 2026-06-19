@@ -15,7 +15,7 @@ export const removeCommand: Command = {
             return;
         }
 
-        if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
+        if (member.voice.channel?.id !== jukebox.targetVoiceChannel.id) {
             await interaction.reply({
                 content: errorMessages.notInSameVoiceChannel(
                     jukebox.targetVoiceChannel.id,

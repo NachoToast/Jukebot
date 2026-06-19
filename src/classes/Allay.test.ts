@@ -2,8 +2,8 @@ import { Search } from '../types';
 import { Allay } from './Allay';
 
 describe(Allay.name, () => {
-    describe(Allay['discernSearchSource'].name, () => {
-        const discern = Allay['discernSearchSource'].bind(Allay);
+    describe(Allay.discernSearchSource.name, () => {
+        const discern = Allay.discernSearchSource.bind(Allay);
 
         describe('YouTube URLs', () => {
             it('recognizes playlist URLs', () => {
@@ -89,8 +89,8 @@ describe(Allay.name, () => {
         });
     });
 
-    describe(Allay['levenshteinDistance'].name, () => {
-        const levenshtein = Allay['levenshteinDistance'].bind(Allay);
+    describe(Allay.levenshteinDistance.name, () => {
+        const levenshtein = Allay.levenshteinDistance.bind(Allay);
 
         it('returns 1 for identical strings', () => {
             expect(levenshtein('', '')).toBe(1);

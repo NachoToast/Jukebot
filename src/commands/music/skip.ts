@@ -8,12 +8,12 @@ export const skipCommand: Command = {
     execute: async function ({ interaction, member }): Promise<void> {
         const jukebox = EntityManager.getGuildInstance(member.guild.id);
 
-        if (jukebox === undefined || jukebox.state.status !== 'active') {
+        if (jukebox?.state.status !== 'active') {
             await interaction.reply({ content: 'Not currently playing anything' });
             return;
         }
 
-        if (member.voice.channel === null || member.voice.channel.id !== jukebox.targetVoiceChannel.id) {
+        if (member.voice.channel?.id !== jukebox.targetVoiceChannel.id) {
             await interaction.reply({
                 content: errorMessages.notInSameVoiceChannel(jukebox.targetVoiceChannel.id, 'skip the current song'),
             });

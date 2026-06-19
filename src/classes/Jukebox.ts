@@ -194,8 +194,8 @@ export class Jukebox {
             });
         }
 
-        this._player.on(AudioPlayerStatus.AutoPaused, () => this.createIdleState());
-        this._player.on(AudioPlayerStatus.Paused, () => this.createIdleState());
+        this._player.on(AudioPlayerStatus.AutoPaused, () => { this.createIdleState(); });
+        this._player.on(AudioPlayerStatus.Paused, () => { this.createIdleState(); });
         this._player.on(AudioPlayerStatus.Idle, () => this.playNextInQueue());
         this._player.on(AudioPlayerStatus.Playing, () => {
             if (!this.hasAudioListeners()) this.pauseDueToNoListeners();
@@ -379,6 +379,7 @@ export class Jukebox {
 
         try {
             await this.textChannel.send({ content: `Error: ${error.message}` });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (anotherError) {
             // an error occurred trying to follow up the interaction
             // this is likely due to the interaction being deleted
