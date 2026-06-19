@@ -10,6 +10,7 @@
           pkgs.pnpm
           pkgs.prettier
           pkgs.nodejs-slim_latest
+          pkgs.python3
         ];
       };
   };
