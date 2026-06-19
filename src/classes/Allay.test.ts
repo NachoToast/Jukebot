@@ -31,7 +31,7 @@ describe(Allay.name, () => {
             });
 
             it('throws an error for invalid URLs', () => {
-                expect(() => discern('https://www.youtube.com/')).toThrowError();
+                expect(() => discern('https://www.youtube.com/')).toThrow();
             });
         });
 
@@ -58,7 +58,7 @@ describe(Allay.name, () => {
             });
 
             it('throws an error for invalid URLs', () => {
-                expect(() => discern('https://open.spotify.com/')).toThrowError();
+                expect(() => discern('https://open.spotify.com/')).toThrow();
             });
         });
 
@@ -71,20 +71,20 @@ describe(Allay.name, () => {
             });
 
             it('throws an error for text searches that are too short', () => {
-                expect(() => discern('')).toThrowError();
-                expect(() => discern('a')).toThrowError();
-                expect(() => discern('ab')).toThrowError();
+                expect(() => discern('')).toThrow();
+                expect(() => discern('a')).toThrow();
+                expect(() => discern('ab')).toThrow();
             });
         });
 
         describe('invalid searches', () => {
             it('throws an error for unrecognized URLs', () => {
-                expect(() => discern('https://www.google.com/')).toThrowError();
+                expect(() => discern('https://www.google.com/')).toThrow();
             });
 
             it('throws an error for invalid URLs', () => {
-                expect(() => discern('http:')).toThrowError();
-                expect(() => discern('some thing.com')).toThrowError();
+                expect(() => discern('http:')).toThrow();
+                expect(() => discern('some thing.com')).toThrow();
             });
         });
     });
