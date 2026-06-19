@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { AudioResource, createAudioResource, demuxProbe } from '@discordjs/voice';
-import YTDlpWrap from 'yt-dlp-wrap';
+import YTDlpWrap from 'yt-dlp-wrap-plus';
 import { JukebotGlobals } from '../global';
 import { FFmpegProcessor } from './FfmpegProcessor';
 import { MusicDisc } from './MusicDisc';
