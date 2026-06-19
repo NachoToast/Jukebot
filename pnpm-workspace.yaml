@@ -1,5 +1,5 @@
 minimumReleaseAge: 10080
 blockExoticSubdeps: true
 allowBuilds:
-  '@discordjs/opus': false
-  unrs-resolver: false
+  '@discordjs/opus': true
+  unrs-resolver: true
