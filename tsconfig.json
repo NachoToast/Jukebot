@@ -7,6 +7,8 @@
         "resolveJsonModule": true,
         "sourceMap": true,
         "outDir": "build",
+        "rootDir": ".",
+        "skipLibCheck": true,
         "removeComments": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
