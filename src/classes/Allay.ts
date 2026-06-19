@@ -487,7 +487,7 @@ export class Allay {
      *
      * @throws Throws an error if the search term is an invalid or recognized URL.
      */
-    private static discernSearchSource(searchTerm: string): Search {
+    public static discernSearchSource(searchTerm: string): Search {
         try {
             const url = new URL(searchTerm);
 
@@ -569,7 +569,7 @@ export class Allay {
      * @param {string} s2 The second string.
      * @returns {number} Similarity between the 2 strings, between 0.0 (no similarity) and 1.0 (identical).
      */
-    private static levenshteinDistance(s1: string, s2: string): number {
+    public static levenshteinDistance(s1: string, s2: string): number {
         let longerString = s1;
         let shorterString = s2;
         if (s1.length < s2.length) {
