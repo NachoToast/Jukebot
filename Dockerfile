@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 # https://docs.docker.com/reference/dockerfile/
 
-ARG NODE_VERSION=20.12.1
-ARG PNPM_VERSION=9.4.0
+ARG NODE_VERSION=26.3.1
+ARG PNPM_VERSION=11.8.0
 
 # Install Node
 FROM node:${NODE_VERSION}-alpine
