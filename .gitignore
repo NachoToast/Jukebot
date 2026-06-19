@@ -13,3 +13,6 @@ config.json
 
 # dependency generated
 .data/
+
+# dev env
+.direnv
