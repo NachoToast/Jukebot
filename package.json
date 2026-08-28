@@ -15,7 +15,7 @@
     "scripts": {
         "start": "nodemon src/index.ts --devmode",
         "build": "tsc --project tsconfig.build.json",
-        "lint": "eslint --ext .ts src --max-warnings=0",
+        "lint": "oxlint",
         "typecheck": "tsc --noEmit",
         "test": "jest",
         "check-all": "pnpm lint && pnpm typecheck && pnpm test",
@@ -23,29 +23,22 @@
     },
     "devDependencies": {
         "@types/jest": "^30.0.0",
-        "@types/node": "^25.9.3",
-        "@typescript-eslint/eslint-plugin": "^8.61.0",
-        "@typescript-eslint/parser": "^8.61.0",
-        "eslint": "^10.4.1",
-        "eslint-config-prettier": "^10.1.8",
-        "eslint-import-resolver-typescript": "^4.4.5",
-        "eslint-plugin-import": "^2.32.0",
+        "@types/node": "^26.2.0",
         "jest": "^30.4.2",
         "nodemon": "^3.1.14",
-        "prettier": "^3.8.4",
-        "ts-jest": "^29.4.11",
+        "oxlint": "^1.79.0",
+        "prettier": "^3.9.6",
+        "ts-jest": "^29.4.12",
         "ts-node": "^10.9.2",
-        "typescript": "^6.0.3"
+        "typescript": "^7.0.2"
     },
     "dependencies": {
         "@discordjs/opus": "^0.10.0",
         "@discordjs/voice": "^0.19.2",
-        "@eslint/js": "^10.0.1",
-        "dayjs": "^1.11.21",
-        "discord.js": "^14.26.4",
+        "dayjs": "^1.11.23",
+        "discord.js": "^14.27.0",
         "play-dl": "^1.9.7",
         "sodium-native": "^5.1.0",
-        "typescript-eslint": "^8.61.0",
-        "yt-dlp-wrap-plus": "2.4.3"
+        "yt-dlp-wrap-plus": "2.5.0"
     }
 }
